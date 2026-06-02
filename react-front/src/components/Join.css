@@ -1,0 +1,854 @@
+.join-page {
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 44px 18px;
+    box-sizing: border-box;
+    font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+    background:
+        radial-gradient(circle at 18% 16%, rgba(255, 192, 203, 0.44), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(222, 202, 255, 0.42), transparent 30%),
+        radial-gradient(circle at 50% 94%, rgba(255, 219, 170, 0.45), transparent 32%),
+        linear-gradient(135deg, #fffaf3 0%, #fff4f7 46%, #f9f6ff 100%);
+}
+
+.join-page::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.33;
+    background-image:
+        radial-gradient(rgba(151, 97, 82, 0.08) 0.7px, transparent 0.7px),
+        radial-gradient(rgba(205, 116, 142, 0.07) 0.8px, transparent 0.8px);
+    background-size: 22px 22px, 34px 34px;
+    background-position: 0 0, 12px 18px;
+}
+
+/* 구름 */
+.join-page .soft-cloud {
+    position: absolute;
+    border-radius: 999px;
+    opacity: 0.58;
+}
+
+.join-page .cloud-one {
+    width: 420px;
+    height: 150px;
+    left: -120px;
+    top: 110px;
+    background: rgba(255, 255, 255, 0.62);
+    box-shadow:
+        120px -28px 0 rgba(255, 255, 255, 0.36),
+        240px 18px 0 rgba(255, 255, 255, 0.28);
+    animation: joinCloudOneMove 6s ease-in-out infinite;
+}
+
+.join-page .cloud-two {
+    width: 360px;
+    height: 130px;
+    right: -110px;
+    bottom: 120px;
+    background: rgba(255, 255, 255, 0.56);
+    box-shadow:
+        -100px 28px 0 rgba(255, 255, 255, 0.32),
+        -210px -18px 0 rgba(255, 255, 255, 0.24);
+    animation: joinCloudTwoMove 6.5s ease-in-out infinite;
+}
+
+/* 전통 문양 */
+.join-page .traditional-motif {
+    position: absolute;
+    width: 210px;
+    height: 210px;
+    border-radius: 50%;
+    opacity: 0.32;
+    background:
+        radial-gradient(circle at center, #fff9f1 0 18%, transparent 19%),
+        conic-gradient(from 0deg,
+            #f7a8b8 0deg 30deg,
+            #f8d58e 30deg 60deg,
+            #b7d9a8 60deg 90deg,
+            #d7c4ff 90deg 120deg,
+            #f7a8b8 120deg 150deg,
+            #f8d58e 150deg 180deg,
+            #b7d9a8 180deg 210deg,
+            #d7c4ff 210deg 240deg,
+            #f7a8b8 240deg 270deg,
+            #f8d58e 270deg 300deg,
+            #b7d9a8 300deg 330deg,
+            #d7c4ff 330deg 360deg);
+    box-shadow: 0 20px 50px rgba(177, 97, 123, 0.12);
+}
+
+.join-page .traditional-motif::before {
+    content: "";
+    position: absolute;
+    inset: 28px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.8) 0 20%, transparent 21%),
+        repeating-conic-gradient(from 15deg,
+            rgba(255, 255, 255, 0.62) 0deg 12deg,
+            transparent 12deg 24deg);
+}
+
+.join-page .traditional-motif::after {
+    content: "";
+    position: absolute;
+    inset: 72px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.88);
+}
+
+.join-page .motif-left {
+    left: 14%;
+    top: 13%;
+    transform: rotate(-12deg);
+    animation: joinMotifLeftRotate 13s linear infinite;
+}
+
+.join-page .motif-right {
+    right: 14%;
+    bottom: 15%;
+    transform: rotate(16deg);
+    animation: joinMotifRightRotate 14s linear infinite;
+}
+
+/* 보자기 */
+.join-page .bojagi-shape {
+    position: absolute;
+    border-radius: 42px;
+    opacity: 0.63;
+    box-shadow: 0 24px 55px rgba(130, 80, 75, 0.1);
+}
+
+.join-page .bojagi-one {
+    width: 155px;
+    height: 155px;
+    left: 18%;
+    bottom: 22%;
+    background:
+        linear-gradient(90deg, rgba(255, 205, 213, 0.9) 50%, rgba(255, 231, 184, 0.9) 50%);
+    transform: rotate(-13deg);
+    animation: joinBojagiOneMove 4.8s ease-in-out infinite;
+}
+
+.join-page .bojagi-two {
+    width: 126px;
+    height: 126px;
+    right: 18%;
+    top: 22%;
+    background:
+        linear-gradient(90deg, rgba(207, 226, 190, 0.9) 50%, rgba(225, 210, 255, 0.9) 50%);
+    transform: rotate(15deg);
+    animation: joinBojagiTwoMove 5s ease-in-out infinite;
+}
+
+/* Join.js에 bojagi-three가 있어서 숨기지 않고 비슷하게 맞춤 */
+.join-page .bojagi-three {
+    width: 110px;
+    height: 110px;
+    right: 23%;
+    bottom: 34%;
+    background:
+        linear-gradient(90deg, rgba(255, 226, 188, 0.85) 50%, rgba(255, 205, 230, 0.85) 50%);
+    transform: rotate(-10deg);
+    animation: joinBojagiThreeMove 5.3s ease-in-out infinite;
+}
+
+.join-page .bojagi-one::after,
+.join-page .bojagi-two::after,
+.join-page .bojagi-three::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        linear-gradient(0deg, transparent 48%, rgba(255, 255, 255, 0.45) 48%, rgba(255, 255, 255, 0.45) 52%, transparent 52%),
+        linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.38) 48%, rgba(255, 255, 255, 0.38) 52%, transparent 52%);
+}
+
+/* 꽃 */
+.join-page .flower-mark {
+    position: absolute;
+    z-index: 1;
+    font-weight: 900;
+    user-select: none;
+    text-shadow: 0 8px 18px rgba(170, 92, 104, 0.12);
+}
+
+.join-page .flower-one {
+    left: 23%;
+    top: 25%;
+    color: rgba(219, 113, 137, 0.56);
+    font-size: 31px;
+    animation: joinFlowerOneMove 3.2s ease-in-out infinite;
+}
+
+.join-page .flower-two {
+    right: 24%;
+    bottom: 29%;
+    color: rgba(193, 139, 80, 0.46);
+    font-size: 34px;
+    animation: joinFlowerTwoMove 3.5s ease-in-out infinite;
+}
+
+.join-page .flower-three {
+    left: 18%;
+    bottom: 33%;
+    color: rgba(149, 191, 143, 0.45);
+    font-size: 28px;
+    animation: joinFlowerThreeMove 3.7s ease-in-out infinite;
+}
+
+/* 회원가입 카드 - 로그인 카드랑 같은 느낌, 입력칸 많아서 폭만 살짝 넓힘 */
+.join-card {
+    width: 460px;
+    position: relative;
+    z-index: 2;
+    box-sizing: border-box;
+    padding: 43px 36px 30px;
+    border-radius: 40px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 252, 250, 0.96));
+    border: 1px solid rgba(245, 224, 217, 0.98);
+    box-shadow:
+        0 30px 85px rgba(91, 65, 55, 0.14),
+        0 12px 38px rgba(223, 124, 154, 0.09),
+        inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(18px);
+}
+
+.join-card .card-soft-glow {
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    right: -50px;
+    top: -50px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 188, 206, 0.36), transparent 68%);
+    pointer-events: none;
+    animation: joinGlowPulse 3s ease-in-out infinite;
+}
+
+/* 전통 컬러 띠 */
+.join-card .traditional-band {
+    position: absolute;
+    top: 17px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 7px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 246, 239, 0.92);
+    border: 1px solid rgba(245, 218, 207, 0.95);
+}
+
+.join-card .traditional-band span {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    position: relative;
+    background: conic-gradient(#e9839b, #f3c778, #95bf8f, #cbb4ff, #e9839b);
+}
+
+.join-card .traditional-band span::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: #fffaf4;
+}
+
+/* 노리개 */
+.join-card .norigae {
+    position: absolute;
+    top: -35px;
+    right: 36px;
+    width: 58px;
+    height: 104px;
+    transform-origin: top center;
+    animation: joinNorigaeSwing 2.6s ease-in-out infinite;
+}
+
+.join-card .norigae-string {
+    width: 2px;
+    height: 38px;
+    background: #e78398;
+    margin: 0 auto;
+}
+
+.join-card .norigae-knot {
+    width: 39px;
+    height: 39px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.28) 22%, transparent 23%),
+        conic-gradient(from 40deg, #e9839b, #f3c778, #95bf8f, #cbb4ff, #e9839b);
+    box-shadow: 0 10px 22px rgba(194, 94, 120, 0.24);
+}
+
+.join-card .norigae-ribbon {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 3px;
+}
+
+.join-card .norigae-ribbon span {
+    display: block;
+    width: 8px;
+    height: 30px;
+    border-radius: 0 0 10px 10px;
+}
+
+.join-card .norigae-ribbon span:nth-child(1) {
+    background: linear-gradient(180deg, #e9839b, #f7b6c5);
+}
+
+.join-card .norigae-ribbon span:nth-child(2) {
+    background: linear-gradient(180deg, #f3c778, #f8dea5);
+}
+
+.join-card .norigae-ribbon span:nth-child(3) {
+    background: linear-gradient(180deg, #95bf8f, #cfe4bf);
+}
+
+/* 회원가입 헤더 */
+.join-header {
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 22px;
+}
+
+/* 혹시 h1이 남아 있으면 숨김 */
+.join-header h1 {
+    display: none !important;
+}
+
+/* 로고 - 로그인 로고랑 동일한 크기 */
+.join-logo-wrap {
+    width: 100%;
+    height: 90px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 6px;
+    padding: 0;
+    overflow: visible;
+}
+
+.join-logo-img {
+    width: 145px !important;
+    height: 90px !important;
+    max-width: 145px !important;
+    max-height: 90px !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    display: block !important;
+}
+
+/* 회원가입 라벨 */
+.join-page-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    margin: 0 auto 18px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #fff7e8, #ffeef4);
+    color: #a45f76;
+    border: 1px solid #f2d7c7;
+    font-size: 14px;
+    font-weight: 950;
+    letter-spacing: -0.2px;
+    text-align: center;
+    align-self: center;
+}
+
+.join-main-copy {
+    width: 100%;
+    margin: 0;
+    text-align: center;
+    color: #df6f8e;
+    font-size: 21px;
+    line-height: 1.36;
+    font-weight: 950;
+    letter-spacing: -0.7px;
+}
+
+.join-sub-copy {
+    width: 100%;
+    max-width: 340px;
+    margin: 13px auto 0;
+    text-align: center;
+    color: #827785;
+    font-size: 14px;
+    line-height: 1.66;
+}
+
+/* 폼 */
+.join-form {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.join-input-box {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.join-input-box label {
+    color: #4d405c;
+    font-size: 13px;
+    font-weight: 900;
+    padding-left: 5px;
+}
+
+.join-input-box input,
+.join-input-box select,
+.join-input-box textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #eaded4;
+    background: rgba(255, 253, 250, 0.96);
+    color: #2d253a;
+    border-radius: 18px;
+    outline: none;
+    font-size: 14px;
+    font-family: inherit;
+    transition: 0.2s ease;
+}
+
+.join-input-box input,
+.join-input-box select {
+    height: 46px;
+    padding: 0 15px;
+}
+
+.join-input-box textarea {
+    height: 104px;
+    padding: 13px 15px 34px;
+    resize: none;
+    line-height: 1.5;
+}
+
+.join-input-box input::placeholder,
+.join-input-box textarea::placeholder {
+    color: #b8adb7;
+}
+
+.join-input-box input:focus,
+.join-input-box select:focus,
+.join-input-box textarea:focus {
+    border-color: #e9839b;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(233, 131, 155, 0.14);
+    transform: translateY(-2px);
+}
+
+/* 중복확인 줄 */
+.join-check-row {
+    display: flex;
+    gap: 9px;
+    width: 100%;
+}
+
+.join-check-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 중복확인 버튼 - 로그인 버튼이랑 같은 계열 */
+.join-check-btn {
+    width: 92px;
+    height: 46px;
+    border: none;
+    border-radius: 18px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 950;
+    cursor: pointer;
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow:
+        0 13px 26px rgba(233, 131, 155, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    transition: 0.22s ease;
+    white-space: nowrap;
+}
+
+.join-check-btn:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 18px 34px rgba(233, 131, 155, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.join-check-btn.checked {
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #95bf8f 58%, #f3c778 100%);
+}
+
+/* 체크 메시지 */
+.join-check-message {
+    margin: 1px 0 0;
+    padding-left: 5px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.join-check-message.success {
+    color: #5c9b73;
+}
+
+.join-check-message.fail {
+    color: #df6f8e;
+}
+
+/* 자기소개 글자수 */
+.join-textarea-wrap {
+    position: relative;
+}
+
+.join-text-count {
+    position: absolute;
+    right: 13px;
+    bottom: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255, 247, 241, 0.92);
+    border: 1px solid rgba(240, 228, 219, 0.9);
+    color: #a45f76;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+/* 회원가입 버튼 - 로그인 버튼과 동일 */
+.join-button {
+    width: 100%;
+    height: 52px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 19px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 950;
+    cursor: pointer;
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow:
+        0 17px 32px rgba(233, 131, 155, 0.27),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    transition: 0.22s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.join-button:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 22px 40px rgba(233, 131, 155, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.join-button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -130%;
+    width: 90%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    transform: skewX(-20deg);
+}
+
+.join-button:hover::after {
+    animation: joinButtonShine 0.75s ease;
+}
+
+/* 하단 로그인 이동 */
+.join-bottom {
+    margin-top: 21px;
+    padding-top: 19px;
+    border-top: 1px solid #f0e4db;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 9px;
+}
+
+.join-bottom span {
+    color: #817783;
+    font-size: 14px;
+}
+
+.join-bottom button {
+    border: none;
+    background: transparent;
+    color: #df6f8e;
+    font-size: 14px;
+    font-weight: 950;
+    cursor: pointer;
+    padding: 0;
+}
+
+.join-bottom button:hover {
+    text-decoration: underline;
+}
+
+/* 애니메이션 */
+@keyframes joinCloudOneMove {
+    0% {
+        transform: translateX(0) translateY(0);
+    }
+
+    50% {
+        transform: translateX(42px) translateY(-8px);
+    }
+
+    100% {
+        transform: translateX(0) translateY(0);
+    }
+}
+
+@keyframes joinCloudTwoMove {
+    0% {
+        transform: translateX(0) translateY(0);
+    }
+
+    50% {
+        transform: translateX(-38px) translateY(8px);
+    }
+
+    100% {
+        transform: translateX(0) translateY(0);
+    }
+}
+
+@keyframes joinBojagiOneMove {
+    0% {
+        transform: rotate(-13deg) translateY(0);
+    }
+
+    50% {
+        transform: rotate(-6deg) translateY(-18px);
+    }
+
+    100% {
+        transform: rotate(-13deg) translateY(0);
+    }
+}
+
+@keyframes joinBojagiTwoMove {
+    0% {
+        transform: rotate(15deg) translateY(0);
+    }
+
+    50% {
+        transform: rotate(22deg) translateY(15px);
+    }
+
+    100% {
+        transform: rotate(15deg) translateY(0);
+    }
+}
+
+@keyframes joinBojagiThreeMove {
+    0% {
+        transform: rotate(-10deg) translateY(0);
+    }
+
+    50% {
+        transform: rotate(-4deg) translateY(-13px);
+    }
+
+    100% {
+        transform: rotate(-10deg) translateY(0);
+    }
+}
+
+@keyframes joinMotifLeftRotate {
+    0% {
+        transform: rotate(-12deg);
+    }
+
+    100% {
+        transform: rotate(348deg);
+    }
+}
+
+@keyframes joinMotifRightRotate {
+    0% {
+        transform: rotate(16deg);
+    }
+
+    100% {
+        transform: rotate(-344deg);
+    }
+}
+
+@keyframes joinFlowerOneMove {
+    0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: translateY(-13px) rotate(12deg) scale(1.15);
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.5;
+    }
+}
+
+@keyframes joinFlowerTwoMove {
+    0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.46;
+    }
+
+    50% {
+        transform: translateY(12px) rotate(-14deg) scale(1.14);
+        opacity: 0.86;
+    }
+
+    100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.46;
+    }
+}
+
+@keyframes joinFlowerThreeMove {
+    0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.42;
+    }
+
+    50% {
+        transform: translateY(-10px) rotate(10deg) scale(1.1);
+        opacity: 0.75;
+    }
+
+    100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.42;
+    }
+}
+
+@keyframes joinNorigaeSwing {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    25% {
+        transform: rotate(5deg);
+    }
+
+    50% {
+        transform: rotate(0deg);
+    }
+
+    75% {
+        transform: rotate(-5deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes joinGlowPulse {
+    0% {
+        opacity: 0.35;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.85;
+        transform: scale(1.14);
+    }
+
+    100% {
+        opacity: 0.35;
+        transform: scale(1);
+    }
+}
+
+@keyframes joinButtonShine {
+    0% {
+        left: -130%;
+    }
+
+    100% {
+        left: 140%;
+    }
+}
+
+/* 모바일 */
+@media (max-width: 520px) {
+    .join-page {
+        padding: 26px 14px;
+        align-items: flex-start;
+    }
+
+    .join-card {
+        width: 100%;
+        padding: 39px 24px 27px;
+        border-radius: 31px;
+    }
+
+    .join-main-copy {
+        font-size: 18px;
+    }
+
+    .join-page .traditional-motif,
+    .join-page .bojagi-shape,
+    .join-page .flower-mark,
+    .join-page .soft-cloud {
+        display: none;
+    }
+
+    .join-logo-wrap {
+        height: 82px;
+        margin: 0 auto 6px;
+    }
+
+    .join-logo-img {
+        width: 125px !important;
+        height: 78px !important;
+        max-width: 125px !important;
+        max-height: 78px !important;
+    }
+
+    .join-check-row {
+        gap: 7px;
+    }
+
+    .join-check-btn {
+        width: 82px;
+        font-size: 12px;
+    }
+}
