@@ -18,6 +18,9 @@ function FeedDetail() {
     const [commentContent, setCommentContent] = useState("");
     const [commentLoading, setCommentLoading] = useState(false);
 
+    const [editingCommentNo, setEditingCommentNo] = useState(null);
+    const [editingCommentContent, setEditingCommentContent] = useState("");
+
     const feedNo = location.state?.feedNo || sessionStorage.getItem("selectedFeedNo");
 
     useEffect(() => {
@@ -62,17 +65,6 @@ function FeedDetail() {
 
                 if (data.result === "success") {
                     setFeed(data.feed);
-
-                    if (data.feed && data.feed.MAIN_IMG) {
-                        setImageList([
-                            {
-                                IMG_NO: 0,
-                                IMG_URL: data.feed.MAIN_IMG,
-                                IMG_ORDER: 1
-                            }
-                        ]);
-                        setSelectedImageIndex(0);
-                    }
                 } else {
                     alert(data.message);
                     navigate("/home");
@@ -108,10 +100,8 @@ function FeedDetail() {
                 if (data.result === "success") {
                     const list = data.list || [];
 
-                    if (list.length > 0) {
-                        setImageList(list);
-                        setSelectedImageIndex(0);
-                    }
+                    setImageList(list);
+                    setSelectedImageIndex(0);
                 } else {
                     console.log(data.message);
                 }
@@ -227,95 +217,6 @@ function FeedDetail() {
             });
     }
 
-    function addComment() {
-        const token = localStorage.getItem("token");
-        const content = commentContent.trim();
-
-        if (content === "") {
-            alert("댓글 내용을 입력해주세요.");
-            return;
-        }
-
-        if (content.length > 500) {
-            alert("댓글은 500자 이하로 입력해주세요.");
-            return;
-        }
-
-        fetch("http://localhost:3010/feed/comment/add", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({
-                feedNo: feedNo,
-                content: content
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log("댓글 작성 결과", data);
-
-                if (data.result === "success") {
-                    setCommentContent("");
-                    getCommentList();
-
-                    if (feed) {
-                        setFeed({
-                            ...feed,
-                            COMMENT_COUNT: data.commentCount
-                        });
-                    }
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("댓글 등록 중 오류가 발생했습니다.");
-            });
-    }
-
-    function removeComment(commentNo) {
-        const token = localStorage.getItem("token");
-
-        if (!window.confirm("댓글을 삭제할까요?")) {
-            return;
-        }
-
-        fetch("http://localhost:3010/feed/comment/remove", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({
-                commentNo: commentNo
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log("댓글 삭제 결과", data);
-
-                if (data.result === "success") {
-                    getCommentList();
-
-                    if (feed) {
-                        setFeed({
-                            ...feed,
-                            COMMENT_COUNT: data.commentCount
-                        });
-                    }
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("댓글 삭제 중 오류가 발생했습니다.");
-            });
-    }
-
     function toggleBookmark() {
         const token = localStorage.getItem("token");
 
@@ -365,6 +266,160 @@ function FeedDetail() {
             });
     }
 
+    function addComment() {
+        const token = localStorage.getItem("token");
+        const content = commentContent.trim();
+
+        if (content === "") {
+            alert("댓글 내용을 입력해주세요.");
+            return;
+        }
+
+        if (content.length > 500) {
+            alert("댓글은 500자 이하로 입력해주세요.");
+            return;
+        }
+
+        fetch("http://localhost:3010/feed/comment/add", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feedNo,
+                content: content
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("댓글 작성 결과", data);
+
+                if (data.result === "success") {
+                    setCommentContent("");
+                    getCommentList();
+
+                    if (feed) {
+                        setFeed({
+                            ...feed,
+                            COMMENT_COUNT: data.commentCount
+                        });
+                    }
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("댓글 등록 중 오류가 발생했습니다.");
+            });
+    }
+
+    function startEditComment(comment) {
+        if (!comment) {
+            return;
+        }
+
+        setEditingCommentNo(comment.COMMENT_NO);
+        setEditingCommentContent(comment.CONTENT || "");
+    }
+
+    function cancelEditComment() {
+        setEditingCommentNo(null);
+        setEditingCommentContent("");
+    }
+
+    function updateComment() {
+        const token = localStorage.getItem("token");
+        const content = editingCommentContent.trim();
+
+        if (!editingCommentNo) {
+            alert("수정할 댓글 정보가 없습니다.");
+            return;
+        }
+
+        if (content === "") {
+            alert("댓글 내용을 입력해주세요.");
+            return;
+        }
+
+        if (content.length > 500) {
+            alert("댓글은 500자 이하로 입력해주세요.");
+            return;
+        }
+
+        fetch("http://localhost:3010/feed/comment/update", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                commentNo: editingCommentNo,
+                content: content
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("댓글 수정 결과", data);
+
+                if (data.result === "success") {
+                    cancelEditComment();
+                    getCommentList();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("댓글 수정 중 오류가 발생했습니다.");
+            });
+    }
+
+    function removeComment(commentNo) {
+        const token = localStorage.getItem("token");
+
+        if (!window.confirm("댓글을 삭제할까요?")) {
+            return;
+        }
+
+        fetch("http://localhost:3010/feed/comment/remove", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                commentNo: commentNo
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("댓글 삭제 결과", data);
+
+                if (data.result === "success") {
+                    if (editingCommentNo === commentNo) {
+                        cancelEditComment();
+                    }
+
+                    getCommentList();
+
+                    if (feed) {
+                        setFeed({
+                            ...feed,
+                            COMMENT_COUNT: data.commentCount
+                        });
+                    }
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("댓글 삭제 중 오류가 발생했습니다.");
+            });
+    }
+
     function getImageUrlByValue(imgValue) {
         if (!imgValue) {
             return "";
@@ -385,12 +440,38 @@ function FeedDetail() {
         return "/images/" + imgValue;
     }
 
+    function getDisplayImageList() {
+        if (imageList.length > 0) {
+            return imageList;
+        }
+
+        if (feed && feed.MAIN_IMG) {
+            return [
+                {
+                    IMG_NO: 0,
+                    IMG_URL: feed.MAIN_IMG,
+                    IMG_ORDER: 1
+                }
+            ];
+        }
+
+        return [];
+    }
+
     function getSelectedImageUrl() {
-        if (imageList.length === 0) {
+        const displayImageList = getDisplayImageList();
+
+        if (displayImageList.length === 0) {
             return "";
         }
 
-        const selectedImage = imageList[selectedImageIndex];
+        let index = selectedImageIndex;
+
+        if (index < 0 || index >= displayImageList.length) {
+            index = 0;
+        }
+
+        const selectedImage = displayImageList[index];
 
         if (!selectedImage) {
             return "";
@@ -400,23 +481,27 @@ function FeedDetail() {
     }
 
     function prevImage() {
-        if (imageList.length <= 1) {
+        const displayImageList = getDisplayImageList();
+
+        if (displayImageList.length <= 1) {
             return;
         }
 
         if (selectedImageIndex === 0) {
-            setSelectedImageIndex(imageList.length - 1);
+            setSelectedImageIndex(displayImageList.length - 1);
         } else {
             setSelectedImageIndex(selectedImageIndex - 1);
         }
     }
 
     function nextImage() {
-        if (imageList.length <= 1) {
+        const displayImageList = getDisplayImageList();
+
+        if (displayImageList.length <= 1) {
             return;
         }
 
-        if (selectedImageIndex === imageList.length - 1) {
+        if (selectedImageIndex === displayImageList.length - 1) {
             setSelectedImageIndex(0);
         } else {
             setSelectedImageIndex(selectedImageIndex + 1);
@@ -428,7 +513,7 @@ function FeedDetail() {
             return [];
         }
 
-        return hashtags.split(" ").filter(tag => tag !== "");
+        return hashtags.split(" ").filter(tag => tag.trim() !== "");
     }
 
     function getRouteSteps(routeSummary) {
@@ -505,6 +590,7 @@ function FeedDetail() {
 
     const selectedSpot = spotList.length > 0 ? spotList[selectedSpotIndex] : null;
     const selectedImageUrl = getSelectedImageUrl();
+    const displayImageList = getDisplayImageList();
 
     return (
         <div className="detail-page">
@@ -516,8 +602,27 @@ function FeedDetail() {
                     ← 피드로 돌아가기
                 </button>
 
-                <section className="detail-hero-card">
-                    <div className="detail-hero-image detail-gallery-image">
+                <section className="detail-post-card">
+                    <div className="detail-post-head">
+                        <div
+                            className="detail-avatar"
+                            onClick={() => navigate(`/profile/${feed.USER_NO}`)}
+                        >
+                            {getFirstLetter(getWriterName())}
+                        </div>
+
+                        <div className="detail-post-writer">
+                            <strong>{getWriterName()}</strong>
+                            <p>{getDateText(feed.CDATE)}</p>
+                        </div>
+
+                        <div className="detail-post-badge-row">
+                            <span>{safeText(feed.AREA, "Korea")}</span>
+                            <span>{safeText(feed.CATEGORY, "여행")}</span>
+                        </div>
+                    </div>
+
+                    <div className="detail-gallery-box">
                         {selectedImageUrl !== "" ? (
                             <img src={selectedImageUrl} alt={safeText(feed.TITLE, "피드 이미지")} />
                         ) : (
@@ -526,7 +631,7 @@ function FeedDetail() {
                             </div>
                         )}
 
-                        {imageList.length > 1 && (
+                        {displayImageList.length > 1 && (
                             <>
                                 <button
                                     type="button"
@@ -545,55 +650,59 @@ function FeedDetail() {
                                 </button>
 
                                 <div className="detail-gallery-count">
-                                    {selectedImageIndex + 1} / {imageList.length}
+                                    {selectedImageIndex + 1} / {displayImageList.length}
+                                </div>
+
+                                <div className="detail-gallery-dot-row">
+                                    {displayImageList.map((item, index) => (
+                                        <button
+                                            type="button"
+                                            key={item.IMG_NO || index}
+                                            className={selectedImageIndex === index ? "detail-gallery-dot active" : "detail-gallery-dot"}
+                                            onClick={() => setSelectedImageIndex(index)}
+                                        ></button>
+                                    ))}
                                 </div>
                             </>
                         )}
-
-                        <div className="detail-area-badge">
-                            {safeText(feed.AREA, "Korea")}
-                        </div>
-
-                        <div className="detail-category-badge">
-                            {safeText(feed.CATEGORY, "여행")}
-                        </div>
-
-                        {selectedImageUrl === "" && (
-                            <div className="detail-image-flower">✿</div>
-                        )}
-
-                        {imageList.length > 1 && (
-                            <div className="detail-gallery-thumb-row">
-                                {imageList.map((item, index) => (
-                                    <button
-                                        type="button"
-                                        key={item.IMG_NO || index}
-                                        className={selectedImageIndex === index ? "detail-gallery-thumb active" : "detail-gallery-thumb"}
-                                        onClick={() => setSelectedImageIndex(index)}
-                                    >
-                                        <img
-                                            src={getImageUrlByValue(item.IMG_URL || item.MAIN_IMG || item.IMAGE_URL)}
-                                            alt={"피드 썸네일 " + (index + 1)}
-                                        />
-                                    </button>
-                                ))}
-                            </div>
-                        )}
                     </div>
 
-                    <div className="detail-hero-content">
-                        <div className="detail-writer-row">
-                            <div
-                                className="detail-avatar"
-                                onClick={() => navigate(`/profile/${feed.USER_NO}`)}
-                            >
-                                {getFirstLetter(getWriterName())}
-                            </div>
+                    {displayImageList.length > 1 && (
+                        <div className="detail-gallery-thumb-row">
+                            {displayImageList.map((item, index) => (
+                                <button
+                                    type="button"
+                                    key={item.IMG_NO || index}
+                                    className={selectedImageIndex === index ? "detail-gallery-thumb active" : "detail-gallery-thumb"}
+                                    onClick={() => setSelectedImageIndex(index)}
+                                >
+                                    <img
+                                        src={getImageUrlByValue(item.IMG_URL || item.MAIN_IMG || item.IMAGE_URL)}
+                                        alt={"피드 썸네일 " + (index + 1)}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
-                            <div>
-                                <strong>{getWriterName()}</strong>
-                                <p>{getDateText(feed.CDATE)}</p>
-                            </div>
+                    <div className="detail-post-body">
+                        <div className="detail-action-row">
+                            <button
+                                className={feed.LIKE_YN === "Y" ? "detail-like-btn active" : "detail-like-btn"}
+                                onClick={toggleLike}
+                            >
+                                {feed.LIKE_YN === "Y" ? "♥" : "♡"} 좋아요 {feed.LIKE_COUNT || 0}
+                            </button>
+
+                            <button
+                                className={feed.BOOKMARK_YN === "Y" ? "detail-bookmark-btn active" : "detail-bookmark-btn"}
+                                onClick={toggleBookmark}
+                            >
+                                {feed.BOOKMARK_YN === "Y" ? "🔖 저장됨" : "🔖 저장"} {feed.BOOKMARK_COUNT || 0}
+                            </button>
+
+                            <span>조회 {feed.VIEW_COUNT || 0}</span>
+                            <span>💬 {feed.COMMENT_COUNT || 0}</span>
                         </div>
 
                         <h1>{safeText(feed.TITLE, "제목 없음")}</h1>
@@ -608,86 +717,57 @@ function FeedDetail() {
                             ))}
                         </div>
 
-                        <div className="detail-count-row">
-                            <span>조회 {feed.VIEW_COUNT || 0}</span>
-                            <span>💬 {feed.COMMENT_COUNT || 0}</span>
-
-                            <button
-                                className={feed.LIKE_YN === "Y" ? "detail-like-btn active" : "detail-like-btn"}
-                                onClick={toggleLike}
-                            >
-                                {feed.LIKE_YN === "Y" ? "♥ 좋아요" : "♡ 좋아요"} {feed.LIKE_COUNT || 0}
-                            </button>
-
-                            <button
-                                className={feed.BOOKMARK_YN === "Y" ? "detail-bookmark-btn active" : "detail-bookmark-btn"}
-                                onClick={toggleBookmark}
-                            >
-                                {feed.BOOKMARK_YN === "Y" ? "🔖 저장됨" : "🔖 저장"} {feed.BOOKMARK_COUNT || 0}
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="detail-layout">
-                    <article className="detail-content-card">
-                        <div className="detail-section-title">
-                            <span>✦</span>
-                            <div>
-                                <h2>여행 이야기</h2>
-                                <p>작성자가 남긴 여행 기록이에요.</p>
-                            </div>
-                        </div>
-
                         <p className="detail-content-text">
                             {safeText(feed.CONTENT, "작성된 여행 이야기가 없습니다.")}
                         </p>
-                    </article>
+                    </div>
+                </section>
 
-                    <aside className="detail-route-card sns-route-card">
-                        <div className="detail-section-title">
-                            <span>✦</span>
-                            <div>
-                                <h2>여행 루트</h2>
-                                <p>장소를 눌러 위치를 가볍게 확인해보세요.</p>
-                            </div>
+                <section className="detail-route-card sns-route-card">
+                    <div className="detail-section-title">
+                        <span>✦</span>
+                        <div>
+                            <h2>여행 루트</h2>
+                            <p>장소를 눌러 위치를 가볍게 확인해보세요.</p>
                         </div>
+                    </div>
 
-                        {spotList.length > 0 ? (
-                            <>
-                                <div className="sns-route-line">
-                                    {spotList.map((spot, index) => (
-                                        <button
-                                            key={spot.SPOT_NO || spot.ROUTE_NO || index}
-                                            className={selectedSpotIndex === index ? "sns-route-chip active" : "sns-route-chip"}
-                                            onClick={() => setSelectedSpotIndex(index)}
-                                        >
-                                            <span>
-                                                {spot.SPOT_ORDER || spot.PLACE_ORDER || index + 1}
-                                            </span>
-                                            {spot.SPOT_NAME || spot.PLACE_NAME}
-                                        </button>
-                                    ))}
-                                </div>
+                    {spotList.length > 0 ? (
+                        <>
+                            <div className="sns-route-line">
+                                {spotList.map((spot, index) => (
+                                    <button
+                                        key={spot.SPOT_NO || spot.ROUTE_NO || index}
+                                        className={selectedSpotIndex === index ? "sns-route-chip active" : "sns-route-chip"}
+                                        onClick={() => setSelectedSpotIndex(index)}
+                                    >
+                                        <span>
+                                            {spot.SPOT_ORDER || spot.PLACE_ORDER || index + 1}
+                                        </span>
+                                        {spot.SPOT_NAME || spot.PLACE_NAME}
+                                    </button>
+                                ))}
+                            </div>
 
-                                {selectedSpot && (
-                                    <div className="sns-selected-spot">
-                                        <div className="sns-selected-head">
-                                            <div className="sns-selected-number">
-                                                {selectedSpot.SPOT_ORDER || selectedSpot.PLACE_ORDER || selectedSpotIndex + 1}
-                                            </div>
-
-                                            <div>
-                                                <h3>{selectedSpot.SPOT_NAME || selectedSpot.PLACE_NAME}</h3>
-                                                <p>{selectedSpot.SPOT_MEMO || selectedSpot.MEMO}</p>
-                                            </div>
+                            {selectedSpot && (
+                                <div className="sns-selected-spot">
+                                    <div className="sns-selected-head">
+                                        <div className="sns-selected-number">
+                                            {selectedSpot.SPOT_ORDER || selectedSpot.PLACE_ORDER || selectedSpotIndex + 1}
                                         </div>
 
-                                        <div className="sns-selected-address">
-                                            <span>📍</span>
-                                            <p>{selectedSpot.ADDRESS || selectedSpot.PLACE_ADDR || "주소 정보가 없습니다."}</p>
+                                        <div>
+                                            <h3>{selectedSpot.SPOT_NAME || selectedSpot.PLACE_NAME}</h3>
+                                            <p>{selectedSpot.SPOT_MEMO || selectedSpot.MEMO}</p>
                                         </div>
+                                    </div>
 
+                                    <div className="sns-selected-address">
+                                        <span>📍</span>
+                                        <p>{selectedSpot.ADDRESS || selectedSpot.PLACE_ADDR || "주소 정보가 없습니다."}</p>
+                                    </div>
+
+                                    {selectedSpot.LAT && selectedSpot.LNG && (
                                         <div className="sns-map-preview">
                                             <iframe
                                                 title={selectedSpot.SPOT_NAME || selectedSpot.PLACE_NAME || "지도"}
@@ -695,32 +775,32 @@ function FeedDetail() {
                                                 loading="lazy"
                                             ></iframe>
                                         </div>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div className="detail-route-list">
-                                {getRouteSteps(feed.ROUTE_SUMMARY).length > 0 ? (
-                                    getRouteSteps(feed.ROUTE_SUMMARY).map((step, index) => (
-                                        <div className="detail-route-item" key={index}>
-                                            <div className="detail-route-number">
-                                                {index + 1}
-                                            </div>
-
-                                            <div>
-                                                <strong>{step}</strong>
-                                                <p>{index + 1}번째 코스</p>
-                                            </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className="detail-route-list">
+                            {getRouteSteps(feed.ROUTE_SUMMARY).length > 0 ? (
+                                getRouteSteps(feed.ROUTE_SUMMARY).map((step, index) => (
+                                    <div className="detail-route-item" key={index}>
+                                        <div className="detail-route-number">
+                                            {index + 1}
                                         </div>
-                                    ))
-                                ) : (
-                                    <p className="detail-empty-text">
-                                        등록된 루트 정보가 없습니다.
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </aside>
+
+                                        <div>
+                                            <strong>{step}</strong>
+                                            <p>{index + 1}번째 코스</p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="detail-empty-text">
+                                    등록된 루트 정보가 없습니다.
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </section>
 
                 <section className="detail-comment-section">
@@ -783,21 +863,65 @@ function FeedDetail() {
                                                 <span>
                                                     {comment.CDATE_TEXT || getDateText(comment.CDATE)}
                                                 </span>
+
+                                                {comment.MINE_YN === "Y" && editingCommentNo !== comment.COMMENT_NO && (
+                                                    <div className="detail-comment-mini-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="detail-comment-edit-btn"
+                                                            onClick={() => startEditComment(comment)}
+                                                        >
+                                                            수정
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            className="detail-comment-delete-btn"
+                                                            onClick={() => removeComment(comment.COMMENT_NO)}
+                                                        >
+                                                            삭제
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            <p>
-                                                {comment.CONTENT}
-                                            </p>
-                                        </div>
+                                            {editingCommentNo === comment.COMMENT_NO ? (
+                                                <div className="detail-comment-edit-box">
+                                                    <div className="detail-comment-textarea-wrap detail-comment-edit-textarea-wrap">
+                                                        <textarea
+                                                            value={editingCommentContent}
+                                                            maxLength={500}
+                                                            onChange={(e) => setEditingCommentContent(e.target.value)}
+                                                            placeholder="댓글을 수정하세요."
+                                                        />
 
-                                        {comment.MINE_YN === "Y" && (
-                                            <button
-                                                className="detail-comment-delete-btn"
-                                                onClick={() => removeComment(comment.COMMENT_NO)}
-                                            >
-                                                삭제
-                                            </button>
-                                        )}
+                                                        <span>{editingCommentContent.length}/500</span>
+                                                    </div>
+
+                                                    <div className="detail-comment-edit-action-row">
+                                                        <button
+                                                            type="button"
+                                                            className="detail-comment-cancel-btn"
+                                                            onClick={cancelEditComment}
+                                                        >
+                                                            취소
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            className="detail-comment-save-btn"
+                                                            onClick={updateComment}
+                                                        >
+                                                            수정완료
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p>
+                                                    {comment.CONTENT}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </>

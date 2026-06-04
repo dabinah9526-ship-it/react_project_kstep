@@ -103,7 +103,7 @@ function ProfileSettings() {
             .then(res => res.json())
             .then(data => {
                 if (data.result === "success") {
-                    setRequestList(data.list);
+                    setRequestList(data.list || []);
                 } else {
                     alert(data.message);
                 }
@@ -129,7 +129,7 @@ function ProfileSettings() {
             .then(res => res.json())
             .then(data => {
                 if (data.result === "success") {
-                    setFollowerList(data.list);
+                    setFollowerList(data.list || []);
                 } else {
                     alert(data.message);
                 }
@@ -152,7 +152,7 @@ function ProfileSettings() {
             .then(res => res.json())
             .then(data => {
                 if (data.result === "success") {
-                    setFollowingList(data.list);
+                    setFollowingList(data.list || []);
                 } else {
                     alert(data.message);
                 }
@@ -175,7 +175,7 @@ function ProfileSettings() {
             .then(res => res.json())
             .then(data => {
                 if (data.result === "success") {
-                    setBlockList(data.list);
+                    setBlockList(data.list || []);
                 } else {
                     alert(data.message);
                 }
@@ -545,6 +545,10 @@ function ProfileSettings() {
         navigate("/profile/" + targetUserNo);
     }
 
+    function moveStoryManage() {
+        navigate("/story/manage");
+    }
+
     function clickMenu(tabName) {
         setActiveSettingTab(tabName);
 
@@ -572,7 +576,7 @@ function ProfileSettings() {
                     className="settings-user-avatar"
                     onClick={() => moveProfile(user.USER_NO)}
                 >
-                    {user.NICKNAME.substring(0, 1).toUpperCase()}
+                    {(user.NICKNAME || "K").substring(0, 1).toUpperCase()}
                 </div>
 
                 <div
@@ -666,7 +670,7 @@ function ProfileSettings() {
 
                 <section className="settings-summary-card">
                     <div className="settings-summary-avatar">
-                        {profile.NICKNAME.substring(0, 1).toUpperCase()}
+                        {(profile.NICKNAME || "K").substring(0, 1).toUpperCase()}
                     </div>
 
                     <div className="settings-summary-info">
@@ -683,6 +687,10 @@ function ProfileSettings() {
                     <aside className="settings-menu-card">
                         <button className={activeSettingTab === "profile" ? "active" : ""} onClick={() => clickMenu("profile")}>
                             프로필
+                        </button>
+
+                        <button onClick={moveStoryManage}>
+                            스토리 관리
                         </button>
 
                         <button className={activeSettingTab === "privacy" ? "active" : ""} onClick={() => clickMenu("privacy")}>

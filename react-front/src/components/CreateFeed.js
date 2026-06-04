@@ -6,6 +6,18 @@ function CreateFeed() {
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
 
+    const LIMIT = {
+        title: 40,
+        routeSummary: 120,
+        hashtags: 100,
+        content: 1000,
+        spotName: 30,
+        spotMemo: 80,
+        address: 120,
+        lat: 20,
+        lng: 20
+    };
+
     const [title, setTitle] = useState("");
     const [area, setArea] = useState("서울");
     const [category, setCategory] = useState("관광");
@@ -35,13 +47,96 @@ function CreateFeed() {
         }
     }, [navigate]);
 
+    function getCountClass(value, maxLength) {
+        if (value.length >= maxLength) {
+            return "create-inside-count is-limit";
+        }
+
+        return "create-inside-count";
+    }
+
     function openImageFile() {
         if (fileInputRef.current) {
             fileInputRef.current.click();
         }
     }
 
-    function changeFeedImages(e) {
+    function resizeImageFile(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const img = new Image();
+
+                img.onload = function () {
+                    const maxSize = 1400;
+
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxSize || height > maxSize) {
+                        if (width >= height) {
+                            const ratio = maxSize / width;
+                            width = maxSize;
+                            height = Math.round(height * ratio);
+                        } else {
+                            const ratio = maxSize / height;
+                            height = maxSize;
+                            width = Math.round(width * ratio);
+                        }
+                    }
+
+                    const canvas = document.createElement("canvas");
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext("2d");
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(
+                        function (blob) {
+                            if (!blob) {
+                                resolve(file);
+                                return;
+                            }
+
+                            const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+
+                            const resizedFile = new File(
+                                [blob],
+                                fileNameWithoutExt + ".jpg",
+                                {
+                                    type: "image/jpeg",
+                                    lastModified: Date.now()
+                                }
+                            );
+
+                            resolve(resizedFile);
+                        },
+                        "image/jpeg",
+                        0.82
+                    );
+                };
+
+                img.onerror = function () {
+                    resolve(file);
+                };
+
+                img.src = event.target.result;
+            };
+
+            reader.onerror = function () {
+                resolve(file);
+            };
+
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function changeFeedImages(e) {
         const files = Array.from(e.target.files || []);
 
         if (files.length === 0) {
@@ -64,8 +159,10 @@ function CreateFeed() {
                 break;
             }
 
-            newFileList.push(file);
-            newPreviewList.push(URL.createObjectURL(file));
+            const resizedFile = await resizeImageFile(file);
+
+            newFileList.push(resizedFile);
+            newPreviewList.push(URL.createObjectURL(resizedFile));
         }
 
         setImageFileList(newFileList);
@@ -77,6 +174,10 @@ function CreateFeed() {
     }
 
     function removeFeedImage(index) {
+        if (imagePreviewList[index]) {
+            URL.revokeObjectURL(imagePreviewList[index]);
+        }
+
         const newFileList = imageFileList.filter((item, idx) => idx !== index);
         const newPreviewList = imagePreviewList.filter((item, idx) => idx !== index);
 
@@ -141,7 +242,15 @@ function CreateFeed() {
             return;
         }
 
-        setRouteSummary(routeNameList.join(" → "));
+        const madeRouteSummary = routeNameList.join(" → ");
+
+        if (madeRouteSummary.length > LIMIT.routeSummary) {
+            alert("자동 생성된 여행 루트가 너무 길어서 " + LIMIT.routeSummary + "자까지만 입력됩니다.");
+            setRouteSummary(madeRouteSummary.substring(0, LIMIT.routeSummary));
+            return;
+        }
+
+        setRouteSummary(madeRouteSummary);
     }
 
     function getCleanSpotList() {
@@ -171,12 +280,33 @@ function CreateFeed() {
         return cleanList;
     }
 
+    function checkTextLength(value, maxLength, labelName) {
+        if (value.trim().length > maxLength) {
+            alert(labelName + "은(는) 최대 " + maxLength + "자까지 입력할 수 있습니다.");
+            return false;
+        }
+
+        return true;
+    }
+
     function checkSpotList(cleanSpotList) {
         for (let i = 0; i < cleanSpotList.length; i++) {
             const spot = cleanSpotList[i];
 
             if (spot.spotName === "") {
                 alert((i + 1) + "번째 장소명을 입력해주세요.");
+                return false;
+            }
+
+            if (!checkTextLength(spot.spotName, LIMIT.spotName, (i + 1) + "번째 장소명")) {
+                return false;
+            }
+
+            if (!checkTextLength(spot.spotMemo, LIMIT.spotMemo, (i + 1) + "번째 장소 메모")) {
+                return false;
+            }
+
+            if (!checkTextLength(spot.address, LIMIT.address, (i + 1) + "번째 주소")) {
                 return false;
             }
 
@@ -205,6 +335,10 @@ function CreateFeed() {
             return;
         }
 
+        if (!checkTextLength(title, LIMIT.title, "피드 제목")) {
+            return;
+        }
+
         if (imageFileList.length === 0) {
             alert("피드 이미지를 1장 이상 첨부해주세요.");
             return;
@@ -215,8 +349,20 @@ function CreateFeed() {
             return;
         }
 
+        if (!checkTextLength(routeSummary, LIMIT.routeSummary, "여행 루트")) {
+            return;
+        }
+
+        if (!checkTextLength(hashtags, LIMIT.hashtags, "해시태그")) {
+            return;
+        }
+
         if (content.trim() === "") {
             alert("여행 이야기를 입력해주세요.");
+            return;
+        }
+
+        if (!checkTextLength(content, LIMIT.content, "여행 이야기")) {
             return;
         }
 
@@ -359,8 +505,6 @@ function CreateFeed() {
                                             role="button"
                                             tabIndex={0}
                                         >
-                                         
-
                                             <p>
                                                 최대 10장까지 첨부할 수 있어요.
                                                 첫 번째 이미지가 대표 이미지가 됩니다.
@@ -419,11 +563,19 @@ function CreateFeed() {
 
                             <div className="create-input-box">
                                 <label>피드 제목</label>
-                                <input
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="예: 북촌 한옥 골목 산책 루트"
-                                />
+
+                                <div className="create-field-with-count">
+                                    <input
+                                        value={title}
+                                        maxLength={LIMIT.title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        placeholder="예: 북촌 한옥 골목 산책 루트"
+                                    />
+
+                                    <span className={getCountClass(title, LIMIT.title)}>
+                                        {title.length}/{LIMIT.title}
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="create-two-column">
@@ -462,11 +614,18 @@ function CreateFeed() {
                                 <label>여행 루트</label>
 
                                 <div className="create-route-summary-row">
-                                    <input
-                                        value={routeSummary}
-                                        onChange={(e) => setRouteSummary(e.target.value)}
-                                        placeholder="예: 안국역 → 북촌한옥마을 → 작은 찻집 → 삼청동"
-                                    />
+                                    <div className="create-field-with-count">
+                                        <input
+                                            value={routeSummary}
+                                            maxLength={LIMIT.routeSummary}
+                                            onChange={(e) => setRouteSummary(e.target.value)}
+                                            placeholder="예: 안국역 → 북촌한옥마을 → 작은 찻집 → 삼청동"
+                                        />
+
+                                        <span className={getCountClass(routeSummary, LIMIT.routeSummary)}>
+                                            {routeSummary.length}/{LIMIT.routeSummary}
+                                        </span>
+                                    </div>
 
                                     <button
                                         type="button"
@@ -498,48 +657,88 @@ function CreateFeed() {
 
                                             <div className="create-input-box">
                                                 <label>장소명</label>
-                                                <input
-                                                    value={spot.spotName}
-                                                    onChange={(e) => changeSpot(index, "spotName", e.target.value)}
-                                                    placeholder="예: 북촌한옥마을"
-                                                />
+
+                                                <div className="create-field-with-count">
+                                                    <input
+                                                        value={spot.spotName}
+                                                        maxLength={LIMIT.spotName}
+                                                        onChange={(e) => changeSpot(index, "spotName", e.target.value)}
+                                                        placeholder="예: 북촌한옥마을"
+                                                    />
+
+                                                    <span className={getCountClass(spot.spotName, LIMIT.spotName)}>
+                                                        {spot.spotName.length}/{LIMIT.spotName}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div className="create-input-box">
                                                 <label>장소 메모</label>
-                                                <input
-                                                    value={spot.spotMemo}
-                                                    onChange={(e) => changeSpot(index, "spotMemo", e.target.value)}
-                                                    placeholder="예: 사진 찍기 좋은 한옥 골목"
-                                                />
+
+                                                <div className="create-field-with-count">
+                                                    <input
+                                                        value={spot.spotMemo}
+                                                        maxLength={LIMIT.spotMemo}
+                                                        onChange={(e) => changeSpot(index, "spotMemo", e.target.value)}
+                                                        placeholder="예: 사진 찍기 좋은 한옥 골목"
+                                                    />
+
+                                                    <span className={getCountClass(spot.spotMemo, LIMIT.spotMemo)}>
+                                                        {spot.spotMemo.length}/{LIMIT.spotMemo}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div className="create-input-box">
                                                 <label>주소</label>
-                                                <input
-                                                    value={spot.address}
-                                                    onChange={(e) => changeSpot(index, "address", e.target.value)}
-                                                    placeholder="예: 서울 종로구 계동길 37"
-                                                />
+
+                                                <div className="create-field-with-count">
+                                                    <input
+                                                        value={spot.address}
+                                                        maxLength={LIMIT.address}
+                                                        onChange={(e) => changeSpot(index, "address", e.target.value)}
+                                                        placeholder="예: 서울 종로구 계동길 37"
+                                                    />
+
+                                                    <span className={getCountClass(spot.address, LIMIT.address)}>
+                                                        {spot.address.length}/{LIMIT.address}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div className="create-two-column">
                                                 <div className="create-input-box">
                                                     <label>위도</label>
-                                                    <input
-                                                        value={spot.lat}
-                                                        onChange={(e) => changeSpot(index, "lat", e.target.value)}
-                                                        placeholder="예: 37.582604"
-                                                    />
+
+                                                    <div className="create-field-with-count">
+                                                        <input
+                                                            value={spot.lat}
+                                                            maxLength={LIMIT.lat}
+                                                            onChange={(e) => changeSpot(index, "lat", e.target.value)}
+                                                            placeholder="예: 37.582604"
+                                                        />
+
+                                                        <span className={getCountClass(spot.lat, LIMIT.lat)}>
+                                                            {spot.lat.length}/{LIMIT.lat}
+                                                        </span>
+                                                    </div>
                                                 </div>
 
                                                 <div className="create-input-box">
                                                     <label>경도</label>
-                                                    <input
-                                                        value={spot.lng}
-                                                        onChange={(e) => changeSpot(index, "lng", e.target.value)}
-                                                        placeholder="예: 126.983998"
-                                                    />
+
+                                                    <div className="create-field-with-count">
+                                                        <input
+                                                            value={spot.lng}
+                                                            maxLength={LIMIT.lng}
+                                                            onChange={(e) => changeSpot(index, "lng", e.target.value)}
+                                                            placeholder="예: 126.983998"
+                                                        />
+
+                                                        <span className={getCountClass(spot.lng, LIMIT.lng)}>
+                                                            {spot.lng.length}/{LIMIT.lng}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -557,20 +756,36 @@ function CreateFeed() {
 
                             <div className="create-input-box">
                                 <label>해시태그</label>
-                                <input
-                                    value={hashtags}
-                                    onChange={(e) => setHashtags(e.target.value)}
-                                    placeholder="예: #북촌 #한옥 #관광 #감성산책"
-                                />
+
+                                <div className="create-field-with-count">
+                                    <input
+                                        value={hashtags}
+                                        maxLength={LIMIT.hashtags}
+                                        onChange={(e) => setHashtags(e.target.value)}
+                                        placeholder="예: #북촌 #한옥 #관광 #감성산책"
+                                    />
+
+                                    <span className={getCountClass(hashtags, LIMIT.hashtags)}>
+                                        {hashtags.length}/{LIMIT.hashtags}
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="create-input-box">
                                 <label>여행 이야기</label>
-                                <textarea
-                                    value={content}
-                                    onChange={(e) => setContent(e.target.value)}
-                                    placeholder="이 루트의 분위기, 추천 시간대, 사진 찍기 좋은 장소를 적어주세요."
-                                />
+
+                                <div className="create-field-with-count create-textarea-with-count">
+                                    <textarea
+                                        value={content}
+                                        maxLength={LIMIT.content}
+                                        onChange={(e) => setContent(e.target.value)}
+                                        placeholder="이 루트의 분위기, 추천 시간대, 사진 찍기 좋은 장소를 적어주세요."
+                                    />
+
+                                    <span className={getCountClass(content, LIMIT.content)}>
+                                        {content.length}/{LIMIT.content}
+                                    </span>
+                                </div>
                             </div>
 
                             <button className="create-submit-btn" onClick={saveFeed}>
@@ -637,9 +852,12 @@ function CreateFeed() {
 
                             <div className="preview-tags">
                                 {hashtags
-                                    ? hashtags.split(" ").map((tag, index) => (
-                                        <span key={index}>{tag}</span>
-                                    ))
+                                    ? hashtags
+                                        .split(" ")
+                                        .filter(tag => tag.trim() !== "")
+                                        .map((tag, index) => (
+                                            <span key={index}>{tag}</span>
+                                        ))
                                     : (
                                         <>
                                             <span>#한국여행</span>

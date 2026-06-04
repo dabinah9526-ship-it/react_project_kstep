@@ -1,0 +1,337 @@
+.profile-story-circle {
+    width: 118px;
+    height: 118px;
+    position: relative;
+    border-radius: 38px;
+    padding: 4px;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+
+.profile-story-circle:hover {
+    transform: translateY(-2px);
+}
+
+.profile-story-circle.active {
+    background: linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow: 0 14px 30px rgba(233, 131, 155, 0.2);
+}
+
+.profile-story-circle.viewed {
+    background: linear-gradient(135deg, #77737d, #c8c1c9);
+    box-shadow: none;
+}
+
+.profile-story-circle.empty {
+    background: rgba(255, 240, 244, 0.8);
+    border: 1px solid rgba(246, 211, 221, 0.9);
+}
+
+.profile-story-image {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 34px;
+    background: linear-gradient(135deg, #fffaf6, #fff0f4);
+    border: 4px solid #ffffff;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #df6f8e;
+    font-size: 36px;
+    font-weight: 950;
+}
+
+.profile-story-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-story-add-btn {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 4px solid #ffffff;
+    color: #ffffff;
+    background: linear-gradient(135deg, #e9839b, #f3c778);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 950;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.profile-story-add-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.profile-story-hidden-input {
+    display: none;
+}
+
+/* 프로필 스토리 보기 화면 */
+
+.profile-story-viewer-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 9900;
+    background:
+        radial-gradient(circle at 25% 18%, rgba(255, 210, 222, 0.22), transparent 30%),
+        rgba(25, 22, 30, 0.72);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    box-sizing: border-box;
+}
+
+.profile-story-viewer {
+    width: min(100%, 430px);
+    height: min(88vh, 760px);
+    position: relative;
+    overflow: hidden;
+    border-radius: 32px;
+    background: #111111;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+}
+
+.profile-story-viewer::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 96px;
+    z-index: 3;
+    pointer-events: none;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.45) 0%,
+            rgba(0, 0, 0, 0.18) 48%,
+            rgba(0, 0, 0, 0) 100%
+        );
+}
+
+.profile-story-progress-row {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    right: 18px;
+    z-index: 30;
+    display: flex;
+    gap: 6px;
+}
+
+.profile-story-progress-track {
+    flex: 1;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+}
+
+.profile-story-progress-track span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+}
+
+.profile-story-progress-track span.done {
+    width: 100%;
+    background: linear-gradient(90deg, #ffffff 0%, #ffe1e9 45%, #f3c778 100%);
+}
+
+.profile-story-progress-fill {
+    width: 0;
+    background: linear-gradient(90deg, #ffffff 0%, #ffd9e4 35%, #e9839b 70%, #f3c778 100%);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.75);
+    animation: profileStoryProgress 5s linear forwards;
+}
+
+@keyframes profileStoryProgress {
+    from {
+        width: 0%;
+    }
+
+    to {
+        width: 100%;
+    }
+}
+
+/* 회색 박스 제거한 상단 정보 */
+.profile-story-viewer-head {
+    position: absolute;
+    top: 27px;
+    left: 18px;
+    right: 18px;
+    z-index: 20;
+    height: 42px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    backdrop-filter: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.profile-story-viewer-profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.profile-story-viewer-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, #5b4a8d, #e9839b, #f3c778);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 950;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.profile-story-viewer-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-story-viewer-user-text {
+    min-width: 0;
+}
+
+.profile-story-viewer-user-text strong {
+    display: block;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-story-viewer-user-text p {
+    margin: 3px 0 0;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.profile-story-viewer-head button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.22);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.profile-story-viewer-head button:hover {
+    background: rgba(0, 0, 0, 0.36);
+}
+
+.profile-story-viewer-image-box {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #111111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-story-viewer-image-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-story-click-zone {
+    position: absolute;
+    top: 80px;
+    bottom: 0;
+    width: 50%;
+    z-index: 12;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.profile-story-click-zone.left {
+    left: 0;
+}
+
+.profile-story-click-zone.right {
+    right: 0;
+}
+
+.profile-story-viewer-caption {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
+    z-index: 20;
+    padding: 12px 14px;
+    border-radius: 18px;
+    color: #ffffff;
+    background: rgba(40, 38, 45, 0.34);
+    backdrop-filter: blur(10px);
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 800;
+}
+
+.profile-story-delete-btn {
+    position: absolute;
+    right: 18px;
+    bottom: 18px;
+    z-index: 22;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: 15px;
+    border: none;
+    color: #ffffff;
+    background: rgba(223, 111, 142, 0.92);
+    font-size: 12px;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.profile-story-delete-btn:hover {
+    background: rgba(207, 80, 119, 0.98);
+}
+
+@media (max-width: 520px) {
+    .profile-story-viewer {
+        border-radius: 26px;
+    }
+}

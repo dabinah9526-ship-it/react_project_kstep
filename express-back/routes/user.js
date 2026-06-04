@@ -487,16 +487,13 @@ router.post('/login', async (req, res) => {
 
         let isPasswordOk = false;
 
-        // DB 비밀번호가 bcrypt 암호화된 경우
         if (user.PASSWORD && user.PASSWORD.startsWith("$2")) {
             isPasswordOk = await bcrypt.compare(password, user.PASSWORD);
         }
 
-        // DB 비밀번호가 그냥 1234 같은 평문인 경우
         if (!isPasswordOk && user.PASSWORD === password) {
             isPasswordOk = true;
 
-            // 평문 비밀번호를 자동으로 암호화해서 다시 저장
             const hashPassword = await bcrypt.hash(password, 10);
 
             await connection.execute(
@@ -569,6 +566,121 @@ router.post('/login', async (req, res) => {
         res.status(500).json({
             result: "fail",
             message: "로그인 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+// 추천 사용자 목록 조회
+router.get('/recommend/list', async (req, res) => {
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const result = await connection.execute(
+            `
+                SELECT *
+                FROM (
+                    SELECT
+                        U.USER_NO,
+                        U.USER_ID,
+                        U.NICKNAME,
+                        U.USER_TYPE,
+                        U.PROFILE_IMG,
+                        U.BIO AS INTRO,
+                        U.ACCOUNT_PRIVATE_YN,
+
+                        (
+                            SELECT COUNT(*)
+                            FROM FEED F
+                            WHERE F.USER_NO = U.USER_NO
+                        ) AS FEED_COUNT,
+
+                        (
+                            SELECT COUNT(*)
+                            FROM USER_FOLLOW UF
+                            INNER JOIN USERS FU
+                                ON UF.FOLLOWER_NO = FU.USER_NO
+                            WHERE UF.FOLLOWING_NO = U.USER_NO
+                              AND UF.FOLLOW_STATUS = 'ACCEPTED'
+                              AND FU.USER_STATUS = 'Y'
+                        ) AS FOLLOWER_COUNT,
+
+                        CASE
+                            WHEN U.USER_TYPE = 'GUIDE' THEN 1
+                            WHEN U.USER_TYPE = 'LOCAL' THEN 2
+                            ELSE 3
+                        END AS USER_TYPE_ORDER
+
+                    FROM USERS U
+                    WHERE U.USER_STATUS = 'Y'
+                      AND U.USER_NO <> :loginUserNo
+
+                      AND NOT EXISTS (
+                            SELECT 1
+                            FROM USER_BLOCK UB
+                            WHERE
+                                (
+                                    UB.BLOCKER_NO = :loginUserNo
+                                    AND UB.BLOCKED_NO = U.USER_NO
+                                )
+                                OR
+                                (
+                                    UB.BLOCKER_NO = U.USER_NO
+                                    AND UB.BLOCKED_NO = :loginUserNo
+                                )
+                      )
+
+                      AND NOT EXISTS (
+                            SELECT 1
+                            FROM USER_FOLLOW UF
+                            WHERE UF.FOLLOWER_NO = :loginUserNo
+                              AND UF.FOLLOWING_NO = U.USER_NO
+                              AND UF.FOLLOW_STATUS IN ('ACCEPTED', 'PENDING')
+                      )
+
+                    ORDER BY
+                        USER_TYPE_ORDER,
+                        FEED_COUNT DESC,
+                        FOLLOWER_COUNT DESC,
+                        U.USER_NO DESC
+                )
+                WHERE ROWNUM <= 10
+            `,
+            {
+                loginUserNo: loginUser.userNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        res.json({
+            result: "success",
+            list: result.rows
+        });
+
+    } catch (error) {
+        console.error("recommend list error", error);
+
+        res.status(500).json({
+            result: "fail",
+            message: "추천 사용자 목록 조회 중 오류가 발생했습니다.",
+            error: error.message
         });
 
     } finally {
@@ -1137,7 +1249,15 @@ router.post('/password/change', async (req, res) => {
             });
         }
 
-        const isPasswordOk = await bcrypt.compare(currentPassword, result.rows[0].PASSWORD);
+        let isPasswordOk = false;
+
+        if (result.rows[0].PASSWORD && result.rows[0].PASSWORD.startsWith("$2")) {
+            isPasswordOk = await bcrypt.compare(currentPassword, result.rows[0].PASSWORD);
+        }
+
+        if (!isPasswordOk && result.rows[0].PASSWORD === currentPassword) {
+            isPasswordOk = true;
+        }
 
         if (!isPasswordOk) {
             return res.json({
@@ -1233,7 +1353,15 @@ router.post('/leave', async (req, res) => {
             });
         }
 
-        const isPasswordOk = await bcrypt.compare(password, result.rows[0].PASSWORD);
+        let isPasswordOk = false;
+
+        if (result.rows[0].PASSWORD && result.rows[0].PASSWORD.startsWith("$2")) {
+            isPasswordOk = await bcrypt.compare(password, result.rows[0].PASSWORD);
+        }
+
+        if (!isPasswordOk && result.rows[0].PASSWORD === password) {
+            isPasswordOk = true;
+        }
 
         if (!isPasswordOk) {
             return res.json({
@@ -1639,7 +1767,162 @@ router.get('/following/list/:userNo', async (req, res) => {
     }
 });
 
-// 받은 팔로우 요청 목록
+// 팔로우 / 언팔로우
+router.post('/follow/toggle', async (req, res) => {
+    const { targetUserNo } = req.body;
+
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        if (!targetUserNo) {
+            return res.json({
+                result: "fail",
+                message: "사용자 번호가 없습니다."
+            });
+        }
+
+        if (String(loginUser.userNo) === String(targetUserNo)) {
+            return res.json({
+                result: "fail",
+                message: "자기 자신은 팔로우할 수 없습니다."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const blockStatus = await getBlockStatus(connection, loginUser.userNo, targetUserNo);
+
+        if (blockStatus.blockedByMe || blockStatus.blockedMe) {
+            return res.json({
+                result: "fail",
+                message: "팔로우할 수 없는 사용자입니다."
+            });
+        }
+
+        const userCheckResult = await connection.execute(
+            `
+                SELECT
+                    USER_NO,
+                    ACCOUNT_PRIVATE_YN
+                FROM USERS
+                WHERE USER_NO = :targetUserNo
+                  AND USER_STATUS = 'Y'
+            `,
+            {
+                targetUserNo: targetUserNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (userCheckResult.rows.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "존재하지 않는 사용자입니다."
+            });
+        }
+
+        const targetUser = userCheckResult.rows[0];
+
+        const followCheckResult = await connection.execute(
+            `
+                SELECT
+                    FOLLOW_NO,
+                    FOLLOW_STATUS
+                FROM USER_FOLLOW
+                WHERE FOLLOWER_NO = :followerNo
+                  AND FOLLOWING_NO = :followingNo
+            `,
+            {
+                followerNo: loginUser.userNo,
+                followingNo: targetUserNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (followCheckResult.rows.length > 0) {
+            await connection.execute(
+                `
+                    DELETE FROM USER_FOLLOW
+                    WHERE FOLLOWER_NO = :followerNo
+                      AND FOLLOWING_NO = :followingNo
+                `,
+                {
+                    followerNo: loginUser.userNo,
+                    followingNo: targetUserNo
+                }
+            );
+
+            await connection.commit();
+
+            return res.json({
+                result: "success",
+                followYn: "N",
+                message: followCheckResult.rows[0].FOLLOW_STATUS === "PENDING" ? "팔로우 요청을 취소했습니다." : "팔로우를 취소했습니다."
+            });
+        }
+
+        const followStatus = targetUser.ACCOUNT_PRIVATE_YN === "Y" ? "PENDING" : "ACCEPTED";
+
+        await connection.execute(
+            `
+                INSERT INTO USER_FOLLOW (
+                    FOLLOWER_NO,
+                    FOLLOWING_NO,
+                    FOLLOW_STATUS
+                ) VALUES (
+                    :followerNo,
+                    :followingNo,
+                    :followStatus
+                )
+            `,
+            {
+                followerNo: loginUser.userNo,
+                followingNo: targetUserNo,
+                followStatus: followStatus
+            }
+        );
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            followYn: followStatus === "ACCEPTED" ? "Y" : "P",
+            message: followStatus === "ACCEPTED" ? "팔로우했습니다." : "팔로우 요청을 보냈습니다."
+        });
+
+    } catch (error) {
+        console.error("follow toggle error", error);
+
+        if (connection) {
+            await connection.rollback();
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "팔로우 처리 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+// 팔로우 요청 목록
 router.get('/follow/request/list', async (req, res) => {
     let connection;
 
@@ -1876,154 +2159,6 @@ router.post('/follow/remove-follower', async (req, res) => {
     }
 });
 
-// 팔로우 / 언팔로우
-router.post('/follow/toggle', async (req, res) => {
-    const { targetUserNo } = req.body;
-
-    let connection;
-
-    try {
-        const loginUser = checkToken(req);
-
-        if (!loginUser) {
-            return res.status(401).json({
-                result: "fail",
-                message: "로그인이 필요합니다."
-            });
-        }
-
-        if (String(loginUser.userNo) === String(targetUserNo)) {
-            return res.json({
-                result: "fail",
-                message: "자기 자신은 팔로우할 수 없습니다."
-            });
-        }
-
-        connection = await db.getConnection();
-
-        const blockStatus = await getBlockStatus(connection, loginUser.userNo, targetUserNo);
-
-        if (blockStatus.blockedByMe || blockStatus.blockedMe) {
-            return res.json({
-                result: "fail",
-                message: "팔로우할 수 없는 사용자입니다."
-            });
-        }
-
-        const userCheckResult = await connection.execute(
-            `
-                SELECT
-                    USER_NO,
-                    ACCOUNT_PRIVATE_YN
-                FROM USERS
-                WHERE USER_NO = :targetUserNo
-                  AND USER_STATUS = 'Y'
-            `,
-            {
-                targetUserNo: targetUserNo
-            },
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
-            }
-        );
-
-        if (userCheckResult.rows.length === 0) {
-            return res.json({
-                result: "fail",
-                message: "존재하지 않는 사용자입니다."
-            });
-        }
-
-        const targetUser = userCheckResult.rows[0];
-
-        const followCheckResult = await connection.execute(
-            `
-                SELECT
-                    FOLLOW_NO,
-                    FOLLOW_STATUS
-                FROM USER_FOLLOW
-                WHERE FOLLOWER_NO = :followerNo
-                  AND FOLLOWING_NO = :followingNo
-            `,
-            {
-                followerNo: loginUser.userNo,
-                followingNo: targetUserNo
-            },
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
-            }
-        );
-
-        if (followCheckResult.rows.length > 0) {
-            await connection.execute(
-                `
-                    DELETE FROM USER_FOLLOW
-                    WHERE FOLLOWER_NO = :followerNo
-                      AND FOLLOWING_NO = :followingNo
-                `,
-                {
-                    followerNo: loginUser.userNo,
-                    followingNo: targetUserNo
-                }
-            );
-
-            await connection.commit();
-
-            return res.json({
-                result: "success",
-                followYn: "N",
-                message: followCheckResult.rows[0].FOLLOW_STATUS === "PENDING" ? "팔로우 요청을 취소했습니다." : "팔로우를 취소했습니다."
-            });
-        }
-
-        const followStatus = targetUser.ACCOUNT_PRIVATE_YN === "Y" ? "PENDING" : "ACCEPTED";
-
-        await connection.execute(
-            `
-                INSERT INTO USER_FOLLOW (
-                    FOLLOWER_NO,
-                    FOLLOWING_NO,
-                    FOLLOW_STATUS
-                ) VALUES (
-                    :followerNo,
-                    :followingNo,
-                    :followStatus
-                )
-            `,
-            {
-                followerNo: loginUser.userNo,
-                followingNo: targetUserNo,
-                followStatus: followStatus
-            }
-        );
-
-        await connection.commit();
-
-        res.json({
-            result: "success",
-            followYn: followStatus === "ACCEPTED" ? "Y" : "P",
-            message: followStatus === "ACCEPTED" ? "팔로우했습니다." : "팔로우 요청을 보냈습니다."
-        });
-
-    } catch (error) {
-        console.error("follow toggle error", error);
-
-        if (connection) {
-            await connection.rollback();
-        }
-
-        res.status(500).json({
-            result: "fail",
-            message: "팔로우 처리 중 오류가 발생했습니다."
-        });
-
-    } finally {
-        if (connection) {
-            await connection.close();
-        }
-    }
-});
-
 // 차단 목록
 router.get('/block/list', async (req, res) => {
     let connection;
@@ -2102,6 +2237,13 @@ router.post('/block/toggle', async (req, res) => {
             return res.status(401).json({
                 result: "fail",
                 message: "로그인이 필요합니다."
+            });
+        }
+
+        if (!targetUserNo) {
+            return res.json({
+                result: "fail",
+                message: "사용자 번호가 없습니다."
             });
         }
 

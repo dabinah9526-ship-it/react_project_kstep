@@ -13,8 +13,9 @@ import Explore from './components/Explore';
 import Profile from './components/Profile';
 import ProfileSettings from './components/ProfileSettings';
 import Chat from './components/Chat';
-import BusinessBoost from './components/BusinessBoost';
 import Notifications from './components/Notifications';
+import StoryManage from "./components/StoryManage";
+
 
 function App() {
   const location = useLocation();
@@ -40,7 +41,8 @@ function App() {
           <Route path="/profile/settings" element={<ProfileSettings />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/chat" element={<Chat />} />
-          <Route path="/business" element={<BusinessBoost />} />
+          <Route path="/story/manage" element={<StoryManage />} />
+
         </Routes>
       </Box>
     </Box>

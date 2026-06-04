@@ -36,11 +36,7 @@ function Menu() {
             path: "/chat",
             icon: "chat"
         },
-        {
-            name: "비즈니스",
-            path: "/business",
-            icon: "business"
-        },
+        
         {
             name: "프로필",
             path: "/profile/" + loginUserNo,

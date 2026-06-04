@@ -8,6 +8,9 @@ const sampleRouter = require("./routes/sample");
 const userRouter = require("./routes/user");
 const feedRouter = require("./routes/feed");
 const notificationRouter = require("./routes/notification");
+const chatRouter = require("./routes/chat");
+const businessRouter = require("./routes/business");
+const storyRouter = require("./routes/story");
 
 const db = require("./db");
 
@@ -28,6 +31,9 @@ app.use("/sample", sampleRouter);
 app.use("/user", userRouter);
 app.use("/feed", feedRouter);
 app.use("/notification", notificationRouter);
+app.use("/chat", chatRouter);
+app.use("/business", businessRouter);
+app.use("/story", storyRouter);
 
 async function startServer() {
     try {

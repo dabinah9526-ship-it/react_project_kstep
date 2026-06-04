@@ -395,6 +395,19 @@
     margin-top: 16px;
 }
 
+.profile-outline-btn {
+    height: 44px;
+    padding: 0 18px;
+    border-radius: 17px;
+    border: 1px solid rgba(246, 211, 221, 0.95);
+    background: #fffaf6;
+    color: #a45f76;
+    font-size: 13px;
+    font-weight: 950;
+    cursor: pointer;
+    font-family: inherit;
+}
+
 .profile-feed-meta span {
     padding: 7px 10px;
     border-radius: 999px;
@@ -520,6 +533,16 @@
     color: #8d7475;
     font-size: 14px;
     font-weight: 750;
+}
+
+.profile-avatar-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.profile-avatar-box .profile-story-circle {
+    margin-bottom: 12px;
 }
 
 @media (max-width: 1000px) {

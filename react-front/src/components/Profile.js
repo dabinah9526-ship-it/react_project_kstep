@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import ProfileStoryCircle from "./ProfileStoryCircle";
 import "./Profile.css";
 
 function Profile() {
     const navigate = useNavigate();
     const { userNo } = useParams();
 
-    const loginUserNo = localStorage.getItem("userNo");
+    const loginUserNo = getLoginUserNo();
 
     const [profile, setProfile] = useState(null);
     const [feedList, setFeedList] = useState([]);
@@ -42,6 +43,39 @@ function Profile() {
 
         getProfile();
     }, [navigate, userNo]);
+
+    function getLoginUserNo() {
+        const savedUserNo =
+            localStorage.getItem("userNo") ||
+            localStorage.getItem("USER_NO") ||
+            localStorage.getItem("loginUserNo");
+
+        if (savedUserNo) {
+            return savedUserNo;
+        }
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            return "";
+        }
+
+        try {
+            const payload = token.split(".")[1];
+
+            if (!payload) {
+                return "";
+            }
+
+            const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+            const decoded = JSON.parse(window.atob(base64));
+
+            return decoded.userNo || decoded.USER_NO || decoded.user_no || "";
+        } catch (err) {
+            console.error("토큰에서 userNo 읽기 실패", err);
+            return "";
+        }
+    }
 
     function getProfile() {
         const token = localStorage.getItem("token");
@@ -376,15 +410,15 @@ function Profile() {
             return "";
         }
 
-        if (feed.MAIN_IMG.startsWith("http")) {
+        if (String(feed.MAIN_IMG).startsWith("http")) {
             return feed.MAIN_IMG;
         }
 
-        if (feed.MAIN_IMG.startsWith("/images/")) {
+        if (String(feed.MAIN_IMG).startsWith("/images/")) {
             return feed.MAIN_IMG;
         }
 
-        if (feed.MAIN_IMG.startsWith("/uploads/")) {
+        if (String(feed.MAIN_IMG).startsWith("/uploads/")) {
             return "http://localhost:3010" + feed.MAIN_IMG;
         }
 
@@ -612,9 +646,11 @@ function Profile() {
             <div className="profile-container">
                 <section className="profile-hero-card">
                     <div className="profile-avatar-box">
-                        <div className="profile-avatar">
-                            {getFirstLetter(profile.NICKNAME || profile.USER_ID)}
-                        </div>
+                        <ProfileStoryCircle
+                            userNo={profile.USER_NO}
+                            nickname={profile.NICKNAME || profile.USER_ID}
+                            profileImg={profile.PROFILE_IMG}
+                        />
 
                         <div className="profile-type-badge">
                             {safeText(profile.USER_TYPE, "TRAVELER")}
@@ -687,9 +723,15 @@ function Profile() {
 
                         <div className="profile-action-row">
                             {isMyProfile() ? (
-                                <button className="profile-main-btn" onClick={goCreateFeed}>
-                                    + 여행 루트 작성하기
-                                </button>
+                                <>
+                                    <button className="profile-main-btn" onClick={goCreateFeed}>
+                                        + 여행 루트 작성하기
+                                    </button>
+
+                                    <button className="profile-outline-btn" onClick={() => navigate("/story/manage")}>
+                                        스토리 관리
+                                    </button>
+                                </>
                             ) : (
                                 <>
                                     <button className="profile-main-btn" onClick={toggleFollow}>

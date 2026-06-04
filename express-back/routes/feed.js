@@ -1558,15 +1558,19 @@ router.post('/comment/add', async (req, res) => {
         await connection.execute(
             `
                 INSERT INTO FEED_COMMENT (
+                    COMMENT_NO,
                     FEED_NO,
                     USER_NO,
                     CONTENT,
-                    COMMENT_STATUS
+                    COMMENT_STATUS,
+                    CDATE
                 ) VALUES (
+                    (SELECT NVL(MAX(COMMENT_NO), 0) + 1 FROM FEED_COMMENT),
                     :feedNo,
                     :userNo,
                     :content,
-                    'Y'
+                    'Y',
+                    SYSDATE
                 )
             `,
             {
@@ -1600,6 +1604,142 @@ router.post('/comment/add', async (req, res) => {
         res.status(500).json({
             result: "fail",
             message: "댓글 등록 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+// 댓글 수정
+router.post('/comment/update', async (req, res) => {
+    const { commentNo, content } = req.body;
+
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        if (!commentNo) {
+            return res.json({
+                result: "fail",
+                message: "댓글 번호가 없습니다."
+            });
+        }
+
+        const commentContent = content ? String(content).trim() : "";
+
+        if (commentContent === "") {
+            return res.json({
+                result: "fail",
+                message: "댓글 내용을 입력해주세요."
+            });
+        }
+
+        if (commentContent.length > 500) {
+            return res.json({
+                result: "fail",
+                message: "댓글은 500자 이하로 입력해주세요."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const commentResult = await connection.execute(
+            `
+                SELECT
+                    COMMENT_NO,
+                    FEED_NO,
+                    USER_NO
+                FROM FEED_COMMENT
+                WHERE COMMENT_NO = :commentNo
+                  AND NVL(COMMENT_STATUS, 'Y') = 'Y'
+            `,
+            {
+                commentNo: commentNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (commentResult.rows.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "존재하지 않는 댓글입니다."
+            });
+        }
+
+        const comment = commentResult.rows[0];
+
+        if (String(comment.USER_NO) !== String(loginUser.userNo)) {
+            return res.json({
+                result: "fail",
+                message: "내가 작성한 댓글만 수정할 수 있습니다."
+            });
+        }
+
+        const accessInfo = await canViewFeed(connection, loginUser.userNo, comment.FEED_NO);
+
+        if (!accessInfo.exists) {
+            return res.json({
+                result: "fail",
+                message: "존재하지 않는 피드의 댓글입니다."
+            });
+        }
+
+        if (!accessInfo.canView) {
+            return res.json({
+                result: "private",
+                message: "비공개 피드의 댓글은 수정할 수 없습니다."
+            });
+        }
+
+        await connection.execute(
+            `
+                UPDATE FEED_COMMENT
+                SET CONTENT = :content
+                WHERE COMMENT_NO = :commentNo
+                  AND USER_NO = :userNo
+                  AND NVL(COMMENT_STATUS, 'Y') = 'Y'
+            `,
+            {
+                content: commentContent,
+                commentNo: commentNo,
+                userNo: loginUser.userNo
+            }
+        );
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            message: "댓글이 수정되었습니다."
+        });
+
+    } catch (error) {
+        console.error('Error executing comment update query', error);
+
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (rollbackError) {
+                console.error('Rollback error', rollbackError);
+            }
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "댓글 수정 중 오류가 발생했습니다."
         });
 
     } finally {
