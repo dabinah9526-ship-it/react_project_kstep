@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./Chat.css";
 
 function Chat() {
     const navigate = useNavigate();
+    const location = useLocation();
     const messageEndRef = useRef(null);
 
     const nickname = localStorage.getItem("nickname") || "여행자";
@@ -25,13 +26,27 @@ function Chat() {
 
         if (!token) {
             alert("로그인이 필요합니다.");
-            navigate("/");
+            navigate("/", { replace: true });
             return;
         }
 
+        const moveRoomNo =
+            location.state?.roomNo ||
+            sessionStorage.getItem("selectedChatRoomNo") ||
+            selectedRoomNo ||
+            null;
+
+        if (location.state?.roomNo || sessionStorage.getItem("selectedChatRoomNo")) {
+            sessionStorage.removeItem("selectedChatRoomNo");
+        }
+
         pingOnlineStatus();
-        getRoomList(null, false);
+        getRoomList(moveRoomNo, false);
         getRecommendUserList();
+
+        if (moveRoomNo) {
+            setSelectedRoomNo(moveRoomNo);
+        }
 
         const timer = setInterval(() => {
             pingOnlineStatus();
@@ -65,6 +80,42 @@ function Chat() {
         return localStorage.getItem("token");
     }
 
+    function moveLoginPage(message) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userNo");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("nickname");
+        localStorage.removeItem("userType");
+
+        alert(message || "로그인이 필요합니다.");
+        navigate("/", { replace: true });
+    }
+
+    function isLoginRequired(data) {
+        if (!data) {
+            return false;
+        }
+
+        if (String(data.message || "").includes("로그인이 필요합니다")) {
+            return true;
+        }
+
+        if (String(data.message || "").includes("토큰")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function handleLoginRequired(data) {
+        if (isLoginRequired(data)) {
+            moveLoginPage(data.message || "로그인이 필요합니다.");
+            return true;
+        }
+
+        return false;
+    }
+
     function pingOnlineStatus() {
         const token = getToken();
 
@@ -81,14 +132,33 @@ function Chat() {
             .then(res => res.json())
             .then(data => {
                 console.log("온라인 상태 갱신", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
             })
             .catch(err => {
                 console.error(err);
             });
     }
 
+    function refreshChat() {
+        pingOnlineStatus();
+        getRoomList(selectedRoomNo, false);
+        getRecommendUserList();
+
+        if (selectedRoomNo) {
+            getMessageList(selectedRoomNo, false);
+        }
+    }
+
     function getRecommendUserList() {
         const token = getToken();
+
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
 
         fetch("http://localhost:3010/user/recommend/list", {
             method: "GET",
@@ -99,6 +169,10 @@ function Chat() {
             .then(res => res.json())
             .then(data => {
                 console.log("추천 사용자 목록", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setRecommendUserList(data.list || []);
@@ -224,6 +298,11 @@ function Chat() {
     function getRoomList(selectRoomNo, silent) {
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         if (!silent) {
             setLoading(true);
         }
@@ -238,14 +317,31 @@ function Chat() {
             .then(data => {
                 console.log("채팅방 목록", data);
 
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 if (data.result === "success") {
                     const list = data.list || [];
 
                     setRoomList(list);
 
                     if (selectRoomNo) {
-                        setSelectedRoomNo(selectRoomNo);
-                    } else if (!selectedRoomNo && list.length > 0) {
+                        const selectedExists = list.some(item => String(item.ROOM_NO) === String(selectRoomNo));
+
+                        if (selectedExists) {
+                            setSelectedRoomNo(selectRoomNo);
+                        } else if (list.length > 0) {
+                            setSelectedRoomNo(list[0].ROOM_NO);
+                        } else {
+                            setSelectedRoomNo(null);
+                            setMessageList([]);
+                        }
+
+                        return;
+                    }
+
+                    if (!selectedRoomNo && list.length > 0) {
                         setSelectedRoomNo(list[0].ROOM_NO);
                     } else if (selectedRoomNo) {
                         const exists = list.some(item => String(item.ROOM_NO) === String(selectedRoomNo));
@@ -277,6 +373,11 @@ function Chat() {
     function getMessageList(roomNo, silent) {
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         fetch("http://localhost:3010/chat/message/list", {
             method: "POST",
             headers: {
@@ -290,6 +391,10 @@ function Chat() {
             .then(res => res.json())
             .then(data => {
                 console.log("메시지 목록", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setMessageList(data.list || []);
@@ -323,6 +428,11 @@ function Chat() {
     function openRoom(targetUserNo) {
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         fetch("http://localhost:3010/chat/room/open", {
             method: "POST",
             headers: {
@@ -336,6 +446,10 @@ function Chat() {
             .then(res => res.json())
             .then(data => {
                 console.log("채팅방 열기", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setSelectedRoomNo(data.roomNo);
@@ -375,6 +489,11 @@ function Chat() {
 
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         fetch("http://localhost:3010/chat/message/send", {
             method: "POST",
             headers: {
@@ -389,6 +508,10 @@ function Chat() {
             .then(res => res.json())
             .then(data => {
                 console.log("메시지 전송", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setMessage("");
@@ -450,6 +573,11 @@ function Chat() {
     function deleteMessageForMe(messageNo) {
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         fetch("http://localhost:3010/chat/message/delete-for-me", {
             method: "POST",
             headers: {
@@ -463,6 +591,10 @@ function Chat() {
             .then(res => res.json())
             .then(data => {
                 console.log("나에게서만 메시지 삭제", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     closeDeleteModal();
@@ -481,6 +613,11 @@ function Chat() {
     function deleteMessageForEveryone(messageNo) {
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         fetch("http://localhost:3010/chat/message/delete-for-everyone", {
             method: "POST",
             headers: {
@@ -494,6 +631,10 @@ function Chat() {
             .then(res => res.json())
             .then(data => {
                 console.log("모두에게서 메시지 삭제", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     closeDeleteModal();
@@ -522,6 +663,11 @@ function Chat() {
 
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         fetch("http://localhost:3010/chat/room/delete-for-me", {
             method: "POST",
             headers: {
@@ -535,6 +681,10 @@ function Chat() {
             .then(res => res.json())
             .then(data => {
                 console.log("나에게서만 채팅방 삭제", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setSelectedRoomNo(null);
@@ -595,12 +745,23 @@ function Chat() {
                             <h1>여행자 메시지</h1>
                         </div>
 
-                        <button
-                            className="chat-home-btn"
-                            onClick={() => navigate("/home")}
-                        >
-                            홈
-                        </button>
+                        <div className="chat-list-header-actions">
+                            <button
+                                className="chat-home-btn"
+                                onClick={refreshChat}
+                                type="button"
+                            >
+                                새로고침
+                            </button>
+
+                            <button
+                                className="chat-home-btn"
+                                onClick={() => navigate("/home")}
+                                type="button"
+                            >
+                                홈
+                            </button>
+                        </div>
                     </div>
 
                     <div className="chat-search-box">
@@ -628,9 +789,9 @@ function Chat() {
 
                         {!loading && roomList.length === 0 && searchKeyword.trim() === "" && (
                             <>
-                                <div className="chat-empty-user">
-                                    아직 채팅방이 없습니다.
-                                    추천 여행자와 대화를 시작해보세요.
+                                <div className="chat-empty-user pretty">
+                                    <strong>아직 대화가 없어요</strong>
+                                    <span>추천 여행자와 첫 대화를 시작해보세요.</span>
                                 </div>
 
                                 {recommendUserList.length === 0 && (
@@ -787,7 +948,9 @@ function Chat() {
 
                                 {messageList.length === 0 && (
                                     <div className="chat-empty-message">
-                                        아직 대화가 없습니다. 첫 메시지를 보내보세요.
+                                        아직 대화가 없습니다.
+                                        <br />
+                                        첫 메시지를 보내보세요.
                                     </div>
                                 )}
 
@@ -879,8 +1042,62 @@ function Chat() {
                         </>
                     ) : (
                         <div className="chat-no-room">
-                            <h2>선택된 채팅방이 없습니다.</h2>
-                            <p>왼쪽에서 대화 상대를 선택하거나 새 대화를 시작해주세요.</p>
+                            <div className="chat-no-room-icon">✉</div>
+
+                            <p className="chat-no-room-label">K-STEP Direct</p>
+
+                            <h2>{nickname}님, 여행 대화를 시작해보세요</h2>
+
+                            <p>
+                                여행 루트가 궁금한 사람에게 메시지를 보내거나,
+                                추천 여행자와 새 대화를 시작할 수 있어요.
+                            </p>
+
+                            <div className="chat-no-room-actions">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/explore")}
+                                >
+                                    여행자 탐색
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={refreshChat}
+                                >
+                                    새로고침
+                                </button>
+                            </div>
+
+                            {recommendUserList.length > 0 && (
+                                <div className="chat-start-section">
+                                    <strong>추천 대화 상대</strong>
+
+                                    <div className="chat-start-user-row">
+                                        {recommendUserList.slice(0, 4).map(user => (
+                                            <button
+                                                type="button"
+                                                className="chat-start-user"
+                                                key={user.USER_NO}
+                                                onClick={() => openRoom(user.USER_NO)}
+                                            >
+                                                <span className="chat-start-avatar">
+                                                    {getProfileImageUrl(user.PROFILE_IMG) !== "" ? (
+                                                        <img
+                                                            src={getProfileImageUrl(user.PROFILE_IMG)}
+                                                            alt={safeText(user.NICKNAME, "프로필")}
+                                                        />
+                                                    ) : (
+                                                        getFirstLetter(user.NICKNAME || user.USER_ID)
+                                                    )}
+                                                </span>
+
+                                                <em>{safeText(user.NICKNAME, "여행자")}</em>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </section>

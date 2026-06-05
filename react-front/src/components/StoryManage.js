@@ -194,6 +194,24 @@ function StoryManage() {
         setSelectedStory(null);
     }
 
+    function goViewerProfile(user) {
+        if (!user) {
+            return;
+        }
+
+        if (!user.USER_NO) {
+            alert("사용자 번호가 없어서 프로필로 이동할 수 없습니다.");
+            return;
+        }
+
+        closeViewerModal();
+
+        // 중요:
+        // /profile?userNo=60 이 아니라
+        // /profile/60 으로 이동해야 라우터가 찾음
+        navigate("/profile/" + user.USER_NO);
+    }
+
     const activeStoryList = storyList.filter(story => story.ACTIVE_YN === "Y");
     const expiredStoryList = storyList.filter(story => story.ACTIVE_YN !== "Y");
 
@@ -371,7 +389,14 @@ function StoryManage() {
                             )}
 
                             {viewerList.map(user => (
-                                <div className="story-viewer-user-item" key={user.VIEW_NO}>
+                                <div
+                                    className="story-viewer-user-item"
+                                    key={user.VIEW_NO}
+                                    onClick={() => goViewerProfile(user)}
+                                    style={{
+                                        cursor: "pointer"
+                                    }}
+                                >
                                     <div className="story-viewer-user-avatar">
                                         {getImageUrl(user.PROFILE_IMG) !== "" ? (
                                             <img src={getImageUrl(user.PROFILE_IMG)} alt={user.NICKNAME} />

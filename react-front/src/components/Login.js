@@ -8,6 +8,9 @@ function Login() {
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
 
+    // 비밀번호 보이기 / 숨기기
+    const [showPassword, setShowPassword] = useState(false);
+
     function login() {
         if (userId === "") {
             alert("아이디를 입력해주세요.");
@@ -122,17 +125,51 @@ function Login() {
 
                     <div className="login-input-box">
                         <label>비밀번호</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="비밀번호를 입력하세요"
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    login();
-                                }
-                            }}
-                        />
+
+                        <div className="login-password-wrap">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="비밀번호를 입력하세요"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        login();
+                                    }
+                                }}
+                            />
+
+                            <button
+                                type="button"
+                                className="login-password-eye"
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                }}
+                                onClick={() => setShowPassword(!showPassword)}
+                                aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                            >
+                                {showPassword ? (
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        className="login-eye-icon"
+                                        fill="none"
+                                    >
+                                        <path d="M2.5 12C4.2 8.5 7.7 6 12 6C16.3 6 19.8 8.5 21.5 12C19.8 15.5 16.3 18 12 18C7.7 18 4.2 15.5 2.5 12Z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                ) : (
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        className="login-eye-icon"
+                                        fill="none"
+                                    >
+                                        <path d="M2.5 12C4.2 8.5 7.7 6 12 6C16.3 6 19.8 8.5 21.5 12C19.8 15.5 16.3 18 12 18C7.7 18 4.2 15.5 2.5 12Z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                        <path d="M4 4L20 20" />
+                                    </svg>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     <button className="login-button" onClick={login}>

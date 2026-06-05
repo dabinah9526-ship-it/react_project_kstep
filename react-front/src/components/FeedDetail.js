@@ -1,30 +1,28 @@
-import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import "./FeedDetail.css";
 
 function FeedDetail() {
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
+
+    const mapRef = useRef(null);
 
     const [feed, setFeed] = useState(null);
     const [imageList, setImageList] = useState([]);
-    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-
     const [spotList, setSpotList] = useState([]);
-    const [selectedSpotIndex, setSelectedSpotIndex] = useState(0);
-    const [loading, setLoading] = useState(false);
-
     const [commentList, setCommentList] = useState([]);
+
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [commentContent, setCommentContent] = useState("");
+
+    const [loading, setLoading] = useState(false);
     const [commentLoading, setCommentLoading] = useState(false);
-
-    const [editingCommentNo, setEditingCommentNo] = useState(null);
-    const [editingCommentContent, setEditingCommentContent] = useState("");
-
-    const feedNo = location.state?.feedNo || sessionStorage.getItem("selectedFeedNo");
+    const [mapMessage, setMapMessage] = useState("");
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
+        const token = getToken();
 
         if (!token) {
             alert("로그인이 필요합니다.");
@@ -32,20 +30,102 @@ function FeedDetail() {
             return;
         }
 
+        const feedNo = getFeedNo();
+
         if (!feedNo) {
-            alert("피드 정보가 없습니다.");
+            alert("피드 번호가 없습니다.");
             navigate("/home");
             return;
         }
 
-        getFeedDetail();
-        getFeedImageList();
-        getRouteSpotList();
-        getCommentList();
-    }, [feedNo, navigate]);
+        getFeedDetail(feedNo);
+        getFeedImageList(feedNo);
+        getRouteSpotList(feedNo);
+        getCommentList(feedNo);
+    }, []);
 
-    function getFeedDetail() {
-        const token = localStorage.getItem("token");
+    useEffect(() => {
+        if (spotList.length > 0) {
+            drawRouteMap();
+        }
+    }, [spotList]);
+
+    function getToken() {
+        return localStorage.getItem("token");
+    }
+
+    function getFeedNo() {
+        return (
+            location.state?.feedNo ||
+            searchParams.get("feedNo") ||
+            sessionStorage.getItem("selectedFeedNo") ||
+            ""
+        );
+    }
+
+    function safeText(value, defaultText) {
+        if (value === undefined || value === null || value === "") {
+            return defaultText;
+        }
+
+        return value;
+    }
+
+    function getFirstLetter(value) {
+        if (!value) {
+            return "K";
+        }
+
+        return String(value).substring(0, 1).toUpperCase();
+    }
+
+    function getImageUrl(value) {
+        if (!value) {
+            return "";
+        }
+
+        if (String(value).startsWith("http")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/uploads/")) {
+            return "http://localhost:3010" + value;
+        }
+
+        if (String(value).startsWith("/images/")) {
+            return value;
+        }
+
+        return "/images/" + value;
+    }
+
+    function getDateText(value) {
+        if (!value) {
+            return "";
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return "";
+        }
+
+        return date.toLocaleDateString("ko-KR");
+    }
+
+    function getTags(hashtags) {
+        if (!hashtags) {
+            return [];
+        }
+
+        return String(hashtags)
+            .split(" ")
+            .map(tag => tag.trim())
+            .filter(tag => tag !== "");
+    }
+
+    function getFeedDetail(feedNo) {
+        const token = getToken();
 
         setLoading(true);
 
@@ -61,27 +141,30 @@ function FeedDetail() {
         })
             .then(res => res.json())
             .then(data => {
-                console.log("피드 상세 조회 결과", data);
+                console.log("피드 상세 조회", data);
 
                 if (data.result === "success") {
                     setFeed(data.feed);
+                    sessionStorage.setItem("selectedFeedNo", feedNo);
+                } else if (data.result === "private") {
+                    alert(data.message || "비공개 피드입니다.");
+                    navigate("/home");
                 } else {
-                    alert(data.message);
+                    alert(data.message || "피드를 불러오지 못했습니다.");
                     navigate("/home");
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("피드 상세 정보를 불러오는 중 오류가 발생했습니다.");
-                navigate("/home");
+                alert("피드 상세 조회 중 오류가 발생했습니다.");
             })
             .finally(() => {
                 setLoading(false);
             });
     }
 
-    function getFeedImageList() {
-        const token = localStorage.getItem("token");
+    function getFeedImageList(feedNo) {
+        const token = getToken();
 
         fetch("http://localhost:3010/feed/image/list", {
             method: "POST",
@@ -95,24 +178,23 @@ function FeedDetail() {
         })
             .then(res => res.json())
             .then(data => {
-                console.log("피드 이미지 목록 조회 결과", data);
+                console.log("피드 이미지 목록", data);
 
                 if (data.result === "success") {
-                    const list = data.list || [];
-
-                    setImageList(list);
+                    setImageList(data.list || []);
                     setSelectedImageIndex(0);
                 } else {
-                    console.log(data.message);
+                    setImageList([]);
                 }
             })
             .catch(err => {
                 console.error(err);
+                setImageList([]);
             });
     }
 
-    function getRouteSpotList() {
-        const token = localStorage.getItem("token");
+    function getRouteSpotList(feedNo) {
+        const token = getToken();
 
         fetch("http://localhost:3010/feed/route/spot/list", {
             method: "POST",
@@ -126,28 +208,22 @@ function FeedDetail() {
         })
             .then(res => res.json())
             .then(data => {
-                console.log("여행 루트 장소 조회 결과", data);
+                console.log("여행 루트 장소 목록", data);
 
                 if (data.result === "success") {
-                    const list = data.list || [];
-
-                    setSpotList(list);
-
-                    if (list.length > 0) {
-                        setSelectedSpotIndex(0);
-                    }
+                    setSpotList(data.list || []);
                 } else {
-                    alert(data.message);
+                    setSpotList([]);
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("여행 루트 장소를 불러오는 중 오류가 발생했습니다.");
+                setSpotList([]);
             });
     }
 
-    function getCommentList() {
-        const token = localStorage.getItem("token");
+    function getCommentList(feedNo) {
+        const token = getToken();
 
         setCommentLoading(true);
 
@@ -163,281 +239,21 @@ function FeedDetail() {
         })
             .then(res => res.json())
             .then(data => {
-                console.log("댓글 목록 조회 결과", data);
+                console.log("댓글 목록", data);
 
                 if (data.result === "success") {
                     setCommentList(data.list || []);
                 } else {
-                    alert(data.message);
+                    setCommentList([]);
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("댓글 목록을 불러오는 중 오류가 발생했습니다.");
+                setCommentList([]);
             })
             .finally(() => {
                 setCommentLoading(false);
             });
-    }
-
-    function toggleLike() {
-        const token = localStorage.getItem("token");
-
-        if (!feed) {
-            return;
-        }
-
-        fetch("http://localhost:3010/feed/like/toggle", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({
-                feedNo: feed.FEED_NO
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log("좋아요 처리 결과", data);
-
-                if (data.result === "success") {
-                    setFeed({
-                        ...feed,
-                        LIKE_YN: data.likeYn,
-                        LIKE_COUNT: data.likeCount
-                    });
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("좋아요 처리 중 오류가 발생했습니다.");
-            });
-    }
-
-    function toggleBookmark() {
-        const token = localStorage.getItem("token");
-
-        if (!feed) {
-            return;
-        }
-
-        fetch("http://localhost:3010/feed/bookmark/toggle", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({
-                feedNo: feed.FEED_NO
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log("저장 처리 결과", data);
-
-                if (data.result === "success") {
-                    let count = feed.BOOKMARK_COUNT || 0;
-
-                    if (data.bookmarkYn === "Y") {
-                        count = count + 1;
-                    } else {
-                        count = count - 1;
-                    }
-
-                    if (count < 0) {
-                        count = 0;
-                    }
-
-                    setFeed({
-                        ...feed,
-                        BOOKMARK_YN: data.bookmarkYn,
-                        BOOKMARK_COUNT: count
-                    });
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("즐겨찾기 처리 중 오류가 발생했습니다.");
-            });
-    }
-
-    function addComment() {
-        const token = localStorage.getItem("token");
-        const content = commentContent.trim();
-
-        if (content === "") {
-            alert("댓글 내용을 입력해주세요.");
-            return;
-        }
-
-        if (content.length > 500) {
-            alert("댓글은 500자 이하로 입력해주세요.");
-            return;
-        }
-
-        fetch("http://localhost:3010/feed/comment/add", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({
-                feedNo: feedNo,
-                content: content
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log("댓글 작성 결과", data);
-
-                if (data.result === "success") {
-                    setCommentContent("");
-                    getCommentList();
-
-                    if (feed) {
-                        setFeed({
-                            ...feed,
-                            COMMENT_COUNT: data.commentCount
-                        });
-                    }
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("댓글 등록 중 오류가 발생했습니다.");
-            });
-    }
-
-    function startEditComment(comment) {
-        if (!comment) {
-            return;
-        }
-
-        setEditingCommentNo(comment.COMMENT_NO);
-        setEditingCommentContent(comment.CONTENT || "");
-    }
-
-    function cancelEditComment() {
-        setEditingCommentNo(null);
-        setEditingCommentContent("");
-    }
-
-    function updateComment() {
-        const token = localStorage.getItem("token");
-        const content = editingCommentContent.trim();
-
-        if (!editingCommentNo) {
-            alert("수정할 댓글 정보가 없습니다.");
-            return;
-        }
-
-        if (content === "") {
-            alert("댓글 내용을 입력해주세요.");
-            return;
-        }
-
-        if (content.length > 500) {
-            alert("댓글은 500자 이하로 입력해주세요.");
-            return;
-        }
-
-        fetch("http://localhost:3010/feed/comment/update", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({
-                commentNo: editingCommentNo,
-                content: content
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log("댓글 수정 결과", data);
-
-                if (data.result === "success") {
-                    cancelEditComment();
-                    getCommentList();
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("댓글 수정 중 오류가 발생했습니다.");
-            });
-    }
-
-    function removeComment(commentNo) {
-        const token = localStorage.getItem("token");
-
-        if (!window.confirm("댓글을 삭제할까요?")) {
-            return;
-        }
-
-        fetch("http://localhost:3010/feed/comment/remove", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({
-                commentNo: commentNo
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log("댓글 삭제 결과", data);
-
-                if (data.result === "success") {
-                    if (editingCommentNo === commentNo) {
-                        cancelEditComment();
-                    }
-
-                    getCommentList();
-
-                    if (feed) {
-                        setFeed({
-                            ...feed,
-                            COMMENT_COUNT: data.commentCount
-                        });
-                    }
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("댓글 삭제 중 오류가 발생했습니다.");
-            });
-    }
-
-    function getImageUrlByValue(imgValue) {
-        if (!imgValue) {
-            return "";
-        }
-
-        if (String(imgValue).startsWith("http")) {
-            return imgValue;
-        }
-
-        if (String(imgValue).startsWith("/uploads/")) {
-            return "http://localhost:3010" + imgValue;
-        }
-
-        if (String(imgValue).startsWith("/images/")) {
-            return imgValue;
-        }
-
-        return "/images/" + imgValue;
     }
 
     function getDisplayImageList() {
@@ -459,105 +275,57 @@ function FeedDetail() {
     }
 
     function getSelectedImageUrl() {
-        const displayImageList = getDisplayImageList();
+        const list = getDisplayImageList();
 
-        if (displayImageList.length === 0) {
+        if (list.length === 0) {
             return "";
         }
 
         let index = selectedImageIndex;
 
-        if (index < 0 || index >= displayImageList.length) {
+        if (index < 0 || index >= list.length) {
             index = 0;
         }
 
-        const selectedImage = displayImageList[index];
+        const image = list[index];
 
-        if (!selectedImage) {
-            return "";
-        }
-
-        return getImageUrlByValue(selectedImage.IMG_URL || selectedImage.MAIN_IMG || selectedImage.IMAGE_URL);
+        return getImageUrl(
+            image.IMG_URL ||
+            image.IMAGE_URL ||
+            image.MAIN_IMG
+        );
     }
 
     function prevImage() {
-        const displayImageList = getDisplayImageList();
+        const list = getDisplayImageList();
 
-        if (displayImageList.length <= 1) {
+        if (list.length <= 1) {
             return;
         }
 
-        if (selectedImageIndex === 0) {
-            setSelectedImageIndex(displayImageList.length - 1);
-        } else {
-            setSelectedImageIndex(selectedImageIndex - 1);
+        let nextIndex = selectedImageIndex - 1;
+
+        if (nextIndex < 0) {
+            nextIndex = list.length - 1;
         }
+
+        setSelectedImageIndex(nextIndex);
     }
 
     function nextImage() {
-        const displayImageList = getDisplayImageList();
+        const list = getDisplayImageList();
 
-        if (displayImageList.length <= 1) {
+        if (list.length <= 1) {
             return;
         }
 
-        if (selectedImageIndex === displayImageList.length - 1) {
-            setSelectedImageIndex(0);
-        } else {
-            setSelectedImageIndex(selectedImageIndex + 1);
-        }
-    }
+        let nextIndex = selectedImageIndex + 1;
 
-    function getTags(hashtags) {
-        if (!hashtags) {
-            return [];
+        if (nextIndex >= list.length) {
+            nextIndex = 0;
         }
 
-        return hashtags.split(" ").filter(tag => tag.trim() !== "");
-    }
-
-    function getRouteSteps(routeSummary) {
-        if (!routeSummary) {
-            return [];
-        }
-
-        return routeSummary
-            .split("→")
-            .map(step => step.trim())
-            .filter(step => step !== "");
-    }
-
-    function getWriterName() {
-        if (feed && feed.NICKNAME) {
-            return feed.NICKNAME;
-        }
-
-        return "traveler";
-    }
-
-    function getFirstLetter(value) {
-        if (!value) {
-            return "K";
-        }
-
-        return String(value).substring(0, 1).toUpperCase();
-    }
-
-    function getDateText(dateValue) {
-        if (!dateValue) {
-            return "";
-        }
-
-        const date = new Date(dateValue);
-        return date.toLocaleDateString("ko-KR");
-    }
-
-    function safeText(value, defaultText) {
-        if (value === undefined || value === null || value === "") {
-            return defaultText;
-        }
-
-        return value;
+        setSelectedImageIndex(nextIndex);
     }
 
     function moveProfile(userNo) {
@@ -568,11 +336,351 @@ function FeedDetail() {
         navigate("/profile/" + userNo);
     }
 
-    if (loading) {
+    function toggleLike() {
+        if (!feed) {
+            return;
+        }
+
+        const token = getToken();
+
+        fetch("http://localhost:3010/feed/like/toggle", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feed.FEED_NO
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("상세 좋아요 처리", data);
+
+                if (data.result === "success") {
+                    setFeed({
+                        ...feed,
+                        LIKE_YN: data.likeYn,
+                        LIKE_COUNT: data.likeCount
+                    });
+                } else {
+                    alert(data.message || "좋아요 처리에 실패했습니다.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("좋아요 처리 중 오류가 발생했습니다.");
+            });
+    }
+
+    function toggleBookmark() {
+        if (!feed) {
+            return;
+        }
+
+        const token = getToken();
+
+        fetch("http://localhost:3010/feed/bookmark/toggle", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feed.FEED_NO
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("상세 루트 저장 처리", data);
+
+                if (data.result === "success") {
+                    setFeed({
+                        ...feed,
+                        BOOKMARK_YN: data.bookmarkYn,
+                        BOOKMARK_COUNT: data.bookmarkCount
+                    });
+
+                    alert(data.message);
+                } else {
+                    alert(data.message || "루트 저장 처리에 실패했습니다.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("루트 저장 처리 중 오류가 발생했습니다.");
+            });
+    }
+
+    function addComment() {
+        if (!feed) {
+            return;
+        }
+
+        const content = commentContent.trim();
+
+        if (content === "") {
+            alert("댓글 내용을 입력해주세요.");
+            return;
+        }
+
+        if (content.length > 500) {
+            alert("댓글은 500자 이하로 입력해주세요.");
+            return;
+        }
+
+        const token = getToken();
+
+        fetch("http://localhost:3010/feed/comment/add", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feed.FEED_NO,
+                content: content
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("상세 댓글 작성", data);
+
+                if (data.result === "success") {
+                    setCommentContent("");
+                    getCommentList(feed.FEED_NO);
+
+                    setFeed({
+                        ...feed,
+                        COMMENT_COUNT: data.commentCount
+                    });
+                } else {
+                    alert(data.message || "댓글 등록에 실패했습니다.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("댓글 등록 중 오류가 발생했습니다.");
+            });
+    }
+
+    function removeComment(commentNo) {
+        if (!feed) {
+            return;
+        }
+
+        if (!window.confirm("댓글을 삭제할까요?")) {
+            return;
+        }
+
+        const token = getToken();
+
+        fetch("http://localhost:3010/feed/comment/remove", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                commentNo: commentNo
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("상세 댓글 삭제", data);
+
+                if (data.result === "success") {
+                    getCommentList(feed.FEED_NO);
+
+                    setFeed({
+                        ...feed,
+                        COMMENT_COUNT: data.commentCount
+                    });
+                } else {
+                    alert(data.message || "댓글 삭제에 실패했습니다.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("댓글 삭제 중 오류가 발생했습니다.");
+            });
+    }
+
+    function enterComment(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            addComment();
+        }
+    }
+
+    function shareFeed() {
+        if (!feed) {
+            return;
+        }
+
+        const shareUrl = window.location.origin + "/feed/detail?feedNo=" + feed.FEED_NO;
+        const title = safeText(feed.TITLE, "K-STEP 여행 루트");
+
+        if (navigator.share) {
+            navigator.share({
+                title: title,
+                text: title + " 루트를 확인해보세요.",
+                url: shareUrl
+            })
+                .catch(err => {
+                    console.error(err);
+                });
+
+            return;
+        }
+
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => {
+                alert("피드 링크가 복사되었습니다.");
+            })
+            .catch(err => {
+                console.error(err);
+                alert("링크 복사에 실패했습니다.");
+            });
+    }
+
+    function drawRouteMap() {
+        const validSpotList = spotList.filter(spot => {
+            return spot.LAT !== null &&
+                spot.LNG !== null &&
+                spot.LAT !== undefined &&
+                spot.LNG !== undefined &&
+                !Number.isNaN(Number(spot.LAT)) &&
+                !Number.isNaN(Number(spot.LNG));
+        });
+
+        if (validSpotList.length === 0) {
+            setMapMessage("좌표가 있는 장소가 없어서 지도를 표시할 수 없습니다.");
+            return;
+        }
+
+        if (!mapRef.current) {
+            return;
+        }
+
+        if (window.kakao && window.kakao.maps) {
+            window.kakao.maps.load(() => {
+                renderKakaoMap(validSpotList);
+            });
+            return;
+        }
+
+        const kakaoKey = process.env.REACT_APP_KAKAO_MAP_KEY || "";
+
+        if (!kakaoKey) {
+            setMapMessage("카카오 지도 키가 없어서 지도를 표시할 수 없습니다.");
+            return;
+        }
+
+        const oldScript = document.getElementById("kakao-map-script");
+
+        if (oldScript) {
+            oldScript.onload = function () {
+                if (window.kakao && window.kakao.maps) {
+                    window.kakao.maps.load(() => {
+                        renderKakaoMap(validSpotList);
+                    });
+                }
+            };
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.id = "kakao-map-script";
+        script.async = true;
+        script.src = "//dapi.kakao.com/v2/maps/sdk.js?appkey=" + kakaoKey + "&autoload=false";
+
+        script.onload = function () {
+            if (window.kakao && window.kakao.maps) {
+                window.kakao.maps.load(() => {
+                    renderKakaoMap(validSpotList);
+                });
+            }
+        };
+
+        script.onerror = function () {
+            setMapMessage("지도를 불러오지 못했습니다. 카카오 지도 설정을 확인해주세요.");
+        };
+
+        document.head.appendChild(script);
+    }
+
+    function renderKakaoMap(validSpotList) {
+        if (!mapRef.current || !window.kakao || !window.kakao.maps) {
+            return;
+        }
+
+        setMapMessage("");
+
+        const kakao = window.kakao;
+
+        const firstSpot = validSpotList[0];
+        const center = new kakao.maps.LatLng(Number(firstSpot.LAT), Number(firstSpot.LNG));
+
+        const map = new kakao.maps.Map(mapRef.current, {
+            center: center,
+            level: 6
+        });
+
+        const bounds = new kakao.maps.LatLngBounds();
+        const linePath = [];
+
+        for (let i = 0; i < validSpotList.length; i++) {
+            const spot = validSpotList[i];
+            const position = new kakao.maps.LatLng(Number(spot.LAT), Number(spot.LNG));
+
+            bounds.extend(position);
+            linePath.push(position);
+
+            const marker = new kakao.maps.Marker({
+                position: position,
+                map: map
+            });
+
+            const overlay = new kakao.maps.CustomOverlay({
+                position: position,
+                yAnchor: 1.85,
+                content:
+                    '<div class="detail-map-label">' +
+                    '<span>' + (i + 1) + '</span>' +
+                    '<strong>' + safeText(spot.SPOT_NAME, "장소") + '</strong>' +
+                    '</div>'
+            });
+
+            overlay.setMap(map);
+
+            kakao.maps.event.addListener(marker, "click", function () {
+                map.panTo(position);
+            });
+        }
+
+        if (linePath.length >= 2) {
+            const polyline = new kakao.maps.Polyline({
+                path: linePath,
+                strokeWeight: 4,
+                strokeColor: "#df6f8e",
+                strokeOpacity: 0.85,
+                strokeStyle: "solid"
+            });
+
+            polyline.setMap(map);
+        }
+
+        if (validSpotList.length > 1) {
+            map.setBounds(bounds);
+        }
+    }
+
+    if (loading && !feed) {
         return (
             <div className="detail-page">
-                <div className="detail-loading-box">
-                    피드 상세 정보를 불러오는 중입니다...
+                <div className="detail-empty-box">
+                    피드 상세를 불러오는 중입니다...
                 </div>
             </div>
         );
@@ -581,352 +689,317 @@ function FeedDetail() {
     if (!feed) {
         return (
             <div className="detail-page">
-                <div className="detail-loading-box">
-                    피드 정보가 없습니다.
+                <div className="detail-empty-box">
+                    피드를 찾을 수 없습니다.
+
+                    <button
+                        type="button"
+                        onClick={() => navigate("/home")}
+                    >
+                        홈으로 돌아가기
+                    </button>
                 </div>
             </div>
         );
     }
 
-    const selectedSpot = spotList.length > 0 ? spotList[selectedSpotIndex] : null;
-    const selectedImageUrl = getSelectedImageUrl();
     const displayImageList = getDisplayImageList();
+    const selectedImageUrl = getSelectedImageUrl();
 
     return (
         <div className="detail-page">
             <div className="detail-bg-flower detail-flower-one">✿</div>
             <div className="detail-bg-flower detail-flower-two">❀</div>
 
-            <div className="detail-container">
-                <button className="detail-back-btn" onClick={() => navigate("/home")}>
-                    ← 피드로 돌아가기
-                </button>
+            <div className="detail-layout">
+                <div className="detail-topbar">
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                    >
+                        ‹ 뒤로
+                    </button>
 
-                <section className="detail-post-card">
-                    <div className="detail-post-head">
-                        <div
-                            className="detail-avatar"
-                            onClick={() => navigate(`/profile/${feed.USER_NO}`)}
-                        >
-                            {getFirstLetter(getWriterName())}
-                        </div>
+                    <button
+                        type="button"
+                        onClick={() => navigate("/home")}
+                    >
+                        홈으로
+                    </button>
+                </div>
 
-                        <div className="detail-post-writer">
-                            <strong>{getWriterName()}</strong>
-                            <p>{getDateText(feed.CDATE)}</p>
-                        </div>
+                <section className="detail-post-shell">
+                    <div className="detail-left">
+                        <div className="detail-media-card">
+                            <div className="detail-image-box">
+                                {selectedImageUrl !== "" ? (
+                                    <img
+                                        src={selectedImageUrl}
+                                        alt={safeText(feed.TITLE, "피드 이미지")}
+                                    />
+                                ) : (
+                                    <div className="detail-no-image">
+                                        K-STEP
+                                    </div>
+                                )}
 
-                        <div className="detail-post-badge-row">
-                            <span>{safeText(feed.AREA, "Korea")}</span>
-                            <span>{safeText(feed.CATEGORY, "여행")}</span>
-                        </div>
-                    </div>
-
-                    <div className="detail-gallery-box">
-                        {selectedImageUrl !== "" ? (
-                            <img src={selectedImageUrl} alt={safeText(feed.TITLE, "피드 이미지")} />
-                        ) : (
-                            <div className="detail-no-image">
-                                이미지가 없습니다
-                            </div>
-                        )}
-
-                        {displayImageList.length > 1 && (
-                            <>
-                                <button
-                                    type="button"
-                                    className="detail-gallery-arrow detail-gallery-prev"
-                                    onClick={prevImage}
-                                >
-                                    ‹
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="detail-gallery-arrow detail-gallery-next"
-                                    onClick={nextImage}
-                                >
-                                    ›
-                                </button>
-
-                                <div className="detail-gallery-count">
-                                    {selectedImageIndex + 1} / {displayImageList.length}
-                                </div>
-
-                                <div className="detail-gallery-dot-row">
-                                    {displayImageList.map((item, index) => (
+                                {displayImageList.length > 1 && (
+                                    <>
                                         <button
                                             type="button"
-                                            key={item.IMG_NO || index}
-                                            className={selectedImageIndex === index ? "detail-gallery-dot active" : "detail-gallery-dot"}
-                                            onClick={() => setSelectedImageIndex(index)}
-                                        ></button>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </div>
+                                            className="detail-image-arrow detail-image-prev"
+                                            onClick={prevImage}
+                                        >
+                                            ‹
+                                        </button>
 
-                    {displayImageList.length > 1 && (
-                        <div className="detail-gallery-thumb-row">
-                            {displayImageList.map((item, index) => (
-                                <button
-                                    type="button"
-                                    key={item.IMG_NO || index}
-                                    className={selectedImageIndex === index ? "detail-gallery-thumb active" : "detail-gallery-thumb"}
-                                    onClick={() => setSelectedImageIndex(index)}
-                                >
-                                    <img
-                                        src={getImageUrlByValue(item.IMG_URL || item.MAIN_IMG || item.IMAGE_URL)}
-                                        alt={"피드 썸네일 " + (index + 1)}
-                                    />
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                                        <button
+                                            type="button"
+                                            className="detail-image-arrow detail-image-next"
+                                            onClick={nextImage}
+                                        >
+                                            ›
+                                        </button>
 
-                    <div className="detail-post-body">
-                        <div className="detail-action-row">
-                            <button
-                                className={feed.LIKE_YN === "Y" ? "detail-like-btn active" : "detail-like-btn"}
-                                onClick={toggleLike}
-                            >
-                                {feed.LIKE_YN === "Y" ? "♥" : "♡"} 좋아요 {feed.LIKE_COUNT || 0}
-                            </button>
+                                        <div className="detail-image-count">
+                                            {selectedImageIndex + 1} / {displayImageList.length}
+                                        </div>
 
-                            <button
-                                className={feed.BOOKMARK_YN === "Y" ? "detail-bookmark-btn active" : "detail-bookmark-btn"}
-                                onClick={toggleBookmark}
-                            >
-                                {feed.BOOKMARK_YN === "Y" ? "🔖 저장됨" : "🔖 저장"} {feed.BOOKMARK_COUNT || 0}
-                            </button>
-
-                            <span>조회 {feed.VIEW_COUNT || 0}</span>
-                            <span>💬 {feed.COMMENT_COUNT || 0}</span>
-                        </div>
-
-                        <h1>{safeText(feed.TITLE, "제목 없음")}</h1>
-
-                        <p className="detail-route-summary">
-                            {safeText(feed.ROUTE_SUMMARY, "등록된 루트 요약이 없습니다.")}
-                        </p>
-
-                        <div className="detail-tag-row">
-                            {getTags(feed.HASHTAGS).map((tag, index) => (
-                                <span key={index}>{tag}</span>
-                            ))}
-                        </div>
-
-                        <p className="detail-content-text">
-                            {safeText(feed.CONTENT, "작성된 여행 이야기가 없습니다.")}
-                        </p>
-                    </div>
-                </section>
-
-                <section className="detail-route-card sns-route-card">
-                    <div className="detail-section-title">
-                        <span>✦</span>
-                        <div>
-                            <h2>여행 루트</h2>
-                            <p>장소를 눌러 위치를 가볍게 확인해보세요.</p>
-                        </div>
-                    </div>
-
-                    {spotList.length > 0 ? (
-                        <>
-                            <div className="sns-route-line">
-                                {spotList.map((spot, index) => (
-                                    <button
-                                        key={spot.SPOT_NO || spot.ROUTE_NO || index}
-                                        className={selectedSpotIndex === index ? "sns-route-chip active" : "sns-route-chip"}
-                                        onClick={() => setSelectedSpotIndex(index)}
-                                    >
-                                        <span>
-                                            {spot.SPOT_ORDER || spot.PLACE_ORDER || index + 1}
-                                        </span>
-                                        {spot.SPOT_NAME || spot.PLACE_NAME}
-                                    </button>
-                                ))}
+                                        <div className="detail-image-dot-row">
+                                            {displayImageList.map((image, index) => (
+                                                <button
+                                                    type="button"
+                                                    key={image.IMG_NO || image.IMAGE_NO || index}
+                                                    className={selectedImageIndex === index ? "detail-image-dot active" : "detail-image-dot"}
+                                                    onClick={() => setSelectedImageIndex(index)}
+                                                ></button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
-                            {selectedSpot && (
-                                <div className="sns-selected-spot">
-                                    <div className="sns-selected-head">
-                                        <div className="sns-selected-number">
-                                            {selectedSpot.SPOT_ORDER || selectedSpot.PLACE_ORDER || selectedSpotIndex + 1}
-                                        </div>
-
-                                        <div>
-                                            <h3>{selectedSpot.SPOT_NAME || selectedSpot.PLACE_NAME}</h3>
-                                            <p>{selectedSpot.SPOT_MEMO || selectedSpot.MEMO}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="sns-selected-address">
-                                        <span>📍</span>
-                                        <p>{selectedSpot.ADDRESS || selectedSpot.PLACE_ADDR || "주소 정보가 없습니다."}</p>
-                                    </div>
-
-                                    {selectedSpot.LAT && selectedSpot.LNG && (
-                                        <div className="sns-map-preview">
-                                            <iframe
-                                                title={selectedSpot.SPOT_NAME || selectedSpot.PLACE_NAME || "지도"}
-                                                src={`https://maps.google.com/maps?q=${selectedSpot.LAT},${selectedSpot.LNG}&z=15&output=embed`}
-                                                loading="lazy"
-                                            ></iframe>
-                                        </div>
+                            <div className="detail-owner-row">
+                                <div
+                                    className="detail-avatar"
+                                    onClick={() => moveProfile(feed.USER_NO)}
+                                >
+                                    {getImageUrl(feed.PROFILE_IMG) !== "" ? (
+                                        <img
+                                            src={getImageUrl(feed.PROFILE_IMG)}
+                                            alt={safeText(feed.NICKNAME, "프로필")}
+                                        />
+                                    ) : (
+                                        <span>{getFirstLetter(feed.NICKNAME || feed.USER_ID)}</span>
                                     )}
                                 </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="detail-route-list">
-                            {getRouteSteps(feed.ROUTE_SUMMARY).length > 0 ? (
-                                getRouteSteps(feed.ROUTE_SUMMARY).map((step, index) => (
-                                    <div className="detail-route-item" key={index}>
-                                        <div className="detail-route-number">
-                                            {index + 1}
-                                        </div>
 
-                                        <div>
-                                            <strong>{step}</strong>
-                                            <p>{index + 1}번째 코스</p>
-                                        </div>
+                                <div>
+                                    <strong onClick={() => moveProfile(feed.USER_NO)}>
+                                        {safeText(feed.NICKNAME, "traveler")}
+                                    </strong>
+
+                                    <p>{safeText(feed.AREA, "Korea")} · {getDateText(feed.CDATE)}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <section className="detail-route-card">
+                            <div className="detail-section-title">
+                                <div>
+                                    <span>Travel Route</span>
+                                    <h2>여행 루트 지도</h2>
+                                </div>
+
+                                <p>{spotList.length}개의 장소</p>
+                            </div>
+
+                            <div className="detail-map-box">
+                                <div ref={mapRef} className="detail-map"></div>
+
+                                {mapMessage !== "" && (
+                                    <div className="detail-map-message">
+                                        {mapMessage}
                                     </div>
-                                ))
+                                )}
+                            </div>
+
+                            {spotList.length === 0 ? (
+                                <div className="detail-route-empty">
+                                    등록된 여행 루트 장소가 없습니다.
+                                </div>
                             ) : (
-                                <p className="detail-empty-text">
-                                    등록된 루트 정보가 없습니다.
-                                </p>
+                                <div className="detail-spot-list">
+                                    {spotList.map((spot, index) => (
+                                        <div className="detail-spot-item" key={spot.SPOT_NO || index}>
+                                            <div className="detail-spot-number">
+                                                {index + 1}
+                                            </div>
+
+                                            <div className="detail-spot-content">
+                                                <strong>{safeText(spot.SPOT_NAME, "장소명 없음")}</strong>
+
+                                                <p>{safeText(spot.ADDRESS, "주소 정보 없음")}</p>
+
+                                                {spot.SPOT_MEMO && (
+                                                    <span>{spot.SPOT_MEMO}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
-                        </div>
-                    )}
-                </section>
-
-                <section className="detail-comment-section">
-                    <div className="detail-section-title">
-                        <span>✦</span>
-
-                        <div>
-                            <h2>댓글</h2>
-                            <p>여행 루트에 대한 이야기를 남겨보세요.</p>
-                        </div>
+                        </section>
                     </div>
 
-                    <div className="detail-comment-form">
-                        <div className="detail-comment-textarea-wrap">
-                            <textarea
-                                value={commentContent}
-                                maxLength={500}
-                                onChange={(e) => setCommentContent(e.target.value)}
-                                placeholder="댓글을 입력하세요."
-                            />
+                    <aside className="detail-right">
+                        <div className="detail-info-panel">
+                            <div className="detail-title-area">
+                                <div className="detail-chip-row">
+                                    <span>{safeText(feed.CATEGORY, "여행")}</span>
+                                    <span>{safeText(feed.AREA, "Korea")}</span>
+                                </div>
 
-                            <span>{commentContent.length}/500</span>
+                                <h1>{safeText(feed.TITLE, "제목 없음")}</h1>
+
+                                <p>
+                                    {safeText(feed.ROUTE_SUMMARY || feed.CONTENT, "등록된 루트 설명이 없습니다.")}
+                                </p>
+
+                                {getTags(feed.HASHTAGS).length > 0 && (
+                                    <div className="detail-tag-row">
+                                        {getTags(feed.HASHTAGS).map((tag, index) => (
+                                            <button
+                                                type="button"
+                                                key={index}
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="detail-action-row">
+                                <button
+                                    type="button"
+                                    className={feed.LIKE_YN === "Y" ? "active" : ""}
+                                    onClick={toggleLike}
+                                >
+                                    {feed.LIKE_YN === "Y" ? "♥" : "♡"}
+                                    <span>{feed.LIKE_COUNT || 0}</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className={feed.BOOKMARK_YN === "Y" ? "active" : ""}
+                                    onClick={toggleBookmark}
+                                >
+                                    {feed.BOOKMARK_YN === "Y" ? "저장됨" : "루트 저장"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={shareFeed}
+                                >
+                                    공유
+                                </button>
+                            </div>
+
+                            <div className="detail-count-row">
+                                <span>댓글 {feed.COMMENT_COUNT || 0}</span>
+                                <span>저장 {feed.BOOKMARK_COUNT || 0}</span>
+                                <span>조회 {feed.VIEW_COUNT || 0}</span>
+                            </div>
                         </div>
 
-                        <button onClick={addComment}>
-                            등록
-                        </button>
-                    </div>
+                        <div className="detail-comment-panel">
+                            <div className="detail-comment-head">
+                                <div>
+                                    <strong>댓글</strong>
+                                    <p>여행자들의 반응을 바로 확인해요.</p>
+                                </div>
 
-                    <div className="detail-comment-list">
-                        {commentLoading && (
-                            <div className="detail-comment-empty">
-                                댓글을 불러오는 중입니다...
+                                <span>{commentList.length}</span>
                             </div>
-                        )}
 
-                        {!commentLoading && commentList.length === 0 && (
-                            <div className="detail-comment-empty">
-                                아직 댓글이 없습니다.
-                            </div>
-                        )}
+                            <div className="detail-comment-list">
+                                {commentLoading && (
+                                    <div className="detail-comment-empty">
+                                        댓글을 불러오는 중입니다...
+                                    </div>
+                                )}
 
-                        {!commentLoading && commentList.length > 0 && (
-                            <>
-                                {commentList.map((comment) => (
+                                {!commentLoading && commentList.length === 0 && (
+                                    <div className="detail-comment-empty">
+                                        아직 댓글이 없습니다.
+                                        <br />
+                                        첫 댓글을 남겨보세요.
+                                    </div>
+                                )}
+
+                                {!commentLoading && commentList.map(comment => (
                                     <div className="detail-comment-item" key={comment.COMMENT_NO}>
                                         <div
                                             className="detail-comment-avatar"
                                             onClick={() => moveProfile(comment.USER_NO)}
                                         >
-                                            {getFirstLetter(comment.NICKNAME || comment.USER_ID)}
+                                            {getImageUrl(comment.PROFILE_IMG) !== "" ? (
+                                                <img
+                                                    src={getImageUrl(comment.PROFILE_IMG)}
+                                                    alt={safeText(comment.NICKNAME, "프로필")}
+                                                />
+                                            ) : (
+                                                <span>{getFirstLetter(comment.NICKNAME || comment.USER_ID)}</span>
+                                            )}
                                         </div>
 
-                                        <div className="detail-comment-body">
-                                            <div className="detail-comment-head">
+                                        <div className="detail-comment-content">
+                                            <div>
                                                 <strong onClick={() => moveProfile(comment.USER_NO)}>
                                                     {safeText(comment.NICKNAME, "traveler")}
                                                 </strong>
 
-                                                <span>
-                                                    {comment.CDATE_TEXT || getDateText(comment.CDATE)}
-                                                </span>
-
-                                                {comment.MINE_YN === "Y" && editingCommentNo !== comment.COMMENT_NO && (
-                                                    <div className="detail-comment-mini-actions">
-                                                        <button
-                                                            type="button"
-                                                            className="detail-comment-edit-btn"
-                                                            onClick={() => startEditComment(comment)}
-                                                        >
-                                                            수정
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            className="detail-comment-delete-btn"
-                                                            onClick={() => removeComment(comment.COMMENT_NO)}
-                                                        >
-                                                            삭제
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                <span>{safeText(comment.CDATE_TEXT, getDateText(comment.CDATE))}</span>
                                             </div>
 
-                                            {editingCommentNo === comment.COMMENT_NO ? (
-                                                <div className="detail-comment-edit-box">
-                                                    <div className="detail-comment-textarea-wrap detail-comment-edit-textarea-wrap">
-                                                        <textarea
-                                                            value={editingCommentContent}
-                                                            maxLength={500}
-                                                            onChange={(e) => setEditingCommentContent(e.target.value)}
-                                                            placeholder="댓글을 수정하세요."
-                                                        />
-
-                                                        <span>{editingCommentContent.length}/500</span>
-                                                    </div>
-
-                                                    <div className="detail-comment-edit-action-row">
-                                                        <button
-                                                            type="button"
-                                                            className="detail-comment-cancel-btn"
-                                                            onClick={cancelEditComment}
-                                                        >
-                                                            취소
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            className="detail-comment-save-btn"
-                                                            onClick={updateComment}
-                                                        >
-                                                            수정완료
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <p>
-                                                    {comment.CONTENT}
-                                                </p>
-                                            )}
+                                            <p>{comment.CONTENT}</p>
                                         </div>
+
+                                        {comment.MINE_YN === "Y" && (
+                                            <button
+                                                type="button"
+                                                className="detail-comment-delete-btn"
+                                                onClick={() => removeComment(comment.COMMENT_NO)}
+                                            >
+                                                삭제
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
-                            </>
-                        )}
-                    </div>
+                            </div>
+
+                            <div className="detail-comment-input-box">
+                                <textarea
+                                    value={commentContent}
+                                    maxLength={500}
+                                    onChange={(e) => setCommentContent(e.target.value)}
+                                    onKeyDown={enterComment}
+                                    placeholder="댓글 달기..."
+                                ></textarea>
+
+                                <span>{commentContent.length}/500</span>
+
+                                <button
+                                    type="button"
+                                    className={commentContent.trim() === "" ? "disabled" : ""}
+                                    onClick={addComment}
+                                >
+                                    게시
+                                </button>
+                            </div>
+                        </div>
+                    </aside>
                 </section>
             </div>
         </div>

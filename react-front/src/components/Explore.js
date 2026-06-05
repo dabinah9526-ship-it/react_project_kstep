@@ -9,6 +9,9 @@ function Explore() {
     const [loading, setLoading] = useState(false);
     const [searchKeyword, setSearchKeyword] = useState("");
 
+    const [feedImageMap, setFeedImageMap] = useState({});
+    const [imageIndexMap, setImageIndexMap] = useState({});
+
     useEffect(() => {
         const token = localStorage.getItem("token");
 
@@ -20,6 +23,14 @@ function Explore() {
 
         getExploreFeed("");
     }, [navigate]);
+
+    useEffect(() => {
+        if (feedList.length === 0) {
+            return;
+        }
+
+        getFeedImageMap(feedList);
+    }, [feedList]);
 
     function getExploreFeed(keyword) {
         const token = localStorage.getItem("token");
@@ -43,7 +54,7 @@ function Explore() {
                 console.log("탐색 피드 조회", data);
 
                 if (data.result === "success") {
-                    setFeedList(data.list);
+                    setFeedList(data.list || []);
                 } else {
                     alert(data.message);
                 }
@@ -124,19 +135,208 @@ function Explore() {
             return "";
         }
 
-        if (feed.MAIN_IMG.startsWith("http")) {
+        if (String(feed.MAIN_IMG).startsWith("http")) {
             return feed.MAIN_IMG;
         }
 
-        if (feed.MAIN_IMG.startsWith("/images/")) {
+        if (String(feed.MAIN_IMG).startsWith("/images/")) {
             return feed.MAIN_IMG;
         }
 
-        if (feed.MAIN_IMG.startsWith("/uploads/")) {
+        if (String(feed.MAIN_IMG).startsWith("/uploads/")) {
             return "http://localhost:3010" + feed.MAIN_IMG;
         }
 
         return "/images/" + feed.MAIN_IMG;
+    }
+
+    function getImageUrlByValue(value) {
+        if (!value) {
+            return "";
+        }
+
+        if (String(value).startsWith("http")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/images/")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/uploads/")) {
+            return "http://localhost:3010" + value;
+        }
+
+        return "/images/" + value;
+    }
+
+    function getFeedImageMap(list) {
+        const token = localStorage.getItem("token");
+
+        const feedNoList = Array.from(new Set(
+            list
+                .map(feed => feed.FEED_NO)
+                .filter(feedNo => feedNo !== undefined && feedNo !== null)
+        ));
+
+        Promise.all(
+            feedNoList.map(feedNo => {
+                return fetch("http://localhost:3010/feed/image/list", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({
+                        feedNo: feedNo
+                    })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.result === "success") {
+                            return {
+                                feedNo: feedNo,
+                                list: data.list || []
+                            };
+                        }
+
+                        return {
+                            feedNo: feedNo,
+                            list: []
+                        };
+                    })
+                    .catch(err => {
+                        console.error("탐색 피드 이미지 목록 조회 실패", err);
+
+                        return {
+                            feedNo: feedNo,
+                            list: []
+                        };
+                    });
+            })
+        ).then(resultList => {
+            const nextMap = {};
+
+            resultList.forEach(item => {
+                nextMap[String(item.feedNo)] = item.list;
+            });
+
+            setFeedImageMap(prevMap => {
+                return {
+                    ...prevMap,
+                    ...nextMap
+                };
+            });
+        });
+    }
+
+    function getDisplayImageList(feed) {
+        if (!feed) {
+            return [];
+        }
+
+        const imageList = feedImageMap[String(feed.FEED_NO)] || [];
+
+        if (imageList.length > 0) {
+            return imageList;
+        }
+
+        if (feed.MAIN_IMG) {
+            return [
+                {
+                    IMAGE_NO: 0,
+                    IMAGE_URL: feed.MAIN_IMG,
+                    IMAGE_ORDER: 1
+                }
+            ];
+        }
+
+        return [];
+    }
+
+    function getCurrentImageIndex(feed) {
+        if (!feed) {
+            return 0;
+        }
+
+        const displayImageList = getDisplayImageList(feed);
+        let index = imageIndexMap[String(feed.FEED_NO)] || 0;
+
+        if (index < 0 || index >= displayImageList.length) {
+            index = 0;
+        }
+
+        return index;
+    }
+
+    function getSelectedImageUrl(feed) {
+        const displayImageList = getDisplayImageList(feed);
+
+        if (displayImageList.length === 0) {
+            return "";
+        }
+
+        const index = getCurrentImageIndex(feed);
+        const selectedImage = displayImageList[index];
+
+        if (!selectedImage) {
+            return "";
+        }
+
+        return getImageUrlByValue(selectedImage.IMAGE_URL || selectedImage.IMG_URL || selectedImage.MAIN_IMG);
+    }
+
+    function prevFeedImage(e, feed) {
+        e.stopPropagation();
+
+        const displayImageList = getDisplayImageList(feed);
+
+        if (displayImageList.length <= 1) {
+            return;
+        }
+
+        const currentIndex = getCurrentImageIndex(feed);
+        let nextIndex = currentIndex - 1;
+
+        if (nextIndex < 0) {
+            nextIndex = displayImageList.length - 1;
+        }
+
+        setImageIndexMap({
+            ...imageIndexMap,
+            [String(feed.FEED_NO)]: nextIndex
+        });
+    }
+
+    function nextFeedImage(e, feed) {
+        e.stopPropagation();
+
+        const displayImageList = getDisplayImageList(feed);
+
+        if (displayImageList.length <= 1) {
+            return;
+        }
+
+        const currentIndex = getCurrentImageIndex(feed);
+        let nextIndex = currentIndex + 1;
+
+        if (nextIndex >= displayImageList.length) {
+            nextIndex = 0;
+        }
+
+        setImageIndexMap({
+            ...imageIndexMap,
+            [String(feed.FEED_NO)]: nextIndex
+        });
+    }
+
+    function selectFeedImage(e, feed, index) {
+        e.stopPropagation();
+
+        setImageIndexMap({
+            ...imageIndexMap,
+            [String(feed.FEED_NO)]: index
+        });
     }
 
     function getFirstLetter(nickname) {
@@ -144,7 +344,7 @@ function Explore() {
             return "K";
         }
 
-        return nickname.substring(0, 1).toUpperCase();
+        return String(nickname).substring(0, 1).toUpperCase();
     }
 
     return (
@@ -241,12 +441,47 @@ function Explore() {
                                 onClick={() => openFeedDetail(feed.FEED_NO)}
                             >
                                 <div className="explore-image-box">
-                                    {getImageUrl(feed) !== "" ? (
-                                        <img src={getImageUrl(feed)} alt={feed.TITLE} />
+                                    {getSelectedImageUrl(feed) !== "" ? (
+                                        <img src={getSelectedImageUrl(feed)} alt={feed.TITLE} />
                                     ) : (
                                         <div className="explore-placeholder">
                                             <span>{feed.AREA || "K-STEP"}</span>
                                         </div>
+                                    )}
+
+                                    {getDisplayImageList(feed).length > 1 && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                className="explore-image-arrow explore-image-prev"
+                                                onClick={(e) => prevFeedImage(e, feed)}
+                                            >
+                                                ‹
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="explore-image-arrow explore-image-next"
+                                                onClick={(e) => nextFeedImage(e, feed)}
+                                            >
+                                                ›
+                                            </button>
+
+                                            <div className="explore-image-count">
+                                                {getCurrentImageIndex(feed) + 1} / {getDisplayImageList(feed).length}
+                                            </div>
+
+                                            <div className="explore-image-dot-row">
+                                                {getDisplayImageList(feed).map((image, index) => (
+                                                    <button
+                                                        type="button"
+                                                        key={image.IMAGE_NO || image.IMG_NO || index}
+                                                        className={getCurrentImageIndex(feed) === index ? "explore-image-dot active" : "explore-image-dot"}
+                                                        onClick={(e) => selectFeedImage(e, feed, index)}
+                                                    ></button>
+                                                ))}
+                                            </div>
+                                        </>
                                     )}
 
                                     <button

@@ -21,6 +21,56 @@ function Join() {
     const [passwordCheckMessage, setPasswordCheckMessage] = useState("");
     const [nicknameCheckMessage, setNicknameCheckMessage] = useState("");
 
+    const [showPassword, setShowPassword] = useState(false);
+    const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+
+    function EyeIcon({ slash }) {
+        return (
+            <svg
+                viewBox="0 0 24 24"
+                className="join-eye-icon"
+                fill="none"
+            >
+                <path d="M2.5 12C4.2 8.5 7.7 6 12 6C16.3 6 19.8 8.5 21.5 12C19.8 15.5 16.3 18 12 18C7.7 18 4.2 15.5 2.5 12Z" />
+                <circle cx="12" cy="12" r="3" />
+
+                {slash && (
+                    <path d="M4 4L20 20" />
+                )}
+            </svg>
+        );
+    }
+
+    function checkPasswordAuto(nextPassword, nextPasswordConfirm) {
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,20}$/;
+
+        if (nextPasswordConfirm === "") {
+            setPasswordCheck(false);
+            setPasswordCheckMessage("");
+            return;
+        }
+
+        if (nextPassword === "") {
+            setPasswordCheck(false);
+            setPasswordCheckMessage("비밀번호를 먼저 입력해주세요.");
+            return;
+        }
+
+        if (!passwordRegex.test(nextPassword)) {
+            setPasswordCheck(false);
+            setPasswordCheckMessage("비밀번호는 영문과 숫자를 포함해서 8~20자로 입력해주세요.");
+            return;
+        }
+
+        if (nextPassword === nextPasswordConfirm) {
+            setPasswordCheck(true);
+            setPasswordCheckMessage("비밀번호가 일치합니다.");
+        } else {
+            setPasswordCheck(false);
+            setPasswordCheckMessage("비밀번호가 일치하지 않습니다.");
+        }
+    }
+
     function checkUserId() {
         if (userId === "") {
             alert("아이디를 입력해주세요.");
@@ -51,37 +101,6 @@ function Join() {
                 console.error(err);
                 alert("아이디 중복체크 중 오류가 발생했습니다.");
             });
-    }
-
-    function checkPasswordMatch() {
-        if (password === "") {
-            alert("비밀번호를 입력해주세요.");
-            return;
-        }
-
-        if (passwordConfirm === "") {
-            alert("비밀번호 확인을 입력해주세요.");
-            return;
-        }
-
-        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,20}$/;
-
-        if (!passwordRegex.test(password)) {
-            setPasswordCheck(false);
-            setPasswordCheckMessage("비밀번호는 영문과 숫자를 포함해서 8~20자로 입력해주세요.");
-            alert("비밀번호는 영문과 숫자를 포함해서 8~20자로 입력해주세요.");
-            return;
-        }
-
-        if (password === passwordConfirm) {
-            setPasswordCheck(true);
-            setPasswordCheckMessage("비밀번호가 일치합니다.");
-            alert("비밀번호가 일치합니다.");
-        } else {
-            setPasswordCheck(false);
-            setPasswordCheckMessage("비밀번호가 일치하지 않습니다.");
-            alert("비밀번호가 일치하지 않습니다.");
-        }
     }
 
     function checkNickname() {
@@ -149,13 +168,13 @@ function Join() {
             return;
         }
 
-        if (!passwordCheck) {
-            alert("비밀번호 확인을 해주세요.");
+        if (password !== passwordConfirm) {
+            alert("비밀번호가 일치하지 않습니다.");
             return;
         }
 
-        if (password !== passwordConfirm) {
-            alert("비밀번호가 일치하지 않습니다.");
+        if (!passwordCheck) {
+            alert("비밀번호를 다시 확인해주세요.");
             return;
         }
 
@@ -290,39 +309,59 @@ function Join() {
                     <div className="join-input-box">
                         <label>비밀번호</label>
 
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => {
-                                setPassword(e.target.value);
-                                setPasswordCheck(false);
-                                setPasswordCheckMessage("");
-                            }}
-                            placeholder="영문+숫자 포함 8~20자"
-                        />
+                        <div className="join-password-wrap">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                value={password}
+                                onChange={(e) => {
+                                    const nextPassword = e.target.value;
+
+                                    setPassword(nextPassword);
+                                    checkPasswordAuto(nextPassword, passwordConfirm);
+                                }}
+                                placeholder="영문+숫자 포함 8~20자"
+                            />
+
+                            <button
+                                type="button"
+                                className="join-password-eye"
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                }}
+                                onClick={() => setShowPassword(!showPassword)}
+                                aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                            >
+                                <EyeIcon slash={!showPassword} />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="join-input-box">
                         <label>비밀번호 확인</label>
 
-                        <div className="join-check-row">
+                        <div className="join-password-wrap">
                             <input
-                                type="password"
+                                type={showPasswordConfirm ? "text" : "password"}
                                 value={passwordConfirm}
                                 onChange={(e) => {
-                                    setPasswordConfirm(e.target.value);
-                                    setPasswordCheck(false);
-                                    setPasswordCheckMessage("");
+                                    const nextPasswordConfirm = e.target.value;
+
+                                    setPasswordConfirm(nextPasswordConfirm);
+                                    checkPasswordAuto(password, nextPasswordConfirm);
                                 }}
                                 placeholder="비밀번호를 다시 입력하세요"
                             />
 
                             <button
                                 type="button"
-                                className={passwordCheck ? "join-check-btn checked" : "join-check-btn"}
-                                onClick={checkPasswordMatch}
+                                className="join-password-eye"
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                }}
+                                onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                                aria-label={showPasswordConfirm ? "비밀번호 확인 숨기기" : "비밀번호 확인 보기"}
                             >
-                                {passwordCheck ? "완료" : "확인"}
+                                <EyeIcon slash={!showPasswordConfirm} />
                             </button>
                         </div>
 

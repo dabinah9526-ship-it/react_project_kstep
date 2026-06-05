@@ -65,6 +65,20 @@ function checkToken(req) {
     }
 }
 
+function getLoginUserNo(loginUser) {
+    if (!loginUser) {
+        return "";
+    }
+
+    return (
+        loginUser.userNo ||
+        loginUser.USER_NO ||
+        loginUser.user_no ||
+        loginUser.id ||
+        ""
+    );
+}
+
 async function tableExists(connection, tableName) {
     const result = await connection.execute(
         `
@@ -206,6 +220,24 @@ async function getLikeCount(connection, feedNo) {
     return result.rows[0].CNT;
 }
 
+async function getBookmarkCount(connection, feedNo) {
+    const result = await connection.execute(
+        `
+            SELECT COUNT(*) AS CNT
+            FROM FEED_BOOKMARK
+            WHERE FEED_NO = :feedNo
+        `,
+        {
+            feedNo: feedNo
+        },
+        {
+            outFormat: oracledb.OUT_FORMAT_OBJECT
+        }
+    );
+
+    return result.rows[0].CNT;
+}
+
 async function getCommentCount(connection, feedNo) {
     const result = await connection.execute(
         `
@@ -233,7 +265,7 @@ router.get('/list', async (req, res) => {
 
     try {
         const loginUser = checkToken(req);
-        const loginUserNo = loginUser ? loginUser.userNo : 0;
+        const loginUserNo = loginUser ? getLoginUserNo(loginUser) : 0;
         const searchTag = tag ? tag.replace("#", "") : null;
 
         connection = await db.getConnection();
@@ -374,7 +406,7 @@ router.get('/following/list', async (req, res) => {
             });
         }
 
-        const loginUserNo = loginUser.userNo;
+        const loginUserNo = getLoginUserNo(loginUser);
         const searchTag = tag ? tag.replace("#", "") : null;
 
         connection = await db.getConnection();
@@ -665,7 +697,7 @@ router.post('/add', uploadFeedImages.array("feedImages", 10), async (req, res) =
                 mainImg: mainImg,
                 routeSummary: routeSummary,
                 hashtags: hashtags || null,
-                userNo: loginUser.userNo,
+                userNo: getLoginUserNo(loginUser),
                 feedNo: {
                     dir: oracledb.BIND_OUT,
                     type: oracledb.NUMBER
@@ -794,9 +826,11 @@ router.post('/like/toggle', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
+
         connection = await db.getConnection();
 
-        const accessInfo = await canViewFeed(connection, loginUser.userNo, feedNo);
+        const accessInfo = await canViewFeed(connection, loginUserNo, feedNo);
 
         if (!accessInfo.exists) {
             return res.json({
@@ -821,7 +855,7 @@ router.post('/like/toggle', async (req, res) => {
             `,
             {
                 feedNo: feedNo,
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -837,7 +871,7 @@ router.post('/like/toggle', async (req, res) => {
                 `,
                 {
                     feedNo: feedNo,
-                    userNo: loginUser.userNo
+                    userNo: loginUserNo
                 }
             );
 
@@ -865,7 +899,7 @@ router.post('/like/toggle', async (req, res) => {
             `,
             {
                 feedNo: feedNo,
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             }
         );
 
@@ -926,9 +960,11 @@ router.post('/bookmark/toggle', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
+
         connection = await db.getConnection();
 
-        const accessInfo = await canViewFeed(connection, loginUser.userNo, feedNo);
+        const accessInfo = await canViewFeed(connection, loginUserNo, feedNo);
 
         if (!accessInfo.exists) {
             return res.json({
@@ -953,7 +989,7 @@ router.post('/bookmark/toggle', async (req, res) => {
             `,
             {
                 feedNo: feedNo,
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -969,16 +1005,19 @@ router.post('/bookmark/toggle', async (req, res) => {
                 `,
                 {
                     feedNo: feedNo,
-                    userNo: loginUser.userNo
+                    userNo: loginUserNo
                 }
             );
+
+            const bookmarkCount = await getBookmarkCount(connection, feedNo);
 
             await connection.commit();
 
             return res.json({
                 result: "success",
                 bookmarkYn: "N",
-                message: "즐겨찾기를 해제했습니다."
+                bookmarkCount: bookmarkCount,
+                message: "루트 저장을 해제했습니다."
             });
         }
 
@@ -989,23 +1028,26 @@ router.post('/bookmark/toggle', async (req, res) => {
                     FEED_NO,
                     USER_NO
                 ) VALUES (
-                    FEED_BOOKMARK_SEQ.NEXTVAL,
+                    (SELECT NVL(MAX(BOOKMARK_NO), 0) + 1 FROM FEED_BOOKMARK),
                     :feedNo,
                     :userNo
                 )
             `,
             {
                 feedNo: feedNo,
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             }
         );
+
+        const bookmarkCount = await getBookmarkCount(connection, feedNo);
 
         await connection.commit();
 
         res.json({
             result: "success",
             bookmarkYn: "Y",
-            message: "즐겨찾기에 추가했습니다."
+            bookmarkCount: bookmarkCount,
+            message: "루트를 저장했습니다."
         });
 
     } catch (error) {
@@ -1021,7 +1063,144 @@ router.post('/bookmark/toggle', async (req, res) => {
 
         res.status(500).json({
             result: "fail",
-            message: "즐겨찾기 처리 중 오류가 발생했습니다."
+            message: "루트 저장 처리 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+// 저장한 루트 목록 조회
+router.get('/bookmark/list', async (req, res) => {
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        const loginUserNo = getLoginUserNo(loginUser);
+
+        connection = await db.getConnection();
+
+        const feedBookmarkExists = await tableExists(connection, "FEED_BOOKMARK");
+
+        if (!feedBookmarkExists) {
+            return res.json({
+                result: "success",
+                list: []
+            });
+        }
+
+        const result = await connection.execute(
+            `
+                SELECT
+                    B.BOOKMARK_NO,
+                    NULL AS BOOKMARK_DATE,
+                    F.FEED_NO,
+                    F.TITLE,
+                    F.CONTENT,
+                    F.AREA,
+                    F.CATEGORY,
+                    F.MAIN_IMG,
+                    F.ROUTE_SUMMARY,
+                    F.HASHTAGS,
+                    F.VIEW_COUNT,
+                    F.CDATE,
+                    F.USER_NO,
+                    U.NICKNAME,
+                    U.PROFILE_IMG,
+                    U.ACCOUNT_PRIVATE_YN,
+                    'Y' AS BOOKMARK_YN,
+                    CASE
+                        WHEN L.USER_NO IS NULL THEN 'N'
+                        ELSE 'Y'
+                    END AS LIKE_YN,
+                    (
+                        SELECT COUNT(*)
+                        FROM FEED_BOOKMARK FB
+                        WHERE FB.FEED_NO = F.FEED_NO
+                    ) AS BOOKMARK_COUNT,
+                    (
+                        SELECT COUNT(*)
+                        FROM FEED_LIKE FL
+                        WHERE FL.FEED_NO = F.FEED_NO
+                    ) AS LIKE_COUNT,
+                    (
+                        SELECT COUNT(*)
+                        FROM FEED_COMMENT FC
+                        WHERE FC.FEED_NO = F.FEED_NO
+                          AND NVL(FC.COMMENT_STATUS, 'Y') = 'Y'
+                    ) AS COMMENT_COUNT
+                FROM FEED_BOOKMARK B
+                INNER JOIN FEED F
+                    ON B.FEED_NO = F.FEED_NO
+                LEFT JOIN USERS U
+                    ON F.USER_NO = U.USER_NO
+                LEFT JOIN FEED_LIKE L
+                    ON F.FEED_NO = L.FEED_NO
+                   AND L.USER_NO = :loginUserNo
+                WHERE B.USER_NO = :loginUserNo
+                  AND U.USER_STATUS = 'Y'
+                  AND NOT EXISTS (
+                        SELECT 1
+                        FROM USER_BLOCK UB
+                        WHERE
+                            (
+                                UB.BLOCKER_NO = :loginUserNo
+                                AND UB.BLOCKED_NO = F.USER_NO
+                            )
+                            OR
+                            (
+                                UB.BLOCKER_NO = F.USER_NO
+                                AND UB.BLOCKED_NO = :loginUserNo
+                            )
+                  )
+                  AND
+                  (
+                        NVL(U.ACCOUNT_PRIVATE_YN, 'N') = 'N'
+                        OR F.USER_NO = :loginUserNo
+                        OR EXISTS (
+                            SELECT 1
+                            FROM USER_FOLLOW UF
+                            WHERE UF.FOLLOWER_NO = :loginUserNo
+                              AND UF.FOLLOWING_NO = F.USER_NO
+                              AND UF.FOLLOW_STATUS = 'ACCEPTED'
+                        )
+                  )
+                ORDER BY B.BOOKMARK_NO DESC
+            `,
+            {
+                loginUserNo: loginUserNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT,
+                fetchInfo: {
+                    CONTENT: { type: oracledb.STRING }
+                }
+            }
+        );
+
+        res.json({
+            result: "success",
+            list: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error executing bookmark list query', error);
+
+        res.status(500).json({
+            result: "fail",
+            message: "저장한 루트 목록 조회 중 오류가 발생했습니다.",
+            error: error.message
         });
 
     } finally {
@@ -1054,7 +1233,7 @@ router.post('/detail', async (req, res) => {
             });
         }
 
-        const loginUserNo = loginUser.userNo;
+        const loginUserNo = getLoginUserNo(loginUser);
 
         connection = await db.getConnection();
 
@@ -1194,9 +1373,11 @@ router.post('/image/list', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
+
         connection = await db.getConnection();
 
-        const accessInfo = await canViewFeed(connection, loginUser.userNo, feedNo);
+        const accessInfo = await canViewFeed(connection, loginUserNo, feedNo);
 
         if (!accessInfo.exists) {
             return res.json({
@@ -1309,9 +1490,11 @@ router.post('/route/spot/list', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
+
         connection = await db.getConnection();
 
-        const accessInfo = await canViewFeed(connection, loginUser.userNo, feedNo);
+        const accessInfo = await canViewFeed(connection, loginUserNo, feedNo);
 
         if (!accessInfo.exists) {
             return res.json({
@@ -1427,9 +1610,11 @@ router.post('/comment/list', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
+
         connection = await db.getConnection();
 
-        const accessInfo = await canViewFeed(connection, loginUser.userNo, feedNo);
+        const accessInfo = await canViewFeed(connection, loginUserNo, feedNo);
 
         if (!accessInfo.exists) {
             return res.json({
@@ -1471,7 +1656,7 @@ router.post('/comment/list', async (req, res) => {
             `,
             {
                 feedNo: feedNo,
-                loginUserNo: loginUser.userNo
+                loginUserNo: loginUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -1521,6 +1706,7 @@ router.post('/comment/add', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
         const commentContent = content ? String(content).trim() : "";
 
         if (commentContent === "") {
@@ -1539,7 +1725,7 @@ router.post('/comment/add', async (req, res) => {
 
         connection = await db.getConnection();
 
-        const accessInfo = await canViewFeed(connection, loginUser.userNo, feedNo);
+        const accessInfo = await canViewFeed(connection, loginUserNo, feedNo);
 
         if (!accessInfo.exists) {
             return res.json({
@@ -1575,7 +1761,7 @@ router.post('/comment/add', async (req, res) => {
             `,
             {
                 feedNo: feedNo,
-                userNo: loginUser.userNo,
+                userNo: loginUserNo,
                 content: commentContent
             }
         );
@@ -1636,6 +1822,7 @@ router.post('/comment/update', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
         const commentContent = content ? String(content).trim() : "";
 
         if (commentContent === "") {
@@ -1681,14 +1868,14 @@ router.post('/comment/update', async (req, res) => {
 
         const comment = commentResult.rows[0];
 
-        if (String(comment.USER_NO) !== String(loginUser.userNo)) {
+        if (String(comment.USER_NO) !== String(loginUserNo)) {
             return res.json({
                 result: "fail",
                 message: "내가 작성한 댓글만 수정할 수 있습니다."
             });
         }
 
-        const accessInfo = await canViewFeed(connection, loginUser.userNo, comment.FEED_NO);
+        const accessInfo = await canViewFeed(connection, loginUserNo, comment.FEED_NO);
 
         if (!accessInfo.exists) {
             return res.json({
@@ -1715,7 +1902,7 @@ router.post('/comment/update', async (req, res) => {
             {
                 content: commentContent,
                 commentNo: commentNo,
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             }
         );
 
@@ -1772,6 +1959,8 @@ router.post('/comment/remove', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
+
         connection = await db.getConnection();
 
         const commentResult = await connection.execute(
@@ -1801,7 +1990,7 @@ router.post('/comment/remove', async (req, res) => {
 
         const comment = commentResult.rows[0];
 
-        if (String(comment.USER_NO) !== String(loginUser.userNo)) {
+        if (String(comment.USER_NO) !== String(loginUserNo)) {
             return res.json({
                 result: "fail",
                 message: "내가 작성한 댓글만 삭제할 수 있습니다."

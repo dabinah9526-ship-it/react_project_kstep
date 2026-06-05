@@ -65,6 +65,19 @@ function checkToken(req) {
     }
 }
 
+function getLoginUserNo(loginUser) {
+    if (!loginUser) {
+        return "";
+    }
+
+    return (
+        loginUser.userNo ||
+        loginUser.USER_NO ||
+        loginUser.user_no ||
+        ""
+    );
+}
+
 async function tableExists(connection, tableName) {
     const result = await connection.execute(
         `
@@ -175,6 +188,26 @@ async function ensureStorySchema(connection) {
         }
     }
 
+    const storyTextExists = await tableExists(connection, "STORY_TEXT");
+
+    if (!storyTextExists) {
+        await connection.execute(
+            `
+                CREATE TABLE STORY_TEXT (
+                    TEXT_NO NUMBER PRIMARY KEY,
+                    STORY_NO NUMBER NOT NULL,
+                    TEXT_CONTENT VARCHAR2(500) NOT NULL,
+                    POS_X NUMBER DEFAULT 50,
+                    POS_Y NUMBER DEFAULT 50,
+                    FONT_SIZE NUMBER DEFAULT 22,
+                    FONT_COLOR VARCHAR2(30) DEFAULT '#FFFFFF',
+                    BG_YN VARCHAR2(1) DEFAULT 'N',
+                    CDATE DATE DEFAULT SYSDATE
+                )
+            `
+        );
+    }
+
     await connection.execute(
         `
             UPDATE STORY
@@ -205,9 +238,12 @@ async function ensureStorySchema(connection) {
 async function getStoryViewCount(connection, storyNo) {
     const result = await connection.execute(
         `
-            SELECT COUNT(*) AS CNT
-            FROM STORY_VIEW
-            WHERE STORY_NO = :storyNo
+            SELECT COUNT(DISTINCT SV.USER_NO) AS CNT
+            FROM STORY_VIEW SV
+            INNER JOIN STORY S
+                ON SV.STORY_NO = S.STORY_NO
+            WHERE SV.STORY_NO = :storyNo
+              AND SV.USER_NO != S.USER_NO
         `,
         {
             storyNo: storyNo
@@ -224,14 +260,24 @@ async function getStoryViewCount(connection, storyNo) {
    스토리 업로드
 ========================= */
 router.post('/add', uploadStory.single("storyImage"), async (req, res) => {
-    const { content } = req.body;
+    const {
+        content,
+        textContent,
+        textX,
+        textY,
+        fontSize,
+        fontColor,
+        textBgYn,
+        textList
+    } = req.body;
 
     let connection;
 
     try {
         const loginUser = checkToken(req);
+        const loginUserNo = getLoginUserNo(loginUser);
 
-        if (!loginUser) {
+        if (!loginUserNo) {
             return res.status(401).json({
                 result: "fail",
                 message: "로그인이 필요합니다."
@@ -273,7 +319,7 @@ router.post('/add', uploadStory.single("storyImage"), async (req, res) => {
                 RETURNING STORY_NO INTO :storyNo
             `,
             {
-                userNo: loginUser.userNo,
+                userNo: loginUserNo,
                 storyImg: storyImg,
                 content: cleanContent || null,
                 storyNo: {
@@ -284,6 +330,77 @@ router.post('/add', uploadStory.single("storyImage"), async (req, res) => {
         );
 
         const storyNo = insertResult.outBinds.storyNo[0];
+
+        let stickerList = [];
+
+        if (textList) {
+            try {
+                const parsedList = JSON.parse(textList);
+
+                if (Array.isArray(parsedList)) {
+                    stickerList = parsedList;
+                }
+            } catch (parseError) {
+                console.error("textList parse error", parseError);
+                stickerList = [];
+            }
+        }
+
+        if (stickerList.length === 0 && textContent && String(textContent).trim() !== "") {
+            stickerList.push({
+                textContent: textContent,
+                posX: textX || 50,
+                posY: textY || 50,
+                fontSize: fontSize || 24,
+                fontColor: fontColor || "#FFFFFF",
+                bgYn: textBgYn === "Y" ? "Y" : "N"
+            });
+        }
+
+        for (let i = 0; i < stickerList.length; i++) {
+            const sticker = stickerList[i];
+            const cleanTextContent =
+                sticker.textContent !== undefined && sticker.textContent !== null
+                    ? String(sticker.textContent).trim()
+                    : "";
+
+            if (cleanTextContent !== "") {
+                await connection.execute(
+                    `
+                        INSERT INTO STORY_TEXT (
+                            TEXT_NO,
+                            STORY_NO,
+                            TEXT_CONTENT,
+                            POS_X,
+                            POS_Y,
+                            FONT_SIZE,
+                            FONT_COLOR,
+                            BG_YN,
+                            CDATE
+                        ) VALUES (
+                            (SELECT NVL(MAX(TEXT_NO), 0) + 1 FROM STORY_TEXT),
+                            :storyNo,
+                            :textContent,
+                            :posX,
+                            :posY,
+                            :fontSize,
+                            :fontColor,
+                            :bgYn,
+                            SYSDATE
+                        )
+                    `,
+                    {
+                        storyNo: storyNo,
+                        textContent: cleanTextContent,
+                        posX: Number(sticker.posX || 50),
+                        posY: Number(sticker.posY || 50),
+                        fontSize: Number(sticker.fontSize || 24),
+                        fontColor: sticker.fontColor || "#FFFFFF",
+                        bgYn: sticker.bgYn === "Y" ? "Y" : "N"
+                    }
+                );
+            }
+        }
 
         await connection.commit();
 
@@ -319,6 +436,79 @@ router.post('/add', uploadStory.single("storyImage"), async (req, res) => {
 });
 
 /* =========================
+   멘션 사용자 검색
+========================= */
+router.get('/mention/search/:keyword', async (req, res) => {
+    const { keyword } = req.params;
+
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+        const loginUserNo = getLoginUserNo(loginUser);
+
+        if (!loginUserNo) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const result = await connection.execute(
+            `
+                SELECT
+                    USER_NO,
+                    USER_ID,
+                    NICKNAME,
+                    PROFILE_IMG,
+                    USER_TYPE
+                FROM USERS
+                WHERE USER_STATUS = 'Y'
+                  AND (
+                        LOWER(USER_ID) = LOWER(:keyword)
+                     OR LOWER(NICKNAME) = LOWER(:keyword)
+                  )
+                  AND ROWNUM = 1
+            `,
+            {
+                keyword: keyword
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (result.rows.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "해당 사용자를 찾을 수 없습니다."
+            });
+        }
+
+        res.json({
+            result: "success",
+            user: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error("story mention search error", error);
+
+        res.status(500).json({
+            result: "fail",
+            message: "멘션 사용자 검색 중 오류가 발생했습니다.",
+            error: error.message
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+/* =========================
    홈 스토리 목록
 ========================= */
 router.get('/list', async (req, res) => {
@@ -326,8 +516,9 @@ router.get('/list', async (req, res) => {
 
     try {
         const loginUser = checkToken(req);
+        const loginUserNo = getLoginUserNo(loginUser);
 
-        if (!loginUser) {
+        if (!loginUserNo) {
             return res.status(401).json({
                 result: "fail",
                 message: "로그인이 필요합니다."
@@ -345,10 +536,10 @@ router.get('/list', async (req, res) => {
                     U.NICKNAME,
                     U.PROFILE_IMG,
                     U.USER_TYPE,
-                    COUNT(S.STORY_NO) AS STORY_COUNT,
+                    COUNT(DISTINCT S.STORY_NO) AS STORY_COUNT,
                     MAX(S.CDATE) AS LAST_STORY_DATE,
                     MAX(S.STORY_IMG) KEEP (DENSE_RANK LAST ORDER BY S.CDATE) AS FIRST_STORY_IMG,
-                    COUNT(SV.STORY_NO) AS VIEWED_COUNT,
+                    COUNT(DISTINCT SV.STORY_NO) AS VIEWED_COUNT,
                     CASE
                         WHEN U.USER_NO = :loginUserNo THEN 'Y'
                         ELSE 'N'
@@ -371,7 +562,7 @@ router.get('/list', async (req, res) => {
                 ORDER BY MAX(S.CDATE) DESC
             `,
             {
-                loginUserNo: loginUser.userNo
+                loginUserNo: loginUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -381,14 +572,17 @@ router.get('/list', async (req, res) => {
         let list = result.rows || [];
 
         for (let i = 0; i < list.length; i++) {
-            if ((list[i].STORY_COUNT || 0) > 0 && (list[i].VIEWED_COUNT || 0) >= (list[i].STORY_COUNT || 0)) {
+            const storyCount = Number(list[i].STORY_COUNT || 0);
+            const viewedCount = Number(list[i].VIEWED_COUNT || 0);
+
+            if (storyCount > 0 && viewedCount >= storyCount) {
                 list[i].ALL_VIEW_YN = "Y";
             } else {
                 list[i].ALL_VIEW_YN = "N";
             }
         }
 
-        const hasMine = list.some(item => String(item.USER_NO) === String(loginUser.userNo));
+        const hasMine = list.some(item => String(item.USER_NO) === String(loginUserNo));
 
         if (!hasMine) {
             const myResult = await connection.execute(
@@ -404,7 +598,7 @@ router.get('/list', async (req, res) => {
                       AND USER_STATUS = 'Y'
                 `,
                 {
-                    userNo: loginUser.userNo
+                    userNo: loginUserNo
                 },
                 {
                     outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -470,8 +664,9 @@ router.get('/user/:userNo', async (req, res) => {
 
     try {
         const loginUser = checkToken(req);
+        const loginUserNo = getLoginUserNo(loginUser);
 
-        if (!loginUser) {
+        if (!loginUserNo) {
             return res.status(401).json({
                 result: "fail",
                 message: "로그인이 필요합니다."
@@ -499,38 +694,86 @@ router.get('/user/:userNo', async (req, res) => {
                         ELSE 'N'
                     END AS MINE_YN,
                     CASE
-                        WHEN SV.STORY_NO IS NULL THEN 'N'
-                        ELSE 'Y'
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM STORY_VIEW SV
+                            WHERE SV.STORY_NO = S.STORY_NO
+                              AND SV.USER_NO = :loginUserNo
+                        )
+                        THEN 'Y'
+                        ELSE 'N'
                     END AS VIEW_YN,
                     (
-                        SELECT COUNT(*)
+                        SELECT COUNT(DISTINCT SV2.USER_NO)
                         FROM STORY_VIEW SV2
                         WHERE SV2.STORY_NO = S.STORY_NO
+                          AND SV2.USER_NO != S.USER_NO
                     ) AS VIEW_COUNT
                 FROM STORY S
                 INNER JOIN USERS U
                     ON S.USER_NO = U.USER_NO
-                LEFT JOIN STORY_VIEW SV
-                    ON S.STORY_NO = SV.STORY_NO
-                   AND SV.USER_NO = :loginUserNo
                 WHERE S.USER_NO = :userNo
                   AND NVL(S.STORY_STATUS, 'Y') = 'Y'
                   AND NVL(S.EXPIRE_DATE, SYSDATE + 1) > SYSDATE
                   AND U.USER_STATUS = 'Y'
-                ORDER BY S.CDATE
+                ORDER BY S.CDATE, S.STORY_NO
             `,
             {
                 userNo: userNo,
-                loginUserNo: loginUser.userNo
+                loginUserNo: loginUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
             }
         );
 
+        const storyList = result.rows || [];
+        const storyNoList = storyList.map(story => story.STORY_NO);
+
+        if (storyNoList.length > 0) {
+            const bindMap = {};
+
+            for (let i = 0; i < storyNoList.length; i++) {
+                bindMap["storyNo" + i] = storyNoList[i];
+            }
+
+            const textResult = await connection.execute(
+                `
+                    SELECT
+                        TEXT_NO,
+                        STORY_NO,
+                        TEXT_CONTENT,
+                        POS_X,
+                        POS_Y,
+                        FONT_SIZE,
+                        FONT_COLOR,
+                        BG_YN
+                    FROM STORY_TEXT
+                    WHERE STORY_NO IN (${storyNoList.map((_, index) => ":storyNo" + index).join(",")})
+                    ORDER BY TEXT_NO
+                `,
+                bindMap,
+                {
+                    outFormat: oracledb.OUT_FORMAT_OBJECT
+                }
+            );
+
+            const textList = textResult.rows || [];
+
+            for (let i = 0; i < storyList.length; i++) {
+                storyList[i].TEXT_LIST = textList.filter(text => {
+                    return String(text.STORY_NO) === String(storyList[i].STORY_NO);
+                });
+            }
+        } else {
+            for (let i = 0; i < storyList.length; i++) {
+                storyList[i].TEXT_LIST = [];
+            }
+        }
+
         res.json({
             result: "success",
-            list: result.rows
+            list: storyList
         });
 
     } catch (error) {
@@ -559,8 +802,9 @@ router.get('/profile/:userNo/status', async (req, res) => {
 
     try {
         const loginUser = checkToken(req);
+        const loginUserNo = getLoginUserNo(loginUser);
 
-        if (!loginUser) {
+        if (!loginUserNo) {
             return res.status(401).json({
                 result: "fail",
                 message: "로그인이 필요합니다."
@@ -573,8 +817,8 @@ router.get('/profile/:userNo/status', async (req, res) => {
         const result = await connection.execute(
             `
                 SELECT
-                    COUNT(S.STORY_NO) AS STORY_COUNT,
-                    COUNT(SV.STORY_NO) AS VIEWED_COUNT,
+                    COUNT(DISTINCT S.STORY_NO) AS STORY_COUNT,
+                    COUNT(DISTINCT SV.STORY_NO) AS VIEWED_COUNT,
                     MAX(S.STORY_NO) KEEP (DENSE_RANK LAST ORDER BY S.CDATE) AS LATEST_STORY_NO
                 FROM STORY S
                 LEFT JOIN STORY_VIEW SV
@@ -586,7 +830,7 @@ router.get('/profile/:userNo/status', async (req, res) => {
             `,
             {
                 userNo: userNo,
-                loginUserNo: loginUser.userNo
+                loginUserNo: loginUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -595,13 +839,16 @@ router.get('/profile/:userNo/status', async (req, res) => {
 
         const row = result.rows[0];
 
+        const storyCount = Number(row.STORY_COUNT || 0);
+        const viewedCount = Number(row.VIEWED_COUNT || 0);
+
         let hasStoryYn = "N";
         let allViewYn = "Y";
 
-        if ((row.STORY_COUNT || 0) > 0) {
+        if (storyCount > 0) {
             hasStoryYn = "Y";
 
-            if ((row.VIEWED_COUNT || 0) >= (row.STORY_COUNT || 0)) {
+            if (viewedCount >= storyCount) {
                 allViewYn = "Y";
             } else {
                 allViewYn = "N";
@@ -612,7 +859,8 @@ router.get('/profile/:userNo/status', async (req, res) => {
             result: "success",
             hasStoryYn: hasStoryYn,
             allViewYn: allViewYn,
-            storyCount: row.STORY_COUNT || 0,
+            storyCount: storyCount,
+            viewedCount: viewedCount,
             latestStoryNo: row.LATEST_STORY_NO
         });
 
@@ -640,8 +888,9 @@ router.get('/my/list', async (req, res) => {
 
     try {
         const loginUser = checkToken(req);
+        const loginUserNo = getLoginUserNo(loginUser);
 
-        if (!loginUser) {
+        if (!loginUserNo) {
             return res.status(401).json({
                 result: "fail",
                 message: "로그인이 필요합니다."
@@ -670,9 +919,10 @@ router.get('/my/list', async (req, res) => {
                         ELSE 'N'
                     END AS ACTIVE_YN,
                     (
-                        SELECT COUNT(*)
+                        SELECT COUNT(DISTINCT SV.USER_NO)
                         FROM STORY_VIEW SV
                         WHERE SV.STORY_NO = S.STORY_NO
+                          AND SV.USER_NO != S.USER_NO
                     ) AS VIEW_COUNT
                 FROM STORY S
                 WHERE S.USER_NO = :userNo
@@ -680,7 +930,7 @@ router.get('/my/list', async (req, res) => {
                 ORDER BY S.CDATE DESC
             `,
             {
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -718,8 +968,9 @@ router.get('/viewer/list/:storyNo', async (req, res) => {
 
     try {
         const loginUser = checkToken(req);
+        const loginUserNo = getLoginUserNo(loginUser);
 
-        if (!loginUser) {
+        if (!loginUserNo) {
             return res.status(401).json({
                 result: "fail",
                 message: "로그인이 필요합니다."
@@ -754,7 +1005,7 @@ router.get('/viewer/list/:storyNo', async (req, res) => {
 
         const story = storyResult.rows[0];
 
-        if (String(story.USER_NO) !== String(loginUser.userNo)) {
+        if (String(story.USER_NO) !== String(loginUserNo)) {
             return res.json({
                 result: "fail",
                 message: "내 스토리의 조회자만 확인할 수 있습니다."
@@ -764,11 +1015,11 @@ router.get('/viewer/list/:storyNo', async (req, res) => {
         const result = await connection.execute(
             `
                 SELECT
-                    SV.VIEW_NO,
+                    MAX(SV.VIEW_NO) AS VIEW_NO,
                     SV.STORY_NO,
                     SV.USER_NO,
-                    SV.CDATE,
-                    TO_CHAR(SV.CDATE, 'YYYY-MM-DD HH24:MI') AS VIEW_DATE_TEXT,
+                    MAX(SV.CDATE) AS CDATE,
+                    TO_CHAR(MAX(SV.CDATE), 'YYYY-MM-DD HH24:MI') AS VIEW_DATE_TEXT,
                     U.USER_ID,
                     U.NICKNAME,
                     U.PROFILE_IMG,
@@ -777,9 +1028,20 @@ router.get('/viewer/list/:storyNo', async (req, res) => {
                 FROM STORY_VIEW SV
                 INNER JOIN USERS U
                     ON SV.USER_NO = U.USER_NO
+                INNER JOIN STORY S
+                    ON SV.STORY_NO = S.STORY_NO
                 WHERE SV.STORY_NO = :storyNo
+                  AND SV.USER_NO != S.USER_NO
                   AND U.USER_STATUS = 'Y'
-                ORDER BY SV.CDATE DESC
+                GROUP BY
+                    SV.STORY_NO,
+                    SV.USER_NO,
+                    U.USER_ID,
+                    U.NICKNAME,
+                    U.PROFILE_IMG,
+                    U.USER_TYPE,
+                    U.BIO
+                ORDER BY MAX(SV.CDATE) DESC
             `,
             {
                 storyNo: storyNo
@@ -820,8 +1082,9 @@ router.post('/view', async (req, res) => {
 
     try {
         const loginUser = checkToken(req);
+        const loginUserNo = getLoginUserNo(loginUser);
 
-        if (!loginUser) {
+        if (!loginUserNo) {
             return res.status(401).json({
                 result: "fail",
                 message: "로그인이 필요합니다."
@@ -840,7 +1103,9 @@ router.post('/view', async (req, res) => {
 
         const storyResult = await connection.execute(
             `
-                SELECT STORY_NO
+                SELECT
+                    STORY_NO,
+                    USER_NO
                 FROM STORY
                 WHERE STORY_NO = :storyNo
                   AND NVL(STORY_STATUS, 'Y') = 'Y'
@@ -861,6 +1126,8 @@ router.post('/view', async (req, res) => {
             });
         }
 
+        const story = storyResult.rows[0];
+
         const checkResult = await connection.execute(
             `
                 SELECT COUNT(*) AS CNT
@@ -870,7 +1137,7 @@ router.post('/view', async (req, res) => {
             `,
             {
                 storyNo: storyNo,
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -894,7 +1161,7 @@ router.post('/view', async (req, res) => {
                 `,
                 {
                     storyNo: storyNo,
-                    userNo: loginUser.userNo
+                    userNo: loginUserNo
                 }
             );
         }
@@ -906,6 +1173,8 @@ router.post('/view', async (req, res) => {
         res.json({
             result: "success",
             message: "스토리 조회가 기록되었습니다.",
+            mineYn: String(story.USER_NO) === String(loginUserNo) ? "Y" : "N",
+            viewYn: "Y",
             viewCount: viewCount
         });
 
@@ -943,8 +1212,9 @@ router.post('/remove', async (req, res) => {
 
     try {
         const loginUser = checkToken(req);
+        const loginUserNo = getLoginUserNo(loginUser);
 
-        if (!loginUser) {
+        if (!loginUserNo) {
             return res.status(401).json({
                 result: "fail",
                 message: "로그인이 필요합니다."
@@ -985,7 +1255,7 @@ router.post('/remove', async (req, res) => {
 
         const story = storyResult.rows[0];
 
-        if (String(story.USER_NO) !== String(loginUser.userNo)) {
+        if (String(story.USER_NO) !== String(loginUserNo)) {
             return res.json({
                 result: "fail",
                 message: "내 스토리만 삭제할 수 있습니다."

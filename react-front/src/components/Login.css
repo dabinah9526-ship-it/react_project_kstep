@@ -183,7 +183,7 @@
 .login-card {
     width: 405px;
     position: relative;
-    z-index: 2;
+    z-index: 20;
     box-sizing: border-box;
     padding: 43px 36px 30px;
     border-radius: 40px;
@@ -195,6 +195,7 @@
         0 12px 38px rgba(223, 124, 154, 0.09),
         inset 0 1px 0 rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(18px);
+    pointer-events: auto;
 }
 
 .card-soft-glow {
@@ -301,6 +302,9 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 22px;
+    position: relative;
+    z-index: 30;
+    pointer-events: auto;
 }
 
 /* 기존 K-STEP 글씨 숨김 */
@@ -379,12 +383,18 @@
     display: flex;
     flex-direction: column;
     gap: 13px;
+    position: relative;
+    z-index: 30;
+    pointer-events: auto;
 }
 
 .login-input-box {
     display: flex;
     flex-direction: column;
     gap: 7px;
+    position: relative;
+    z-index: 40;
+    pointer-events: auto;
 }
 
 .login-input-box label {
@@ -392,6 +402,9 @@
     font-size: 13px;
     font-weight: 900;
     padding-left: 5px;
+    position: relative;
+    z-index: 40;
+    pointer-events: auto;
 }
 
 .login-input-box input {
@@ -406,6 +419,11 @@
     height: 46px;
     padding: 0 15px;
     transition: 0.2s ease;
+    position: relative;
+    z-index: 1;
+    pointer-events: auto !important;
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 .login-input-box input::placeholder {
@@ -417,6 +435,88 @@
     background: #ffffff;
     box-shadow: 0 0 0 4px rgba(233, 131, 155, 0.14);
     transform: translateY(-2px);
+}
+
+/* 비밀번호 입력칸 */
+.login-password-wrap {
+    position: relative;
+    width: 100%;
+    transition: 0.2s ease;
+    z-index: 50;
+    pointer-events: auto;
+}
+
+/* 비밀번호 input은 눈 아이콘 공간만큼 오른쪽 여백 */
+.login-input-box .login-password-wrap input {
+    padding-right: 52px !important;
+    position: relative;
+    z-index: 1;
+}
+
+/* 비밀번호 input은 wrapper가 같이 움직이게 해서 눈 아이콘 어긋남 방지 */
+.login-password-wrap:focus-within {
+    transform: translateY(-2px);
+}
+
+.login-input-box .login-password-wrap input:focus {
+    transform: none;
+}
+
+/* 브라우저 기본 비밀번호 눈 아이콘 숨김 */
+.login-password-wrap input::-ms-reveal,
+.login-password-wrap input::-ms-clear {
+    display: none;
+}
+
+.login-password-wrap input::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    display: none !important;
+}
+
+/* 직접 만든 눈 아이콘 버튼 */
+.login-password-eye {
+    position: absolute !important;
+    right: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+
+    border: none !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    cursor: pointer !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+
+    z-index: 80 !important;
+    transition: 0.15s ease;
+}
+
+.login-password-eye:hover {
+    background: rgba(233, 131, 155, 0.1) !important;
+}
+
+/* 눈 아이콘 */
+.login-eye-icon {
+    width: 21px !important;
+    height: 21px !important;
+    stroke: #2d253a !important;
+    stroke-width: 1.8 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+}
+
+.login-password-eye:hover .login-eye-icon {
+    stroke: #df6f8e !important;
 }
 
 .login-button {
@@ -437,6 +537,8 @@
     transition: 0.22s ease;
     position: relative;
     overflow: hidden;
+    z-index: 40;
+    pointer-events: auto !important;
 }
 
 .login-button:hover {
@@ -469,6 +571,9 @@
     justify-content: center;
     align-items: center;
     gap: 9px;
+    position: relative;
+    z-index: 30;
+    pointer-events: auto;
 }
 
 .login-bottom span {
@@ -484,10 +589,63 @@
     font-weight: 950;
     cursor: pointer;
     padding: 0;
+    position: relative;
+    z-index: 40;
+    pointer-events: auto !important;
 }
 
 .login-bottom button:hover {
     text-decoration: underline;
+}
+
+/* ==============================
+   로그인 입력창 클릭 막힘 해결
+   장식 요소가 input/button을 덮는 문제 방지
+============================== */
+
+.login-page {
+    position: relative;
+}
+
+/* 배경 장식들은 클릭을 못 가져가게 막기 */
+.login-page::before,
+.login-page::after,
+.login-card::before,
+.login-card::after,
+.soft-cloud,
+.traditional-motif,
+.bojagi-shape,
+.flower-mark,
+.card-soft-glow,
+.norigae,
+.norigae-string,
+.norigae-knot,
+.norigae-ribbon,
+.traditional-band {
+    pointer-events: none !important;
+}
+
+/* ==============================
+   비밀번호 눈 아이콘 연하게 처리
+============================== */
+
+.login-password-eye {
+    opacity: 0.42 !important;
+    background: transparent !important;
+}
+
+.login-password-eye:hover {
+    opacity: 0.62 !important;
+    background: transparent !important;
+}
+
+.login-eye-icon {
+    stroke: rgba(45, 37, 58, 0.42) !important;
+    stroke-width: 1.6 !important;
+}
+
+.login-password-eye:hover .login-eye-icon {
+    stroke: rgba(223, 111, 142, 0.55) !important;
 }
 
 /* 애니메이션 */

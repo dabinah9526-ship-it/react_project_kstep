@@ -148,7 +148,6 @@
     animation: joinBojagiTwoMove 5s ease-in-out infinite;
 }
 
-/* Join.js에 bojagi-three가 있어서 숨기지 않고 비슷하게 맞춤 */
 .join-page .bojagi-three {
     width: 110px;
     height: 110px;
@@ -205,11 +204,11 @@
     animation: joinFlowerThreeMove 3.7s ease-in-out infinite;
 }
 
-/* 회원가입 카드 - 로그인 카드랑 같은 느낌, 입력칸 많아서 폭만 살짝 넓힘 */
+/* 회원가입 카드 */
 .join-card {
     width: 460px;
     position: relative;
-    z-index: 2;
+    z-index: 20;
     box-sizing: border-box;
     padding: 43px 36px 30px;
     border-radius: 40px;
@@ -221,6 +220,7 @@
         0 12px 38px rgba(223, 124, 154, 0.09),
         inset 0 1px 0 rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(18px);
+    pointer-events: auto;
 }
 
 .join-card .card-soft-glow {
@@ -329,14 +329,15 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 22px;
+    position: relative;
+    z-index: 30;
+    pointer-events: auto;
 }
 
-/* 혹시 h1이 남아 있으면 숨김 */
 .join-header h1 {
     display: none !important;
 }
 
-/* 로고 - 로그인 로고랑 동일한 크기 */
 .join-logo-wrap {
     width: 100%;
     height: 90px;
@@ -408,12 +409,18 @@
     display: flex;
     flex-direction: column;
     gap: 13px;
+    position: relative;
+    z-index: 30;
+    pointer-events: auto;
 }
 
 .join-input-box {
     display: flex;
     flex-direction: column;
     gap: 7px;
+    position: relative;
+    z-index: 40;
+    pointer-events: auto;
 }
 
 .join-input-box label {
@@ -436,6 +443,9 @@
     font-size: 14px;
     font-family: inherit;
     transition: 0.2s ease;
+    position: relative;
+    z-index: 1;
+    pointer-events: auto !important;
 }
 
 .join-input-box input,
@@ -465,6 +475,84 @@
     transform: translateY(-2px);
 }
 
+/* 비밀번호 입력칸 */
+.join-password-wrap {
+    position: relative;
+    width: 100%;
+    transition: 0.2s ease;
+    z-index: 50;
+    pointer-events: auto;
+}
+
+.join-input-box .join-password-wrap input {
+    padding-right: 52px !important;
+}
+
+.join-password-wrap:focus-within {
+    transform: translateY(-2px);
+}
+
+.join-input-box .join-password-wrap input:focus {
+    transform: none;
+}
+
+/* 브라우저 기본 눈 아이콘 숨기기 */
+.join-password-wrap input::-ms-reveal,
+.join-password-wrap input::-ms-clear {
+    display: none;
+}
+
+.join-password-wrap input::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    display: none !important;
+}
+
+/* 직접 만든 눈 아이콘 - 로그인 화면처럼 항상 보이되 흐릿하게 */
+.join-password-eye {
+    position: absolute !important;
+    right: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+
+    border: none !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    cursor: pointer !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    opacity: 0.42 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+
+    z-index: 80 !important;
+    transition: 0.15s ease;
+}
+
+.join-password-eye:hover {
+    opacity: 0.62 !important;
+    background: transparent !important;
+}
+
+.join-eye-icon {
+    width: 21px !important;
+    height: 21px !important;
+    stroke: rgba(45, 37, 58, 0.42) !important;
+    stroke-width: 1.6 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+}
+
+.join-password-eye:hover .join-eye-icon {
+    stroke: rgba(223, 111, 142, 0.55) !important;
+}
+
 /* 중복확인 줄 */
 .join-check-row {
     display: flex;
@@ -477,7 +565,7 @@
     min-width: 0;
 }
 
-/* 중복확인 버튼 - 로그인 버튼이랑 같은 계열 */
+/* 중복확인 버튼 */
 .join-check-btn {
     width: 92px;
     height: 46px;
@@ -543,7 +631,7 @@
     font-weight: 900;
 }
 
-/* 회원가입 버튼 - 로그인 버튼과 동일 */
+/* 회원가입 버튼 */
 .join-button {
     width: 100%;
     height: 52px;
@@ -562,6 +650,8 @@
     transition: 0.22s ease;
     position: relative;
     overflow: hidden;
+    z-index: 40;
+    pointer-events: auto !important;
 }
 
 .join-button:hover {
@@ -595,6 +685,9 @@
     justify-content: center;
     align-items: center;
     gap: 9px;
+    position: relative;
+    z-index: 30;
+    pointer-events: auto;
 }
 
 .join-bottom span {
@@ -610,10 +703,31 @@
     font-weight: 950;
     cursor: pointer;
     padding: 0;
+    position: relative;
+    z-index: 40;
+    pointer-events: auto !important;
 }
 
 .join-bottom button:hover {
     text-decoration: underline;
+}
+
+/* 장식 클릭 막힘 방지 */
+.join-page::before,
+.join-page::after,
+.join-card::before,
+.join-card::after,
+.join-page .soft-cloud,
+.join-page .traditional-motif,
+.join-page .bojagi-shape,
+.join-page .flower-mark,
+.join-card .card-soft-glow,
+.join-card .norigae,
+.join-card .norigae-string,
+.join-card .norigae-knot,
+.join-card .norigae-ribbon,
+.join-card .traditional-band {
+    pointer-events: none !important;
 }
 
 /* 애니메이션 */

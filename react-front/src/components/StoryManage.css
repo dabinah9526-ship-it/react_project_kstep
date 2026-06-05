@@ -420,6 +420,24 @@
     font-weight: 760;
 }
 
+.story-viewer-user-clickable {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.story-viewer-user-clickable:hover {
+    background: rgba(233, 131, 155, 0.08);
+}
+
+.story-viewer-user-info {
+    flex: 1;
+    min-width: 0;
+}
+
 @media (max-width: 880px) {
     .story-manage-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));

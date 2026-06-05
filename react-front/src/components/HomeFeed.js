@@ -8,6 +8,11 @@ function HomeFeed() {
 
     const [feedList, setFeedList] = useState([]);
     const [sponsoredAdList, setSponsoredAdList] = useState([]);
+    const [hiddenAdNoList, setHiddenAdNoList] = useState([]);
+    const [adSlideIndex, setAdSlideIndex] = useState(0);
+    const [openMenuKey, setOpenMenuKey] = useState("");
+    const [savedAdNoList, setSavedAdNoList] = useState([]);
+
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState("");
 
@@ -21,24 +26,84 @@ function HomeFeed() {
 
     const [recommendUserList, setRecommendUserList] = useState([]);
 
+    const [feedImageMap, setFeedImageMap] = useState({});
+    const [imageIndexMap, setImageIndexMap] = useState({});
+
     const nickname = localStorage.getItem("nickname") || "여행자";
 
     useEffect(() => {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            alert("로그인이 필요합니다.");
-            navigate("/");
+            moveLoginPage("로그인이 필요합니다.");
             return;
         }
 
         getHomeFeed("");
         getRecommendUserList();
         getSponsoredAdList();
+        getSavedSponsoredAdList();
     }, [navigate]);
+
+    useEffect(() => {
+        if (feedList.length === 0) {
+            return;
+        }
+
+        getFeedImageMap(feedList);
+    }, [feedList]);
+
+    useEffect(() => {
+        const visibleAdList = getVisibleSponsoredAdList();
+
+        if (visibleAdList.length === 0) {
+            setAdSlideIndex(0);
+            return;
+        }
+
+        if (adSlideIndex >= visibleAdList.length) {
+            setAdSlideIndex(0);
+        }
+    }, [sponsoredAdList, hiddenAdNoList, adSlideIndex]);
 
     function getToken() {
         return localStorage.getItem("token");
+    }
+
+    function moveLoginPage(message) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userNo");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("nickname");
+        localStorage.removeItem("userType");
+
+        alert(message || "로그인이 필요합니다.");
+        navigate("/", { replace: true });
+    }
+
+    function isLoginRequired(data) {
+        if (!data) {
+            return false;
+        }
+
+        if (String(data.message || "").includes("로그인이 필요합니다")) {
+            return true;
+        }
+
+        if (String(data.message || "").includes("토큰")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function handleLoginRequired(data) {
+        if (isLoginRequired(data)) {
+            moveLoginPage(data.message || "로그인이 필요합니다.");
+            return true;
+        }
+
+        return false;
     }
 
     function getLoginUserNo() {
@@ -106,6 +171,10 @@ function HomeFeed() {
             .then(data => {
                 console.log("홈 피드 조회", data);
 
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 if (data.result === "success") {
                     setFeedList(data.list || []);
                 } else {
@@ -134,6 +203,10 @@ function HomeFeed() {
             .then(data => {
                 console.log("스폰서 광고 목록", data);
 
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 if (data.result === "success") {
                     setSponsoredAdList(data.list || []);
                 } else {
@@ -144,6 +217,46 @@ function HomeFeed() {
             .catch(err => {
                 console.error(err);
                 setSponsoredAdList([]);
+            });
+    }
+
+    function getSavedSponsoredAdList() {
+        const token = getToken();
+
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
+        fetch("http://localhost:3010/business/sponsor/save/list", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("저장한 광고 목록", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
+                if (data.result === "success") {
+                    const list = data.list || [];
+
+                    setSavedAdNoList(
+                        list
+                            .map(item => String(item.AD_NO))
+                            .filter(adNo => adNo !== "undefined" && adNo !== "null")
+                    );
+                } else {
+                    setSavedAdNoList([]);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                setSavedAdNoList([]);
             });
     }
 
@@ -159,6 +272,10 @@ function HomeFeed() {
             .then(res => res.json())
             .then(data => {
                 console.log("추천 여행자 목록", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setRecommendUserList(data.list || []);
@@ -238,6 +355,195 @@ function HomeFeed() {
         }
 
         return "/images/" + feed.MAIN_IMG;
+    }
+
+    function getImageUrlByValue(value) {
+        if (!value) {
+            return "";
+        }
+
+        if (String(value).startsWith("http")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/images/")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/uploads/")) {
+            return "http://localhost:3010" + value;
+        }
+
+        return "/images/" + value;
+    }
+
+    function getFeedImageMap(list) {
+        const token = getToken();
+
+        const feedNoList = Array.from(new Set(
+            list
+                .map(feed => feed.FEED_NO)
+                .filter(feedNo => feedNo !== undefined && feedNo !== null)
+        ));
+
+        Promise.all(
+            feedNoList.map(feedNo => {
+                return fetch("http://localhost:3010/feed/image/list", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({
+                        feedNo: feedNo
+                    })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.result === "success") {
+                            return {
+                                feedNo: feedNo,
+                                list: data.list || []
+                            };
+                        }
+
+                        return {
+                            feedNo: feedNo,
+                            list: []
+                        };
+                    })
+                    .catch(err => {
+                        console.error("홈 피드 이미지 목록 조회 실패", err);
+
+                        return {
+                            feedNo: feedNo,
+                            list: []
+                        };
+                    });
+            })
+        ).then(resultList => {
+            const nextMap = {};
+
+            resultList.forEach(item => {
+                nextMap[String(item.feedNo)] = item.list;
+            });
+
+            setFeedImageMap(prevMap => {
+                return {
+                    ...prevMap,
+                    ...nextMap
+                };
+            });
+        });
+    }
+
+    function getDisplayImageList(feed) {
+        if (!feed) {
+            return [];
+        }
+
+        const imageList = feedImageMap[String(feed.FEED_NO)] || [];
+
+        if (imageList.length > 0) {
+            return imageList;
+        }
+
+        if (feed.MAIN_IMG) {
+            return [
+                {
+                    IMAGE_NO: 0,
+                    IMAGE_URL: feed.MAIN_IMG,
+                    IMAGE_ORDER: 1
+                }
+            ];
+        }
+
+        return [];
+    }
+
+    function getCurrentImageIndex(feed) {
+        if (!feed) {
+            return 0;
+        }
+
+        const displayImageList = getDisplayImageList(feed);
+        let index = imageIndexMap[String(feed.FEED_NO)] || 0;
+
+        if (index < 0 || index >= displayImageList.length) {
+            index = 0;
+        }
+
+        return index;
+    }
+
+    function getSelectedImageUrl(feed) {
+        const displayImageList = getDisplayImageList(feed);
+
+        if (displayImageList.length === 0) {
+            return "";
+        }
+
+        const index = getCurrentImageIndex(feed);
+        const selectedImage = displayImageList[index];
+
+        if (!selectedImage) {
+            return "";
+        }
+
+        return getImageUrlByValue(selectedImage.IMAGE_URL || selectedImage.IMG_URL || selectedImage.MAIN_IMG);
+    }
+
+    function prevFeedImage(e, feed) {
+        e.stopPropagation();
+
+        const displayImageList = getDisplayImageList(feed);
+
+        if (displayImageList.length <= 1) {
+            return;
+        }
+
+        const currentIndex = getCurrentImageIndex(feed);
+        let nextIndex = currentIndex - 1;
+
+        if (nextIndex < 0) {
+            nextIndex = displayImageList.length - 1;
+        }
+
+        setImageIndexMap({
+            ...imageIndexMap,
+            [String(feed.FEED_NO)]: nextIndex
+        });
+    }
+
+    function nextFeedImage(e, feed) {
+        e.stopPropagation();
+
+        const displayImageList = getDisplayImageList(feed);
+
+        if (displayImageList.length <= 1) {
+            return;
+        }
+
+        const currentIndex = getCurrentImageIndex(feed);
+        let nextIndex = currentIndex + 1;
+
+        if (nextIndex >= displayImageList.length) {
+            nextIndex = 0;
+        }
+
+        setImageIndexMap({
+            ...imageIndexMap,
+            [String(feed.FEED_NO)]: nextIndex
+        });
+    }
+
+    function selectFeedImage(e, feed, index) {
+        e.stopPropagation();
+
+        setImageIndexMap({
+            ...imageIndexMap,
+            [String(feed.FEED_NO)]: index
+        });
     }
 
     function getProfileImageUrl(value) {
@@ -321,12 +627,77 @@ function HomeFeed() {
             .filter(tag => tag !== "");
     }
 
+    function getVisibleSponsoredAdList() {
+        return sponsoredAdList.filter(ad => {
+            return !hiddenAdNoList.includes(String(ad.AD_NO));
+        });
+    }
+
+    function getCurrentSideAd() {
+        const visibleAdList = getVisibleSponsoredAdList();
+
+        if (visibleAdList.length === 0) {
+            return null;
+        }
+
+        let index = adSlideIndex;
+
+        if (index < 0 || index >= visibleAdList.length) {
+            index = 0;
+        }
+
+        return visibleAdList[index];
+    }
+
+    function prevSponsoredAd(e) {
+        e.stopPropagation();
+
+        const visibleAdList = getVisibleSponsoredAdList();
+
+        if (visibleAdList.length <= 1) {
+            return;
+        }
+
+        setAdSlideIndex(prevIndex => {
+            if (prevIndex <= 0) {
+                return visibleAdList.length - 1;
+            }
+
+            return prevIndex - 1;
+        });
+    }
+
+    function nextSponsoredAd(e) {
+        e.stopPropagation();
+
+        const visibleAdList = getVisibleSponsoredAdList();
+
+        if (visibleAdList.length <= 1) {
+            return;
+        }
+
+        setAdSlideIndex(prevIndex => {
+            if (prevIndex >= visibleAdList.length - 1) {
+                return 0;
+            }
+
+            return prevIndex + 1;
+        });
+    }
+
     function clickSponsoredAd(e, ad) {
         e.stopPropagation();
 
         if (!ad) {
             return;
         }
+
+        if (!ad.AD_NO) {
+            alert("광고 번호가 없습니다.");
+            return;
+        }
+
+        sessionStorage.setItem("selectedAd", JSON.stringify(ad));
 
         const token = getToken();
 
@@ -343,21 +714,286 @@ function HomeFeed() {
             .then(res => res.json())
             .then(data => {
                 console.log("광고 클릭 처리", data);
+            })
+            .catch(err => {
+                console.error(err);
+            });
+
+        navigate("/ad/detail/" + ad.AD_NO);
+    }
+
+    function hideSponsoredAd(e, ad) {
+        e.stopPropagation();
+
+        if (!ad || !ad.AD_NO) {
+            return;
+        }
+
+        setHiddenAdNoList(prevList => {
+            if (prevList.includes(String(ad.AD_NO))) {
+                return prevList;
+            }
+
+            return [...prevList, String(ad.AD_NO)];
+        });
+
+        setOpenMenuKey("");
+    }
+
+    function togglePostMenu(e, key) {
+        e.stopPropagation();
+
+        if (openMenuKey === key) {
+            setOpenMenuKey("");
+            return;
+        }
+
+        setOpenMenuKey(key);
+    }
+
+    function isMyFeed(feed) {
+        if (!feed) {
+            return false;
+        }
+
+        if (feed.MINE_YN === "Y") {
+            return true;
+        }
+
+        return String(feed.USER_NO) === String(getLoginUserNo());
+    }
+
+    function editFeed(e, feed) {
+        e.stopPropagation();
+        setOpenMenuKey("");
+
+        if (!feed || !feed.FEED_NO) {
+            return;
+        }
+
+        sessionStorage.setItem("editFeedNo", feed.FEED_NO);
+
+        navigate("/feed/new", {
+            state: {
+                mode: "edit",
+                feedNo: feed.FEED_NO
+            }
+        });
+    }
+
+    function removeFeed(e, feed) {
+        e.stopPropagation();
+        setOpenMenuKey("");
+
+        if (!feed || !feed.FEED_NO) {
+            return;
+        }
+
+        if (!window.confirm("게시물을 삭제할까요?")) {
+            return;
+        }
+
+        const token = getToken();
+
+        fetch("http://localhost:3010/feed/remove", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feed.FEED_NO
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("홈 피드 삭제", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
-                    if (data.linkUrl) {
-                        window.open(data.linkUrl, "_blank");
-                    } else {
-                        alert("광고 상세 페이지는 다음 단계에서 연결하면 됩니다.");
-                    }
+                    setFeedList(prevList =>
+                        prevList.filter(item => String(item.FEED_NO) !== String(feed.FEED_NO))
+                    );
+                    alert("게시물이 삭제되었습니다.");
                 } else {
-                    alert(data.message || "광고 클릭 처리에 실패했습니다.");
+                    alert(data.message || "게시물 삭제에 실패했습니다.");
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("광고 클릭 처리 중 오류가 발생했습니다.");
+                alert("게시물 삭제 중 오류가 발생했습니다.");
             });
+    }
+
+    function reportFeed(e, feed) {
+        e.stopPropagation();
+        setOpenMenuKey("");
+
+        if (!feed) {
+            return;
+        }
+
+        alert("신고가 접수되었습니다.");
+    }
+
+    function reportAd(e, ad) {
+        e.stopPropagation();
+        setOpenMenuKey("");
+
+        if (!ad) {
+            return;
+        }
+
+        alert("광고 신고가 접수되었습니다.");
+    }
+
+    function copyText(text, successMessage) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    alert(successMessage);
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("링크 복사에 실패했습니다.");
+                });
+
+            return;
+        }
+
+        alert(text);
+    }
+
+    function shareFeed(e, feed) {
+        e.stopPropagation();
+
+        if (!feed || !feed.FEED_NO) {
+            return;
+        }
+
+        const shareUrl = window.location.origin + "/feed/detail?feedNo=" + feed.FEED_NO;
+        const title = safeText(feed.TITLE, "K-STEP 여행 루트");
+
+        if (navigator.share) {
+            navigator.share({
+                title: title,
+                text: title + " 루트를 확인해보세요.",
+                url: shareUrl
+            })
+                .catch(err => {
+                    console.error(err);
+                });
+
+            return;
+        }
+
+        copyText(shareUrl, "피드 링크가 복사되었습니다.");
+    }
+
+    function shareAd(e, ad) {
+        e.stopPropagation();
+
+        if (!ad || !ad.AD_NO) {
+            return;
+        }
+
+        const shareUrl = window.location.origin + "/ad/detail/" + ad.AD_NO;
+        const title = safeText(ad.BUSINESS_NAME, "K-STEP 로컬 스폰서");
+
+        if (navigator.share) {
+            navigator.share({
+                title: title,
+                text: title + " 정보를 확인해보세요.",
+                url: shareUrl
+            })
+                .catch(err => {
+                    console.error(err);
+                });
+
+            return;
+        }
+
+        copyText(shareUrl, "가게 링크가 복사되었습니다.");
+    }
+
+    function toggleSponsoredAdSave(e, ad) {
+        e.stopPropagation();
+
+        if (!ad || !ad.AD_NO) {
+            return;
+        }
+
+        const token = getToken();
+
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
+        fetch("http://localhost:3010/business/sponsor/save/toggle", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                adNo: ad.AD_NO
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("홈 광고 저장 처리", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
+                if (data.result === "success") {
+                    setSavedAdNoList(prevList => {
+                        const adNoText = String(ad.AD_NO);
+
+                        if (data.saveYn === "Y" || data.savedYn === "Y" || data.SAVE_YN === "Y") {
+                            if (prevList.includes(adNoText)) {
+                                return prevList;
+                            }
+
+                            return [...prevList, adNoText];
+                        }
+
+                        return prevList.filter(item => item !== adNoText);
+                    });
+
+                    alert(data.message || "가게 저장 처리가 완료되었습니다.");
+                } else {
+                    alert(data.message || "가게 저장 처리에 실패했습니다.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("가게 저장 처리 중 오류가 발생했습니다.");
+            });
+    }
+
+    function isAdSaved(ad) {
+        if (!ad || !ad.AD_NO) {
+            return false;
+        }
+
+        if (ad.SAVE_YN === "Y" || ad.SAVED_YN === "Y") {
+            return true;
+        }
+
+        return savedAdNoList.includes(String(ad.AD_NO));
+    }
+
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
     }
 
     function toggleLike(e, feed) {
@@ -382,6 +1018,10 @@ function HomeFeed() {
             .then(res => res.json())
             .then(data => {
                 console.log("홈 좋아요 처리", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     updateFeedInList(feed.FEED_NO, oldFeed => {
@@ -443,6 +1083,10 @@ function HomeFeed() {
             .then(res => res.json())
             .then(data => {
                 console.log("홈 저장 처리", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     updateFeedInList(feed.FEED_NO, oldFeed => {
@@ -513,6 +1157,10 @@ function HomeFeed() {
             .then(data => {
                 console.log("홈 댓글 목록", data);
 
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 if (data.result === "success") {
                     setCommentList(data.list || []);
                 } else {
@@ -561,6 +1209,10 @@ function HomeFeed() {
             .then(res => res.json())
             .then(data => {
                 console.log("홈 댓글 작성", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setCommentContent("");
@@ -612,6 +1264,10 @@ function HomeFeed() {
             .then(data => {
                 console.log("홈 댓글 삭제", data);
 
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 if (data.result === "success") {
                     getCommentList(selectedFeed.FEED_NO);
 
@@ -646,6 +1302,7 @@ function HomeFeed() {
     function makeHomeItemList() {
         const result = [];
         let adIndex = 0;
+        const visibleAdList = getVisibleSponsoredAdList();
 
         for (let i = 0; i < feedList.length; i++) {
             result.push({
@@ -654,11 +1311,11 @@ function HomeFeed() {
                 key: "feed-" + feedList[i].FEED_NO
             });
 
-            if (sponsoredAdList.length > 0 && (i + 1) % 3 === 0) {
+            if (visibleAdList.length > 0 && (i + 1) % 3 === 0) {
                 result.push({
                     type: "ad",
-                    data: sponsoredAdList[adIndex % sponsoredAdList.length],
-                    key: "ad-" + i + "-" + sponsoredAdList[adIndex % sponsoredAdList.length].AD_NO
+                    data: visibleAdList[adIndex % visibleAdList.length],
+                    key: "ad-" + i + "-" + visibleAdList[adIndex % visibleAdList.length].AD_NO
                 });
 
                 adIndex++;
@@ -666,6 +1323,100 @@ function HomeFeed() {
         }
 
         return result;
+    }
+
+    function renderAdMenu(ad) {
+        if (!ad) {
+            return null;
+        }
+
+        return (
+            <div className="home-card-menu-wrap">
+                <button
+                    type="button"
+                    className="home-card-menu"
+                    onClick={(e) => togglePostMenu(e, "ad-" + ad.AD_NO)}
+                >
+                    ···
+                </button>
+
+                {openMenuKey === "ad-" + ad.AD_NO && (
+                    <div className="home-card-menu-list">
+                        <button
+                            type="button"
+                            onClick={(e) => clickSponsoredAd(e, ad)}
+                        >
+                            가게보기
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={(e) => hideSponsoredAd(e, ad)}
+                        >
+                            관심없음
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={(e) => reportAd(e, ad)}
+                        >
+                            신고
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    function renderFeedMenu(feed) {
+        if (!feed) {
+            return null;
+        }
+
+        const menuKey = "feed-" + feed.FEED_NO;
+        const mineYn = isMyFeed(feed);
+
+        return (
+            <div className="home-card-menu-wrap">
+                <button
+                    type="button"
+                    className="home-card-menu"
+                    onClick={(e) => togglePostMenu(e, menuKey)}
+                >
+                    ···
+                </button>
+
+                {openMenuKey === menuKey && (
+                    <div className="home-card-menu-list">
+                        {mineYn ? (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={(e) => editFeed(e, feed)}
+                                >
+                                    수정
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="danger"
+                                    onClick={(e) => removeFeed(e, feed)}
+                                >
+                                    삭제
+                                </button>
+                            </>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={(e) => reportFeed(e, feed)}
+                            >
+                                신고
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
     }
 
     function renderSponsoredPost(ad) {
@@ -688,16 +1439,7 @@ function HomeFeed() {
                         <p>Sponsored · {safeText(ad.AREA, "Korea")}</p>
                     </div>
 
-                    <button
-                        type="button"
-                        className="home-card-menu"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            alert("광고 메뉴는 다음 단계에서 숨기기/신고로 연결하면 됩니다.");
-                        }}
-                    >
-                        ···
-                    </button>
+                    {renderAdMenu(ad)}
                 </div>
 
                 <div className="home-ad-visual">
@@ -710,17 +1452,46 @@ function HomeFeed() {
                             <p>{safeText(ad.AREA, "Korea")}</p>
                         </div>
                     )}
+
+                    <div className="home-sponsored-badge">Sponsored</div>
                 </div>
 
                 <div className="home-card-body">
                     <div className="home-action-row">
                         <div className="home-left-actions">
-                            <button type="button">♡</button>
-                            <button type="button">💬</button>
-                            <button type="button">↗</button>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    clickSponsoredAd(e, ad);
+                                }}
+                            >
+                                ♡
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    clickSponsoredAd(e, ad);
+                                }}
+                            >
+                                💬
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={(e) => shareAd(e, ad)}
+                            >
+                                ↗
+                            </button>
                         </div>
 
-                        <button type="button" className="home-save-action">
+                        <button
+                            type="button"
+                            className={isAdSaved(ad) ? "home-save-action active" : "home-save-action"}
+                            onClick={(e) => toggleSponsoredAdSave(e, ad)}
+                        >
                             🔖
                         </button>
                     </div>
@@ -743,7 +1514,7 @@ function HomeFeed() {
                         className="home-ad-cta"
                         onClick={(e) => clickSponsoredAd(e, ad)}
                     >
-                        {safeText(ad.CTA_TEXT, "자세히 보기")}
+                        가게보기
                     </button>
                 </div>
             </article>
@@ -781,31 +1552,57 @@ function HomeFeed() {
                         </p>
                     </div>
 
-                    <button
-                        type="button"
-                        className="home-card-menu"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            alert("게시물 메뉴는 다음 단계에서 신고/공유/수정/삭제로 붙이면 됩니다.");
-                        }}
-                    >
-                        ···
-                    </button>
+                    {renderFeedMenu(feed)}
                 </div>
 
                 <div
                     className="home-feed-image"
                     onDoubleClick={(e) => doubleClickLike(e, feed)}
                 >
-                    {getImageUrl(feed) !== "" ? (
+                    {getSelectedImageUrl(feed) !== "" ? (
                         <img
-                            src={getImageUrl(feed)}
+                            src={getSelectedImageUrl(feed)}
                             alt={safeText(feed.TITLE, "피드 이미지")}
                         />
                     ) : (
                         <div className="home-no-image">
                             K-STEP
                         </div>
+                    )}
+
+                    {getDisplayImageList(feed).length > 1 && (
+                        <>
+                            <button
+                                type="button"
+                                className="home-image-arrow home-image-prev"
+                                onClick={(e) => prevFeedImage(e, feed)}
+                            >
+                                ‹
+                            </button>
+
+                            <button
+                                type="button"
+                                className="home-image-arrow home-image-next"
+                                onClick={(e) => nextFeedImage(e, feed)}
+                            >
+                                ›
+                            </button>
+
+                            <div className="home-image-count">
+                                {getCurrentImageIndex(feed) + 1} / {getDisplayImageList(feed).length}
+                            </div>
+
+                            <div className="home-image-dot-row">
+                                {getDisplayImageList(feed).map((image, index) => (
+                                    <button
+                                        type="button"
+                                        key={image.IMAGE_NO || image.IMG_NO || index}
+                                        className={getCurrentImageIndex(feed) === index ? "home-image-dot active" : "home-image-dot"}
+                                        onClick={(e) => selectFeedImage(e, feed, index)}
+                                    ></button>
+                                ))}
+                            </div>
+                        </>
                     )}
 
                     {heartFeedNo === feed.FEED_NO && (
@@ -840,10 +1637,7 @@ function HomeFeed() {
 
                             <button
                                 type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    alert("공유 기능은 다음 단계에서 붙일 수 있습니다.");
-                                }}
+                                onClick={(e) => shareFeed(e, feed)}
                             >
                                 ↗
                             </button>
@@ -902,10 +1696,77 @@ function HomeFeed() {
         );
     }
 
+    function renderAdCarousel() {
+        const visibleAdList = getVisibleSponsoredAdList();
+
+        if (visibleAdList.length === 0) {
+            return null;
+        }
+
+        return (
+            <section className="home-ad-carousel-section">
+                <div className="home-ad-carousel-head">
+                    <div>
+                        <span>Sponsored</span>
+                        <h2>추천 로컬 스폰서</h2>
+                    </div>
+
+                    <p>{visibleAdList.length}개의 추천 광고</p>
+                </div>
+
+                <div className="home-ad-carousel-list">
+                    {visibleAdList.map(ad => (
+                        <article
+                            className="home-ad-carousel-card"
+                            key={ad.AD_NO}
+                            onClick={(e) => clickSponsoredAd(e, ad)}
+                        >
+                            <div className="home-ad-carousel-image">
+                                {getAdImageUrl(ad) !== "" ? (
+                                    <img
+                                        src={getAdImageUrl(ad)}
+                                        alt={safeText(ad.AD_TITLE, "광고 이미지")}
+                                    />
+                                ) : (
+                                    <div className="home-ad-carousel-gradient">
+                                        <strong>{getFirstLetter(ad.BUSINESS_NAME)}</strong>
+                                    </div>
+                                )}
+
+                                <span>AD</span>
+                            </div>
+
+                            <div className="home-ad-carousel-info">
+                                <strong>{safeText(ad.BUSINESS_NAME, "로컬 스폰서")}</strong>
+                                <p>{safeText(ad.AD_TITLE, "여행자에게 추천하는 장소")}</p>
+
+                                <button
+                                    type="button"
+                                    onClick={(e) => clickSponsoredAd(e, ad)}
+                                >
+                                    가게보기
+                                </button>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            </section>
+        );
+    }
+
     const homeItemList = makeHomeItemList();
+    const visibleSponsoredAdList = getVisibleSponsoredAdList();
+    const currentSideAd = getCurrentSideAd();
 
     return (
-        <div className="home-page">
+        <div
+            className="home-page"
+            onClick={() => {
+                if (openMenuKey !== "") {
+                    setOpenMenuKey("");
+                }
+            }}
+        >
             <div className="home-bg-flower home-flower-one">✿</div>
             <div className="home-bg-flower home-flower-two">❀</div>
 
@@ -962,6 +1823,8 @@ function HomeFeed() {
 
                     <StoryBar />
 
+                    {renderAdCarousel()}
+
                     {loading && (
                         <div className="home-empty-box">
                             홈 피드를 불러오는 중입니다...
@@ -1011,23 +1874,48 @@ function HomeFeed() {
                         </button>
                     </div>
 
-                    {sponsoredAdList.length > 0 && (
+                    {currentSideAd && (
                         <div
                             className="home-side-ad"
-                            onClick={(e) => clickSponsoredAd(e, sponsoredAdList[0])}
+                            onClick={(e) => clickSponsoredAd(e, currentSideAd)}
                         >
                             <div className="home-side-ad-top">
                                 <span>Sponsored</span>
-                                <em>{safeText(sponsoredAdList[0].BUSINESS_TYPE, "LOCAL")}</em>
+                                <em>
+                                    {adSlideIndex + 1}/{visibleSponsoredAdList.length}
+                                </em>
                             </div>
 
-                            <h3>{safeText(sponsoredAdList[0].BUSINESS_NAME, "로컬 스폰서")}</h3>
+                            <h3>{safeText(currentSideAd.BUSINESS_NAME, "로컬 스폰서")}</h3>
 
-                            <p>{safeText(sponsoredAdList[0].AD_TITLE, "여행자에게 추천하는 로컬 광고")}</p>
+                            <p>{safeText(currentSideAd.AD_TITLE, "여행자에게 추천하는 로컬 광고")}</p>
 
-                            <button type="button">
-                                {safeText(sponsoredAdList[0].CTA_TEXT, "자세히 보기")}
-                            </button>
+                            <div className="home-side-ad-actions">
+                                <button
+                                    type="button"
+                                    onClick={(e) => clickSponsoredAd(e, currentSideAd)}
+                                >
+                                    가게보기
+                                </button>
+
+                                {visibleSponsoredAdList.length > 1 && (
+                                    <div className="home-side-ad-arrows">
+                                        <button
+                                            type="button"
+                                            onClick={prevSponsoredAd}
+                                        >
+                                            ‹
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={nextSponsoredAd}
+                                        >
+                                            ›
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -1037,7 +1925,7 @@ function HomeFeed() {
 
                             <button
                                 type="button"
-                                onClick={() => navigate("/search")}
+                                onClick={() => navigate("/explore")}
                             >
                                 더보기
                             </button>
@@ -1080,13 +1968,21 @@ function HomeFeed() {
                 </aside>
             </div>
 
+            <button
+                type="button"
+                className="home-scroll-top-btn"
+                onClick={scrollToTop}
+            >
+                ↑
+            </button>
+
             {commentModalOpen && selectedFeed && (
                 <div className="home-comment-modal-bg" onClick={closeCommentModal}>
                     <div className="home-comment-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="home-comment-image-area">
-                            {getImageUrl(selectedFeed) !== "" ? (
+                            {getSelectedImageUrl(selectedFeed) !== "" ? (
                                 <img
-                                    src={getImageUrl(selectedFeed)}
+                                    src={getSelectedImageUrl(selectedFeed)}
                                     alt={safeText(selectedFeed.TITLE, "피드 이미지")}
                                 />
                             ) : (

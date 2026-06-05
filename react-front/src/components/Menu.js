@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Menu.css";
 
@@ -5,47 +6,165 @@ function Menu() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const loginUserNo = localStorage.getItem("userNo");
-
-   
     const logoUrl = "/images/k_step_logo3.png";
+
+    const [isLogin, setIsLogin] = useState(false);
+    const [loginUserNo, setLoginUserNo] = useState("");
+
+    useEffect(() => {
+        refreshLoginState();
+    }, [location.pathname]);
+
+    function clearLoginStorage() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userNo");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("nickname");
+        localStorage.removeItem("userType");
+    }
+
+    function checkLoginState() {
+        const token = localStorage.getItem("token");
+        const userNo = localStorage.getItem("userNo");
+
+        if (!token || !userNo) {
+            clearLoginStorage();
+
+            return {
+                isLogin: false,
+                userNo: ""
+            };
+        }
+
+        try {
+            const tokenParts = token.split(".");
+
+            // JWT 형식이 아니면 깨진 토큰으로 판단
+            if (tokenParts.length !== 3) {
+                clearLoginStorage();
+
+                return {
+                    isLogin: false,
+                    userNo: ""
+                };
+            }
+
+            const payload = tokenParts[1];
+            const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+            const decoded = JSON.parse(window.atob(base64));
+
+            // exp가 있으면 만료 체크
+            if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+                clearLoginStorage();
+
+                return {
+                    isLogin: false,
+                    userNo: ""
+                };
+            }
+
+            return {
+                isLogin: true,
+                userNo: userNo
+            };
+
+        } catch (err) {
+            console.error("로그인 상태 확인 실패", err);
+
+            clearLoginStorage();
+
+            return {
+                isLogin: false,
+                userNo: ""
+            };
+        }
+    }
+
+    function refreshLoginState() {
+        const loginState = checkLoginState();
+
+        setIsLogin(loginState.isLogin);
+        setLoginUserNo(loginState.userNo);
+    }
 
     const menuList = [
         {
             name: "홈",
             path: "/home",
-            icon: "home"
+            icon: "home",
+            needLogin: true
         },
         {
             name: "탐색",
             path: "/explore",
-            icon: "search"
+            icon: "search",
+            needLogin: true
         },
         {
             name: "작성",
             path: "/feed/new",
-            icon: "plus"
+            icon: "plus",
+            needLogin: true
+        },
+        {
+            name: "저장함",
+            path: "/saved",
+            icon: "saved",
+            needLogin: true
         },
         {
             name: "알림",
             path: "/notifications",
-            icon: "bell"
+            icon: "bell",
+            needLogin: true
         },
         {
             name: "채팅",
             path: "/chat",
-            icon: "chat"
+            icon: "chat",
+            needLogin: true
         },
-        
         {
             name: "프로필",
-            path: "/profile/" + loginUserNo,
-            icon: "user"
+            path: isLogin ? "/profile/" + loginUserNo : "/",
+            icon: "user",
+            needLogin: true
         }
     ];
 
-    function movePage(path) {
+    function movePage(path, needLogin) {
+        const loginState = checkLoginState();
+
+        setIsLogin(loginState.isLogin);
+        setLoginUserNo(loginState.userNo);
+
+        if (needLogin && !loginState.isLogin) {
+            alert("로그인이 필요합니다.");
+            navigate("/");
+            return;
+        }
+
         navigate(path);
+    }
+
+    function moveLogo() {
+        const loginState = checkLoginState();
+
+        setIsLogin(loginState.isLogin);
+        setLoginUserNo(loginState.userNo);
+
+        if (loginState.isLogin) {
+            navigate("/home");
+        } else {
+            navigate("/");
+        }
+    }
+
+    function login() {
+        clearLoginStorage();
+        setIsLogin(false);
+        setLoginUserNo("");
+        navigate("/");
     }
 
     function logout() {
@@ -53,11 +172,10 @@ function Menu() {
             return;
         }
 
-        localStorage.removeItem("token");
-        localStorage.removeItem("userNo");
-        localStorage.removeItem("userId");
-        localStorage.removeItem("nickname");
-        localStorage.removeItem("userType");
+        clearLoginStorage();
+
+        setIsLogin(false);
+        setLoginUserNo("");
 
         navigate("/");
     }
@@ -73,6 +191,10 @@ function Menu() {
 
         if (path === "/feed/new") {
             return location.pathname === "/feed/new";
+        }
+
+        if (path === "/saved") {
+            return location.pathname === "/saved";
         }
 
         if (path === "/notifications") {
@@ -124,6 +246,16 @@ function Menu() {
             );
         }
 
+        if (type === "saved") {
+            return (
+                <svg viewBox="0 0 24 24">
+                    <path d="M6.5 5.5C6.5 4.4 7.4 3.5 8.5 3.5H15.5C16.6 3.5 17.5 4.4 17.5 5.5V20.5L12 17.2L6.5 20.5V5.5Z" />
+                    <path d="M9.5 8H14.5" />
+                    <path d="M9.5 11H13.2" />
+                </svg>
+            );
+        }
+
         if (type === "bell") {
             return (
                 <svg viewBox="0 0 24 24">
@@ -163,6 +295,18 @@ function Menu() {
             );
         }
 
+        // 로그인 아이콘
+        if (type === "login") {
+            return (
+                <svg viewBox="0 0 24 24">
+                    <path d="M14 5H19V19H14" />
+                    <path d="M9 8L13 12L9 16" />
+                    <path d="M4 12H13" />
+                </svg>
+            );
+        }
+
+        // 로그아웃 아이콘
         if (type === "logout") {
             return (
                 <svg viewBox="0 0 24 24">
@@ -186,7 +330,7 @@ function Menu() {
             <div className="side-menu-inner">
                 <button
                     className="side-logo"
-                    onClick={() => movePage("/home")}
+                    onClick={moveLogo}
                     type="button"
                     title="K-STEP 홈"
                     aria-label="K-STEP 홈"
@@ -201,9 +345,9 @@ function Menu() {
                 <nav className="side-menu-list">
                     {menuList.map((menu) => (
                         <button
-                            key={menu.path}
+                            key={menu.name}
                             className={isActive(menu.path) ? "side-menu-btn active" : "side-menu-btn"}
-                            onClick={() => movePage(menu.path)}
+                            onClick={() => movePage(menu.path, menu.needLogin)}
                             type="button"
                         >
                             <span className="side-menu-icon">
@@ -217,19 +361,35 @@ function Menu() {
                     ))}
                 </nav>
 
-                <button
-                    className="side-menu-btn side-logout-btn"
-                    onClick={logout}
-                    type="button"
-                >
-                    <span className="side-menu-icon">
-                        <MenuIcon type="logout" />
-                    </span>
+                {isLogin ? (
+                    <button
+                        className="side-menu-btn side-logout-btn"
+                        onClick={logout}
+                        type="button"
+                    >
+                        <span className="side-menu-icon">
+                            <MenuIcon type="logout" />
+                        </span>
 
-                    <span className="side-menu-tooltip">
-                        로그아웃
-                    </span>
-                </button>
+                        <span className="side-menu-tooltip">
+                            로그아웃
+                        </span>
+                    </button>
+                ) : (
+                    <button
+                        className="side-menu-btn side-logout-btn"
+                        onClick={login}
+                        type="button"
+                    >
+                        <span className="side-menu-icon">
+                            <MenuIcon type="login" />
+                        </span>
+
+                        <span className="side-menu-tooltip">
+                            로그인
+                        </span>
+                    </button>
+                )}
             </div>
         </aside>
     );

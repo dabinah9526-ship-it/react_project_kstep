@@ -15,7 +15,8 @@ import ProfileSettings from './components/ProfileSettings';
 import Chat from './components/Chat';
 import Notifications from './components/Notifications';
 import StoryManage from "./components/StoryManage";
-
+import AdDetail from "./components/AdDetail";
+import SavedList from "./components/SavedList";
 
 function App() {
   const location = useLocation();
@@ -42,6 +43,8 @@ function App() {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/story/manage" element={<StoryManage />} />
+          <Route path="/ad/detail/:adNo" element={<AdDetail />} />
+          <Route path="/saved" element={<SavedList />} />
 
         </Routes>
       </Box>

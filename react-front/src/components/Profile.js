@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ProfileStoryCircle from "./ProfileStoryCircle";
 import "./Profile.css";
 
 function Profile() {
     const navigate = useNavigate();
+
     const { userNo } = useParams();
+    const [searchParams] = useSearchParams();
 
     const loginUserNo = getLoginUserNo();
+    const profileUserNo = searchParams.get("userNo") || userNo || loginUserNo;
 
     const [profile, setProfile] = useState(null);
     const [feedList, setFeedList] = useState([]);
@@ -17,6 +20,7 @@ function Profile() {
 
     const [loading, setLoading] = useState(false);
     const [listLoading, setListLoading] = useState(false);
+    const [messageLoading, setMessageLoading] = useState(false);
 
     const [activeTab, setActiveTab] = useState("feed");
 
@@ -24,17 +28,17 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            alert("로그인이 필요합니다.");
-            navigate("/");
+            moveLoginPage("로그인이 필요합니다.");
             return;
         }
 
-        if (!userNo || userNo === "null" || userNo === "undefined") {
+        if (!profileUserNo || profileUserNo === "null" || profileUserNo === "undefined") {
             alert("프로필 번호가 없습니다. 다시 로그인해주세요.");
             navigate("/home");
             return;
         }
 
+        setProfile(null);
         setActiveTab("feed");
         setFeedList([]);
         setBookmarkList([]);
@@ -42,7 +46,43 @@ function Profile() {
         setFollowingList([]);
 
         getProfile();
-    }, [navigate, userNo]);
+    }, [navigate, profileUserNo]);
+
+    function moveLoginPage(message) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userNo");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("nickname");
+        localStorage.removeItem("userType");
+
+        alert(message || "로그인이 필요합니다.");
+        navigate("/", { replace: true });
+    }
+
+    function isLoginRequired(data) {
+        if (!data) {
+            return false;
+        }
+
+        if (String(data.message || "").includes("로그인이 필요합니다")) {
+            return true;
+        }
+
+        if (String(data.message || "").includes("토큰")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function handleLoginRequired(data) {
+        if (isLoginRequired(data)) {
+            moveLoginPage(data.message || "로그인이 필요합니다.");
+            return true;
+        }
+
+        return false;
+    }
 
     function getLoginUserNo() {
         const savedUserNo =
@@ -80,9 +120,14 @@ function Profile() {
     function getProfile() {
         const token = localStorage.getItem("token");
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         setLoading(true);
 
-        fetch("http://localhost:3010/user/profile/" + userNo, {
+        fetch("http://localhost:3010/user/profile/" + profileUserNo, {
             method: "GET",
             headers: {
                 "Authorization": "Bearer " + token
@@ -91,6 +136,10 @@ function Profile() {
             .then(res => res.json())
             .then(data => {
                 console.log("프로필 조회", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setProfile(data.profile);
@@ -115,9 +164,14 @@ function Profile() {
     function getProfileFeed() {
         const token = localStorage.getItem("token");
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         setListLoading(true);
 
-        fetch("http://localhost:3010/user/profile/" + userNo + "/feed", {
+        fetch("http://localhost:3010/user/profile/" + profileUserNo + "/feed", {
             method: "GET",
             headers: {
                 "Authorization": "Bearer " + token
@@ -126,6 +180,10 @@ function Profile() {
             .then(res => res.json())
             .then(data => {
                 console.log("프로필 피드 조회", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setFeedList(data.list || []);
@@ -147,9 +205,14 @@ function Profile() {
     function getBookmarkList() {
         const token = localStorage.getItem("token");
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         setListLoading(true);
 
-        fetch("http://localhost:3010/user/profile/" + userNo + "/bookmark", {
+        fetch("http://localhost:3010/user/profile/" + profileUserNo + "/bookmark", {
             method: "GET",
             headers: {
                 "Authorization": "Bearer " + token
@@ -158,6 +221,10 @@ function Profile() {
             .then(res => res.json())
             .then(data => {
                 console.log("저장한 루트 조회", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setBookmarkList(data.list || []);
@@ -180,9 +247,14 @@ function Profile() {
     function getFollowerList() {
         const token = localStorage.getItem("token");
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         setListLoading(true);
 
-        fetch("http://localhost:3010/user/follower/list/" + userNo, {
+        fetch("http://localhost:3010/user/follower/list/" + profileUserNo, {
             method: "GET",
             headers: {
                 "Authorization": "Bearer " + token
@@ -191,6 +263,10 @@ function Profile() {
             .then(res => res.json())
             .then(data => {
                 console.log("팔로워 목록 조회", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setFollowerList(data.list || []);
@@ -212,9 +288,14 @@ function Profile() {
     function getFollowingList() {
         const token = localStorage.getItem("token");
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         setListLoading(true);
 
-        fetch("http://localhost:3010/user/following/list/" + userNo, {
+        fetch("http://localhost:3010/user/following/list/" + profileUserNo, {
             method: "GET",
             headers: {
                 "Authorization": "Bearer " + token
@@ -223,6 +304,10 @@ function Profile() {
             .then(res => res.json())
             .then(data => {
                 console.log("팔로잉 목록 조회", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     setFollowingList(data.list || []);
@@ -268,6 +353,11 @@ function Profile() {
     function toggleFollow() {
         const token = localStorage.getItem("token");
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         if (!profile) {
             return;
         }
@@ -286,6 +376,10 @@ function Profile() {
             .then(data => {
                 console.log("팔로우 결과", data);
 
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 if (data.result === "success") {
                     alert(data.message);
                     getProfile();
@@ -299,8 +393,71 @@ function Profile() {
             });
     }
 
+    function openChatRoom() {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
+        if (!profile) {
+            return;
+        }
+
+        if (isMyProfile()) {
+            navigate("/chat");
+            return;
+        }
+
+        setMessageLoading(true);
+
+        fetch("http://localhost:3010/chat/room/open", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                targetUserNo: profile.USER_NO
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("프로필에서 채팅방 열기", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
+                if (data.result === "success") {
+                    sessionStorage.setItem("selectedChatRoomNo", data.roomNo);
+
+                    navigate("/chat", {
+                        state: {
+                            roomNo: data.roomNo
+                        }
+                    });
+                } else {
+                    alert(data.message || "채팅방을 여는 중 오류가 발생했습니다.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("채팅방을 여는 중 오류가 발생했습니다.");
+            })
+            .finally(() => {
+                setMessageLoading(false);
+            });
+    }
+
     function blockUser() {
         const token = localStorage.getItem("token");
+
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
 
         if (!profile) {
             return;
@@ -322,6 +479,10 @@ function Profile() {
         })
             .then(res => res.json())
             .then(data => {
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 if (data.result === "success") {
                     alert(data.message);
                     navigate("/home");
@@ -353,12 +514,47 @@ function Profile() {
         navigate("/profile/" + targetUserNo);
     }
 
+    function shareProfile() {
+        if (!profile) {
+            return;
+        }
+
+        const shareUrl = window.location.origin + "/profile/" + profile.USER_NO;
+        const title = safeText(profile.NICKNAME, "K-STEP 여행자") + "님의 프로필";
+
+        if (navigator.share) {
+            navigator.share({
+                title: title,
+                text: title + "을 확인해보세요.",
+                url: shareUrl
+            })
+                .catch(err => {
+                    console.error(err);
+                });
+
+            return;
+        }
+
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => {
+                alert("프로필 링크가 복사되었습니다.");
+            })
+            .catch(err => {
+                console.error(err);
+                alert("링크 복사에 실패했습니다.");
+            });
+    }
+
     function goCreateFeed() {
         navigate("/feed/new");
     }
 
     function goSettings() {
         navigate("/profile/settings");
+    }
+
+    function goSaved() {
+        navigate("/saved");
     }
 
     function isMyProfile() {
@@ -425,17 +621,37 @@ function Profile() {
         return "/images/" + feed.MAIN_IMG;
     }
 
+    function getProfileImageUrl(value) {
+        if (!value) {
+            return "";
+        }
+
+        if (String(value).startsWith("http")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/images/")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/uploads/")) {
+            return "http://localhost:3010" + value;
+        }
+
+        return "/images/" + value;
+    }
+
     function getFollowButtonText() {
         if (!profile) {
             return "팔로우";
         }
 
         if (profile.FOLLOW_YN === "Y") {
-            return "팔로우 취소";
+            return "팔로잉";
         }
 
         if (profile.FOLLOW_YN === "P") {
-            return "요청 취소";
+            return "요청됨";
         }
 
         if (profile.ACCOUNT_PRIVATE_YN === "Y") {
@@ -467,19 +683,27 @@ function Profile() {
 
     function getTabDesc() {
         if (activeTab === "feed") {
-            return "내가 작성한 여행 루트 피드입니다.";
+            return isMyProfile()
+                ? "내가 작성한 여행 루트 피드입니다."
+                : "이 사용자가 작성한 여행 루트 피드입니다.";
         }
 
         if (activeTab === "bookmark") {
-            return "나중에 다시 보고 싶은 저장한 여행 루트입니다.";
+            return isMyProfile()
+                ? "나중에 다시 보고 싶은 저장한 여행 루트입니다."
+                : "이 사용자가 저장한 여행 루트입니다.";
         }
 
         if (activeTab === "follower") {
-            return "나를 팔로우하는 사용자 목록입니다.";
+            return isMyProfile()
+                ? "나를 팔로우하는 사용자 목록입니다."
+                : "이 사용자를 팔로우하는 사용자 목록입니다.";
         }
 
         if (activeTab === "following") {
-            return "내가 팔로우하는 사용자 목록입니다.";
+            return isMyProfile()
+                ? "내가 팔로우하는 사용자 목록입니다."
+                : "이 사용자가 팔로우하는 사용자 목록입니다.";
         }
 
         return "";
@@ -497,9 +721,19 @@ function Profile() {
                 </p>
 
                 {!isMyProfile() && (
-                    <button onClick={toggleFollow}>
-                        {getFollowButtonText()}
-                    </button>
+                    <div className="profile-private-action-row">
+                        <button onClick={toggleFollow}>
+                            {getFollowButtonText()}
+                        </button>
+
+                        <button
+                            className="profile-private-message-btn"
+                            onClick={openChatRoom}
+                            disabled={messageLoading}
+                        >
+                            {messageLoading ? "연결 중..." : "메시지"}
+                        </button>
+                    </div>
                 )}
             </div>
         );
@@ -592,7 +826,14 @@ function Profile() {
                         onClick={() => moveProfile(user.USER_NO)}
                     >
                         <div className="profile-follow-avatar">
-                            {getFirstLetter(user.NICKNAME || user.USER_ID)}
+                            {getProfileImageUrl(user.PROFILE_IMG) !== "" ? (
+                                <img
+                                    src={getProfileImageUrl(user.PROFILE_IMG)}
+                                    alt={safeText(user.NICKNAME, "프로필")}
+                                />
+                            ) : (
+                                getFirstLetter(user.NICKNAME || user.USER_ID)
+                            )}
                         </div>
 
                         <div className="profile-follow-info">
@@ -645,6 +886,11 @@ function Profile() {
 
             <div className="profile-container">
                 <section className="profile-hero-card">
+                    <div className="profile-cover-strip">
+                        <span>K-STEP PROFILE</span>
+                        <strong>{safeText(profile.AREA, "Korea Travel")}</strong>
+                    </div>
+
                     <div className="profile-avatar-box">
                         <ProfileStoryCircle
                             userNo={profile.USER_NO}
@@ -664,6 +910,10 @@ function Profile() {
                     <div className="profile-info">
                         <div className="profile-name-row">
                             <div>
+                                <p className="profile-label">
+                                    {isMyProfile() ? "My travel profile" : "Traveler profile"}
+                                </p>
+
                                 <h1>{safeText(profile.NICKNAME, "traveler")}</h1>
 
                                 <p className="profile-id">
@@ -686,6 +936,12 @@ function Profile() {
                         <p className="profile-bio">
                             {safeText(profile.BIO, "아직 작성된 소개가 없습니다.")}
                         </p>
+
+                        <div className="profile-sns-info-row">
+                            <span>✦ 여행 루트 공유</span>
+                            <span>✿ 로컬 피드</span>
+                            <span>♡ K-STEP SNS</span>
+                        </div>
 
                         <div className="profile-stats">
                             <div
@@ -725,17 +981,40 @@ function Profile() {
                             {isMyProfile() ? (
                                 <>
                                     <button className="profile-main-btn" onClick={goCreateFeed}>
-                                        + 여행 루트 작성하기
+                                        + 여행 루트 작성
                                     </button>
 
                                     <button className="profile-outline-btn" onClick={() => navigate("/story/manage")}>
                                         스토리 관리
                                     </button>
+
+                                    <button className="profile-soft-btn" onClick={goSaved}>
+                                        저장함
+                                    </button>
+
+                                    <button className="profile-soft-btn" onClick={shareProfile}>
+                                        공유
+                                    </button>
                                 </>
                             ) : (
                                 <>
-                                    <button className="profile-main-btn" onClick={toggleFollow}>
+                                    <button
+                                        className={profile.FOLLOW_YN === "Y" ? "profile-main-btn following" : "profile-main-btn"}
+                                        onClick={toggleFollow}
+                                    >
                                         {getFollowButtonText()}
+                                    </button>
+
+                                    <button
+                                        className="profile-message-btn"
+                                        onClick={openChatRoom}
+                                        disabled={messageLoading}
+                                    >
+                                        {messageLoading ? "연결 중..." : "메시지"}
+                                    </button>
+
+                                    <button className="profile-soft-btn" onClick={shareProfile}>
+                                        공유
                                     </button>
 
                                     <button className="profile-danger-outline-btn" onClick={blockUser}>
