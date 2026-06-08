@@ -35,6 +35,7 @@ function getLoginUserNo(loginUser) {
         loginUser.userNo ||
         loginUser.USER_NO ||
         loginUser.user_no ||
+        loginUser.id ||
         ""
     );
 }
@@ -55,6 +56,123 @@ async function tableExists(connection, tableName) {
     );
 
     return result.rows[0].CNT > 0;
+}
+
+async function getTableColumnList(connection, tableName) {
+    const result = await connection.execute(
+        `
+            SELECT COLUMN_NAME
+            FROM USER_TAB_COLUMNS
+            WHERE TABLE_NAME = UPPER(:tableName)
+        `,
+        {
+            tableName: tableName
+        },
+        {
+            outFormat: oracledb.OUT_FORMAT_OBJECT
+        }
+    );
+
+    return result.rows.map(row => row.COLUMN_NAME);
+}
+
+function makeOptionalColumnSelect(columnList, tableAlias, possibleColumnList, aliasName) {
+    for (let i = 0; i < possibleColumnList.length; i++) {
+        const columnName = possibleColumnList[i];
+
+        if (columnList.includes(columnName)) {
+            return tableAlias + "." + columnName + " AS " + aliasName;
+        }
+    }
+
+    return "NULL AS " + aliasName;
+}
+
+async function getSponsoredAdExtraSelect(connection) {
+    const columnList = await getTableColumnList(connection, "SPONSORED_AD");
+
+    const addressSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["ADDRESS", "BUSINESS_ADDRESS", "PLACE_ADDRESS", "ROAD_ADDRESS"],
+        "ADDRESS"
+    );
+
+    const phoneSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["PHONE", "TEL", "BUSINESS_PHONE", "CONTACT"],
+        "PHONE"
+    );
+
+    const openHoursSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["OPEN_HOURS", "BUSINESS_HOURS", "OPERATING_HOURS"],
+        "OPEN_HOURS"
+    );
+
+    const mainMenuSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["MAIN_MENU", "MENU_INFO", "MAIN_PRODUCT"],
+        "MAIN_MENU"
+    );
+
+    const priceInfoSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["PRICE_INFO", "PRICE_RANGE", "PRICE"],
+        "PRICE_INFO"
+    );
+
+    const parkingInfoSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["PARKING_INFO", "PARKING"],
+        "PARKING_INFO"
+    );
+
+    const mapUrlSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["MAP_URL", "NAVER_MAP_URL", "KAKAO_MAP_URL", "PLACE_URL"],
+        "MAP_URL"
+    );
+
+    const instagramUrlSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["INSTAGRAM_URL", "INSTA_URL", "SNS_URL"],
+        "INSTAGRAM_URL"
+    );
+
+    const latSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["LAT", "LATITUDE"],
+        "LAT"
+    );
+
+    const lngSelect = makeOptionalColumnSelect(
+        columnList,
+        "A",
+        ["LNG", "LONGITUDE"],
+        "LNG"
+    );
+
+    return `,
+                    ${addressSelect},
+                    ${phoneSelect},
+                    ${openHoursSelect},
+                    ${mainMenuSelect},
+                    ${priceInfoSelect},
+                    ${parkingInfoSelect},
+                    ${mapUrlSelect},
+                    ${instagramUrlSelect},
+                    ${latSelect},
+                    ${lngSelect}
+    `;
 }
 
 async function ensureSponsoredAdSaveTable(connection) {
@@ -94,6 +212,19 @@ function normalizeLinkUrl(linkUrl) {
     return "https://" + value;
 }
 
+function normalizeAdRow(ad) {
+    if (!ad) {
+        return ad;
+    }
+
+    return {
+        ...ad,
+        LINK_URL: normalizeLinkUrl(ad.LINK_URL),
+        MAP_URL: normalizeLinkUrl(ad.MAP_URL),
+        INSTAGRAM_URL: normalizeLinkUrl(ad.INSTAGRAM_URL)
+    };
+}
+
 /* =========================
    Sponsored 광고 목록 조회
 ========================= */
@@ -124,6 +255,8 @@ router.get('/sponsor/list', async (req, res) => {
 
         await ensureSponsoredAdSaveTable(connection);
 
+        const extraSelect = await getSponsoredAdExtraSelect(connection);
+
         const result = await connection.execute(
             `
                 SELECT
@@ -139,7 +272,8 @@ router.get('/sponsor/list', async (req, res) => {
                     A.VIEW_COUNT,
                     A.CLICK_COUNT,
                     A.AD_STATUS,
-                    A.DISPLAY_ORDER,
+                    A.DISPLAY_ORDER
+                    ${extraSelect},
                     CASE
                         WHEN S.SAVE_NO IS NULL THEN 'N'
                         ELSE 'Y'
@@ -169,12 +303,7 @@ router.get('/sponsor/list', async (req, res) => {
 
         await connection.commit();
 
-        const list = result.rows.map(ad => {
-            return {
-                ...ad,
-                LINK_URL: normalizeLinkUrl(ad.LINK_URL)
-            };
-        });
+        const list = result.rows.map(ad => normalizeAdRow(ad));
 
         res.json({
             result: "success",
@@ -236,6 +365,8 @@ router.get('/sponsor/detail/:adNo', async (req, res) => {
 
         await ensureSponsoredAdSaveTable(connection);
 
+        const extraSelect = await getSponsoredAdExtraSelect(connection);
+
         const result = await connection.execute(
             `
                 SELECT
@@ -251,7 +382,8 @@ router.get('/sponsor/detail/:adNo', async (req, res) => {
                     A.VIEW_COUNT,
                     A.CLICK_COUNT,
                     A.AD_STATUS,
-                    A.DISPLAY_ORDER,
+                    A.DISPLAY_ORDER
+                    ${extraSelect},
                     CASE
                         WHEN S.SAVE_NO IS NULL THEN 'N'
                         ELSE 'Y'
@@ -292,14 +424,9 @@ router.get('/sponsor/detail/:adNo', async (req, res) => {
 
         await connection.commit();
 
-        const ad = result.rows[0];
-
         res.json({
             result: "success",
-            ad: {
-                ...ad,
-                LINK_URL: normalizeLinkUrl(ad.LINK_URL)
-            }
+            ad: normalizeAdRow(result.rows[0])
         });
 
     } catch (error) {
@@ -605,6 +732,8 @@ router.get('/sponsor/save/list', async (req, res) => {
 
         await ensureSponsoredAdSaveTable(connection);
 
+        const extraSelect = await getSponsoredAdExtraSelect(connection);
+
         const result = await connection.execute(
             `
                 SELECT
@@ -622,7 +751,8 @@ router.get('/sponsor/save/list', async (req, res) => {
                     A.VIEW_COUNT,
                     A.CLICK_COUNT,
                     A.AD_STATUS,
-                    A.DISPLAY_ORDER,
+                    A.DISPLAY_ORDER
+                    ${extraSelect},
                     'Y' AS SAVE_YN
                 FROM SPONSORED_AD_SAVE S
                 INNER JOIN SPONSORED_AD A
@@ -639,12 +769,7 @@ router.get('/sponsor/save/list', async (req, res) => {
             }
         );
 
-        const list = result.rows.map(ad => {
-            return {
-                ...ad,
-                LINK_URL: normalizeLinkUrl(ad.LINK_URL)
-            };
-        });
+        const list = result.rows.map(ad => normalizeAdRow(ad));
 
         res.json({
             result: "success",

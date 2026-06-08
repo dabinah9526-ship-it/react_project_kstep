@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import PageDecor from "./PageDecor";
+import ScrollTopButton from "./ScrollTopButton";
 import "./FeedDetail.css";
 
 function FeedDetail() {
@@ -679,9 +681,15 @@ function FeedDetail() {
     if (loading && !feed) {
         return (
             <div className="detail-page">
-                <div className="detail-empty-box">
-                    피드 상세를 불러오는 중입니다...
+                <PageDecor />
+
+                <div className="detail-layout">
+                    <div className="detail-empty-box">
+                        피드 상세를 불러오는 중입니다...
+                    </div>
                 </div>
+
+                <ScrollTopButton />
             </div>
         );
     }
@@ -689,16 +697,22 @@ function FeedDetail() {
     if (!feed) {
         return (
             <div className="detail-page">
-                <div className="detail-empty-box">
-                    피드를 찾을 수 없습니다.
+                <PageDecor />
 
-                    <button
-                        type="button"
-                        onClick={() => navigate("/home")}
-                    >
-                        홈으로 돌아가기
-                    </button>
+                <div className="detail-layout">
+                    <div className="detail-empty-box">
+                        피드를 찾을 수 없습니다.
+
+                        <button
+                            type="button"
+                            onClick={() => navigate("/home")}
+                        >
+                            홈으로 돌아가기
+                        </button>
+                    </div>
                 </div>
+
+                <ScrollTopButton />
             </div>
         );
     }
@@ -708,25 +722,51 @@ function FeedDetail() {
 
     return (
         <div className="detail-page">
-            <div className="detail-bg-flower detail-flower-one">✿</div>
-            <div className="detail-bg-flower detail-flower-two">❀</div>
+            <PageDecor />
 
             <div className="detail-layout">
-                <div className="detail-topbar">
-                    <button
-                        type="button"
-                        onClick={() => navigate(-1)}
-                    >
-                        ‹ 뒤로
-                    </button>
+                <section className="detail-app-top">
+                    <PageDecor variant="box" />
 
-                    <button
-                        type="button"
-                        onClick={() => navigate("/home")}
-                    >
-                        홈으로
-                    </button>
-                </div>
+                    <div className="detail-brand-row">
+                        <div className="detail-brand-mark">K</div>
+
+                        <div>
+                            <h1>여행 루트 상세</h1>
+                            <p>사진, 장소, 댓글까지 한 번에 확인해요.</p>
+                        </div>
+                    </div>
+
+                    <div className="detail-top-actions">
+                        <button
+                            type="button"
+                            onClick={() => navigate(-1)}
+                            title="뒤로가기"
+                            aria-label="뒤로가기"
+                        >
+                            ↩
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => navigate("/home")}
+                            title="홈으로"
+                            aria-label="홈으로"
+                        >
+                            ⌂
+                        </button>
+
+                        <button
+                            type="button"
+                            className="write"
+                            onClick={() => navigate("/feed/new")}
+                            title="작성"
+                            aria-label="작성"
+                        >
+                            +
+                        </button>
+                    </div>
+                </section>
 
                 <section className="detail-post-shell">
                     <div className="detail-left">
@@ -1002,6 +1042,8 @@ function FeedDetail() {
                     </aside>
                 </section>
             </div>
+
+            <ScrollTopButton />
         </div>
     );
 }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PageDecor from "./PageDecor";
+import ScrollTopButton from "./ScrollTopButton";
 import "./Explore.css";
 
 function Explore() {
@@ -89,6 +91,11 @@ function Explore() {
 
     function moveProfile(e, userNo) {
         e.stopPropagation();
+
+        if (!userNo) {
+            return;
+        }
+
         navigate("/profile/" + userNo);
     }
 
@@ -112,9 +119,22 @@ function Explore() {
                 if (data.result === "success") {
                     setFeedList(feedList.map(feed => {
                         if (feed.FEED_NO === feedNo) {
+                            let nextCount = feed.BOOKMARK_COUNT || 0;
+
+                            if (data.bookmarkYn === "Y") {
+                                nextCount = nextCount + 1;
+                            } else {
+                                nextCount = nextCount - 1;
+                            }
+
+                            if (nextCount < 0) {
+                                nextCount = 0;
+                            }
+
                             return {
                                 ...feed,
-                                BOOKMARK_YN: data.bookmarkYn
+                                BOOKMARK_YN: data.bookmarkYn,
+                                BOOKMARK_COUNT: nextCount
                             };
                         }
 
@@ -128,26 +148,6 @@ function Explore() {
                 console.error(err);
                 alert("저장 처리 중 오류가 발생했습니다.");
             });
-    }
-
-    function getImageUrl(feed) {
-        if (!feed || !feed.MAIN_IMG) {
-            return "";
-        }
-
-        if (String(feed.MAIN_IMG).startsWith("http")) {
-            return feed.MAIN_IMG;
-        }
-
-        if (String(feed.MAIN_IMG).startsWith("/images/")) {
-            return feed.MAIN_IMG;
-        }
-
-        if (String(feed.MAIN_IMG).startsWith("/uploads/")) {
-            return "http://localhost:3010" + feed.MAIN_IMG;
-        }
-
-        return "/images/" + feed.MAIN_IMG;
     }
 
     function getImageUrlByValue(value) {
@@ -165,6 +165,26 @@ function Explore() {
 
         if (String(value).startsWith("/uploads/")) {
             return "http://localhost:3010" + value;
+        }
+
+        return "/images/" + value;
+    }
+
+    function getProfileImageUrl(value) {
+        if (!value) {
+            return "";
+        }
+
+        if (String(value).startsWith("http")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/uploads/")) {
+            return "http://localhost:3010" + value;
+        }
+
+        if (String(value).startsWith("/images/")) {
+            return value;
         }
 
         return "/images/" + value;
@@ -339,60 +359,87 @@ function Explore() {
         });
     }
 
-    function getFirstLetter(nickname) {
-        if (!nickname) {
+    function getFirstLetter(value) {
+        if (!value) {
             return "K";
         }
 
-        return String(nickname).substring(0, 1).toUpperCase();
+        return String(value).substring(0, 1).toUpperCase();
+    }
+
+    function safeText(value, defaultText) {
+        if (value === undefined || value === null || value === "") {
+            return defaultText;
+        }
+
+        return value;
+    }
+
+    function getDateText(dateValue) {
+        if (!dateValue) {
+            return "";
+        }
+
+        const date = new Date(dateValue);
+
+        if (Number.isNaN(date.getTime())) {
+            return "";
+        }
+
+        return date.toLocaleDateString("ko-KR");
+    }
+
+    function getTags(hashtags) {
+        if (!hashtags) {
+            return [];
+        }
+
+        return String(hashtags)
+            .split(" ")
+            .map(tag => tag.trim())
+            .filter(tag => tag !== "");
     }
 
     return (
         <div className="explore-page">
-            <div className="soft-cloud explore-cloud-one"></div>
-            <div className="soft-cloud explore-cloud-two"></div>
+            <PageDecor />
 
-            <div className="traditional-motif explore-motif-left"></div>
-            <div className="traditional-motif explore-motif-right"></div>
+            <div className="explore-layout">
+                <main className="explore-main">
+                    <section className="explore-app-top">
+                        <PageDecor variant="box" />
 
-            <div className="bojagi-shape explore-bojagi-one"></div>
-            <div className="bojagi-shape explore-bojagi-two"></div>
+                        <div className="explore-brand-row">
+                            <div className="explore-brand-mark">K</div>
 
-            <div className="flower-mark explore-flower-one">✿</div>
-            <div className="flower-mark explore-flower-two">❀</div>
-
-            <div className="explore-container">
-                <section className="explore-header-card">
-                    <div className="card-soft-glow"></div>
-
-                    <div className="norigae">
-                        <div className="norigae-string"></div>
-                        <div className="norigae-knot"></div>
-                        <div className="norigae-ribbon">
-                            <span></span>
-                            <span></span>
-                            <span></span>
+                            <div>
+                                <h1>여행 루트 탐색</h1>
+                                <p>다른 여행자들이 남긴 한국 여행 코스를 둘러보세요.</p>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="traditional-band">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
+                        <div className="explore-top-icons">
+                            <button
+                                type="button"
+                                onClick={() => navigate("/home")}
+                            >
+                                ⌂
+                            </button>
 
-                    <div className="explore-header-copy">
-                        <p className="explore-page-label">탐색</p>
+                            <button
+                                type="button"
+                                className="write"
+                                onClick={() => navigate("/feed/new")}
+                            >
+                                +
+                            </button>
+                        </div>
+                    </section>
 
-                        <h1>
-                            전체 여행 루트<br />
-                            둘러보기
-                        </h1>
-                    </div>
+                    <section className="explore-search-line">
+                        <div className="explore-search-input-wrap">
+                            <span>⌕</span>
 
-                    <div className="explore-search-card">
-                        <div className="explore-search-row">
                             <input
                                 value={searchKeyword}
                                 onChange={(e) => setSearchKeyword(e.target.value)}
@@ -401,127 +448,190 @@ function Explore() {
                                         searchFeed();
                                     }
                                 }}
-                                placeholder="지역, 키워드 검색"
+                                placeholder="지역, 카테고리, 해시태그 검색"
                             />
-
-                            <button onClick={searchFeed}>
-                                검색
-                            </button>
-
-                            <button className="explore-reset-btn" onClick={resetSearch}>
-                                초기화
-                            </button>
                         </div>
-                    </div>
-                </section>
 
-                <section className="explore-count-row">
-                    <strong>{feedList.length}</strong>
-                    <span>개의 루트</span>
-                </section>
+                        <button type="button" onClick={searchFeed}>
+                            검색
+                        </button>
 
-                {loading && (
-                    <div className="explore-empty">
-                        탐색 피드를 불러오는 중입니다...
-                    </div>
-                )}
+                        <button type="button" className="reset" onClick={resetSearch}>
+                            초기화
+                        </button>
+                    </section>
 
-                {!loading && feedList.length === 0 && (
-                    <div className="explore-empty">
-                        조건에 맞는 피드가 없습니다.
-                    </div>
-                )}
+                    <section className="explore-count-card">
+                        <div>
+                            <span>Explore</span>
+                            <h2>전체 공개 루트</h2>
+                        </div>
 
-                {!loading && feedList.length > 0 && (
-                    <section className="explore-grid">
-                        {feedList.map((feed) => (
-                            <article
-                                className="explore-card"
-                                key={feed.FEED_NO}
-                                onClick={() => openFeedDetail(feed.FEED_NO)}
-                            >
-                                <div className="explore-image-box">
-                                    {getSelectedImageUrl(feed) !== "" ? (
-                                        <img src={getSelectedImageUrl(feed)} alt={feed.TITLE} />
-                                    ) : (
-                                        <div className="explore-placeholder">
-                                            <span>{feed.AREA || "K-STEP"}</span>
-                                        </div>
-                                    )}
+                        <p>
+                            <strong>{feedList.length}</strong>
+                            개의 여행 루트
+                        </p>
+                    </section>
 
-                                    {getDisplayImageList(feed).length > 1 && (
-                                        <>
-                                            <button
-                                                type="button"
-                                                className="explore-image-arrow explore-image-prev"
-                                                onClick={(e) => prevFeedImage(e, feed)}
-                                            >
-                                                ‹
-                                            </button>
+                    {loading && (
+                        <div className="explore-empty-box">
+                            탐색 피드를 불러오는 중입니다.
+                        </div>
+                    )}
 
-                                            <button
-                                                type="button"
-                                                className="explore-image-arrow explore-image-next"
-                                                onClick={(e) => nextFeedImage(e, feed)}
-                                            >
-                                                ›
-                                            </button>
+                    {!loading && feedList.length === 0 && (
+                        <div className="explore-empty-box">
+                            조건에 맞는 피드가 없습니다.
+                        </div>
+                    )}
 
-                                            <div className="explore-image-count">
-                                                {getCurrentImageIndex(feed) + 1} / {getDisplayImageList(feed).length}
-                                            </div>
-
-                                            <div className="explore-image-dot-row">
-                                                {getDisplayImageList(feed).map((image, index) => (
-                                                    <button
-                                                        type="button"
-                                                        key={image.IMAGE_NO || image.IMG_NO || index}
-                                                        className={getCurrentImageIndex(feed) === index ? "explore-image-dot active" : "explore-image-dot"}
-                                                        onClick={(e) => selectFeedImage(e, feed, index)}
-                                                    ></button>
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}
-
-                                    <button
-                                        className={feed.BOOKMARK_YN === "Y" ? "explore-save-btn active" : "explore-save-btn"}
-                                        onClick={(e) => toggleBookmark(e, feed.FEED_NO)}
-                                    >
-                                        {feed.BOOKMARK_YN === "Y" ? "✓" : "+"}
-                                    </button>
-
-                                    <div className="explore-overlay">
-                                        <div className="explore-user-row">
-                                            <div
-                                                className="explore-avatar"
-                                                onClick={(e) => moveProfile(e, feed.USER_NO)}
-                                            >
-                                                {getFirstLetter(feed.NICKNAME)}
-                                            </div>
-
-                                            <span>{feed.NICKNAME || "traveler"}</span>
+                    {!loading && feedList.length > 0 && (
+                        <section className="explore-feed-grid">
+                            {feedList.map((feed) => (
+                                <article
+                                    className="explore-feed-card"
+                                    key={feed.FEED_NO}
+                                    onClick={() => openFeedDetail(feed.FEED_NO)}
+                                >
+                                    <div className="explore-card-head">
+                                        <div
+                                            className="explore-avatar"
+                                            onClick={(e) => moveProfile(e, feed.USER_NO)}
+                                        >
+                                            {getProfileImageUrl(feed.PROFILE_IMG) !== "" ? (
+                                                <img
+                                                    src={getProfileImageUrl(feed.PROFILE_IMG)}
+                                                    alt={safeText(feed.NICKNAME, "프로필")}
+                                                />
+                                            ) : (
+                                                <span>{getFirstLetter(feed.NICKNAME || feed.USER_ID)}</span>
+                                            )}
                                         </div>
 
-                                        <h3>{feed.TITLE}</h3>
+                                        <div className="explore-card-user">
+                                            <strong onClick={(e) => moveProfile(e, feed.USER_NO)}>
+                                                {safeText(feed.NICKNAME, "traveler")}
+                                            </strong>
 
-                                        <p>{feed.AREA || "Korea"} · {feed.CATEGORY || "여행"}</p>
+                                            <p>
+                                                {safeText(feed.AREA, "Korea")} · {getDateText(feed.CDATE)}
+                                            </p>
+                                        </div>
 
-                                        <div className="explore-card-stats">
-                                            <span>저장 {feed.BOOKMARK_COUNT || 0}</span>
-                                            <span>좋아요 {feed.LIKE_COUNT || 0}</span>
+                                        <button
+                                            type="button"
+                                            className={feed.BOOKMARK_YN === "Y" ? "explore-mini-save active" : "explore-mini-save"}
+                                            onClick={(e) => toggleBookmark(e, feed.FEED_NO)}
+                                        >
+                                            {feed.BOOKMARK_YN === "Y" ? "🔖" : "♡"}
+                                        </button>
+                                    </div>
+
+                                    <div className="explore-feed-image">
+                                        {getSelectedImageUrl(feed) !== "" ? (
+                                            <img
+                                                src={getSelectedImageUrl(feed)}
+                                                alt={safeText(feed.TITLE, "피드 이미지")}
+                                            />
+                                        ) : (
+                                            <div className="explore-no-image">
+                                                K-STEP
+                                            </div>
+                                        )}
+
+                                        {getDisplayImageList(feed).length > 1 && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    className="explore-image-arrow explore-image-prev"
+                                                    onClick={(e) => prevFeedImage(e, feed)}
+                                                >
+                                                    ‹
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    className="explore-image-arrow explore-image-next"
+                                                    onClick={(e) => nextFeedImage(e, feed)}
+                                                >
+                                                    ›
+                                                </button>
+
+                                                <div className="explore-image-count">
+                                                    {getCurrentImageIndex(feed) + 1} / {getDisplayImageList(feed).length}
+                                                </div>
+
+                                                <div className="explore-image-dot-row">
+                                                    {getDisplayImageList(feed).map((image, index) => (
+                                                        <button
+                                                            type="button"
+                                                            key={image.IMAGE_NO || image.IMG_NO || index}
+                                                            className={getCurrentImageIndex(feed) === index ? "explore-image-dot active" : "explore-image-dot"}
+                                                            onClick={(e) => selectFeedImage(e, feed, index)}
+                                                        ></button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+
+                                        <div className="explore-image-chip-row">
+                                            <span>{safeText(feed.CATEGORY, "여행")}</span>
+                                            <span>{safeText(feed.AREA, "Korea")}</span>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="explore-card-bottom">
-                                    <strong>{feed.TITLE}</strong>
-                                </div>
-                            </article>
-                        ))}
-                    </section>
-                )}
+                                    <div className="explore-card-body">
+                                        <div className="explore-count-line">
+                                            <strong>좋아요 {feed.LIKE_COUNT || 0}개</strong>
+                                            <span>댓글 {feed.COMMENT_COUNT || 0}개</span>
+                                            <span>저장 {feed.BOOKMARK_COUNT || 0}개</span>
+                                        </div>
+
+                                        <h2>{safeText(feed.TITLE, "제목 없음")}</h2>
+
+                                        <p className="explore-caption">
+                                            <strong>{safeText(feed.NICKNAME, "traveler")}</strong>
+                                            {" "}
+                                            {safeText(feed.ROUTE_SUMMARY || feed.CONTENT, "등록된 루트 설명이 없습니다.")}
+                                        </p>
+
+                                        {getTags(feed.HASHTAGS).length > 0 && (
+                                            <div className="explore-tag-row">
+                                                {getTags(feed.HASHTAGS).map((tag, index) => (
+                                                    <button
+                                                        type="button"
+                                                        key={index}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSearchKeyword(tag.replace("#", ""));
+                                                            getExploreFeed(tag.replace("#", ""));
+                                                        }}
+                                                    >
+                                                        {tag}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            className="explore-detail-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openFeedDetail(feed.FEED_NO);
+                                            }}
+                                        >
+                                            루트 자세히 보기
+                                        </button>
+                                    </div>
+                                </article>
+                            ))}
+                        </section>
+                    )}
+                </main>
             </div>
+
+            <ScrollTopButton />
         </div>
     );
 }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PageDecor from "./PageDecor";
+import ScrollTopButton from "./ScrollTopButton";
 import "./Notifications.css";
 
 function Notifications() {
@@ -20,6 +22,10 @@ function Notifications() {
         getNotificationList();
     }, [navigate]);
 
+    function refreshMenuCount() {
+        window.dispatchEvent(new Event("kstepMenuCountRefresh"));
+    }
+
     function getNotificationList() {
         const token = localStorage.getItem("token");
 
@@ -37,6 +43,7 @@ function Notifications() {
 
                 if (data.result === "success") {
                     setNotificationList(data.list || []);
+                    refreshMenuCount();
                 } else {
                     alert(data.message || "알림 목록을 불러오지 못했습니다.");
                 }
@@ -68,6 +75,7 @@ function Notifications() {
                 console.log("알림 읽음 처리", data);
 
                 if (data.result === "success") {
+                    refreshMenuCount();
                     moveByNotification(item);
                     getNotificationList();
                 } else {
@@ -94,6 +102,7 @@ function Notifications() {
                 console.log("전체 읽음 처리", data);
 
                 if (data.result === "success") {
+                    refreshMenuCount();
                     getNotificationList();
                 } else {
                     alert(data.message || "전체 읽음 처리에 실패했습니다.");
@@ -246,51 +255,47 @@ function Notifications() {
 
     return (
         <div className="notifications-page">
-            <div className="soft-cloud noti-cloud-one"></div>
-            <div className="soft-cloud noti-cloud-two"></div>
-
-            <div className="traditional-motif noti-motif-left"></div>
-            <div className="traditional-motif noti-motif-right"></div>
-
-            <div className="bojagi-shape noti-bojagi-one"></div>
-            <div className="bojagi-shape noti-bojagi-two"></div>
-
-            <div className="flower-mark noti-flower-one">✿</div>
-            <div className="flower-mark noti-flower-two">❀</div>
+            <PageDecor />
 
             <div className="notifications-container">
                 <section className="notifications-card">
-                    <div className="card-soft-glow"></div>
-
-                    <div className="norigae">
-                        <div className="norigae-string"></div>
-                        <div className="norigae-knot"></div>
-                        <div className="norigae-ribbon">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-
-                    <div className="traditional-band">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
+                    <PageDecor variant="box" />
 
                     <header className="notifications-header">
-                        <p className="notifications-page-label">알림</p>
+                        <div className="notifications-title-row">
+                            <div className="notifications-brand-row">
+                                <div className="notifications-brand-mark">K</div>
 
-                        <h1>Notifications</h1>
+                                <div>
+                                    <p className="notifications-page-label">Notifications</p>
 
-                        <p className="notifications-main-copy">
-                            K-STEP 알림
-                        </p>
+                                    <h1>K-STEP 알림</h1>
 
-                        <p className="notifications-sub-copy">
-                            팔로우, 댓글, 좋아요, 저장 알림을 확인해요
-                        </p>
+                                    <p className="notifications-sub-copy">
+                                        팔로우, 댓글, 좋아요, 저장 알림을 확인해요.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="notifications-top-icons">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/home")}
+                                    title="홈으로"
+                                >
+                                    ⌂
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="write"
+                                    onClick={() => navigate("/feed/new")}
+                                    title="작성"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
                     </header>
 
                     <div className="notifications-layout">
@@ -299,7 +304,11 @@ function Notifications() {
                                 <strong>새 알림 {getUnreadCount()}개</strong>
 
                                 {notificationList.length > 0 && (
-                                    <button className="noti-read-all-btn" onClick={readAllNotification}>
+                                    <button
+                                        type="button"
+                                        className="noti-read-all-btn"
+                                        onClick={readAllNotification}
+                                    >
                                         모두 읽음
                                     </button>
                                 )}
@@ -351,23 +360,32 @@ function Notifications() {
                         </section>
 
                         <aside className="notifications-side-card">
-                            <h3>설정</h3>
+                            <h3>알림 설정</h3>
 
                             <p>
-                                알림 설정은 프로필 설정에서 변경할 수 있어요.
+                                알림 수신 설정은 프로필 설정에서 변경할 수 있어요.
                             </p>
 
-                            <button onClick={goSettings}>
+                            <button
+                                type="button"
+                                onClick={goSettings}
+                            >
                                 설정으로 이동
                             </button>
 
-                            <button className="sub" onClick={goExplore}>
+                            <button
+                                type="button"
+                                className="sub"
+                                onClick={goExplore}
+                            >
                                 탐색하기
                             </button>
                         </aside>
                     </div>
                 </section>
             </div>
+
+            <ScrollTopButton />
         </div>
     );
 }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PageDecor from "./PageDecor";
+import ScrollTopButton from "./ScrollTopButton";
 import "./StoryManage.css";
 
 function StoryManage() {
@@ -205,10 +207,6 @@ function StoryManage() {
         }
 
         closeViewerModal();
-
-        // 중요:
-        // /profile?userNo=60 이 아니라
-        // /profile/60 으로 이동해야 라우터가 찾음
         navigate("/profile/" + user.USER_NO);
     }
 
@@ -217,24 +215,48 @@ function StoryManage() {
 
     return (
         <div className="story-manage-page">
-            <div className="story-manage-bg-flower story-manage-flower-one">✿</div>
-            <div className="story-manage-bg-flower story-manage-flower-two">❀</div>
+            <PageDecor />
 
             <div className="story-manage-container">
                 <section className="story-manage-header">
-                    <div>
-                        <p>K-STEP Stories</p>
-                        <h1>스토리 관리</h1>
-                        <span>내가 올린 스토리, 조회수, 만료 상태를 확인해요.</span>
+                    <PageDecor variant="box" />
+
+                    <div className="story-manage-brand-row">
+                        <div className="story-manage-brand-mark">K</div>
+
+                        <div>
+                            <p>K-STEP Stories</p>
+                            <h1>스토리 관리</h1>
+                            <span>내가 올린 스토리, 조회수, 만료 상태를 확인해요.</span>
+                        </div>
                     </div>
 
                     <div className="story-manage-header-actions">
-                        <button type="button" className="ghost" onClick={() => navigate(-1)}>
-                            뒤로가기
+                        <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => navigate(-1)}
+                            title="뒤로가기"
+                        >
+                            ↩
                         </button>
 
-                        <button type="button" onClick={() => navigate("/home")}>
-                            홈으로
+                        <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => navigate("/home")}
+                            title="홈으로"
+                        >
+                            ⌂
+                        </button>
+
+                        <button
+                            type="button"
+                            className="write"
+                            onClick={() => navigate("/home")}
+                            title="스토리 추가"
+                        >
+                            +
                         </button>
                     </div>
                 </section>
@@ -272,6 +294,7 @@ function StoryManage() {
                     <section className="story-manage-section">
                         <div className="story-manage-section-title">
                             <span>●</span>
+
                             <div>
                                 <h2>현재 공개 중</h2>
                                 <p>24시간이 지나기 전까지 홈과 프로필에 보여요.</p>
@@ -297,6 +320,7 @@ function StoryManage() {
 
                                         <div className="story-manage-meta">
                                             <span>{getRemainText(story)}</span>
+
                                             <button type="button" onClick={() => openViewerList(story)}>
                                                 본 사람 {story.VIEW_COUNT || 0}
                                             </button>
@@ -320,6 +344,7 @@ function StoryManage() {
                     <section className="story-manage-section">
                         <div className="story-manage-section-title">
                             <span>○</span>
+
                             <div>
                                 <h2>지난 스토리</h2>
                                 <p>24시간이 지나 홈에서는 숨겨진 스토리입니다.</p>
@@ -345,6 +370,7 @@ function StoryManage() {
 
                                         <div className="story-manage-meta">
                                             <span>보관됨</span>
+
                                             <button type="button" onClick={() => openViewerList(story)}>
                                                 본 사람 {story.VIEW_COUNT || 0}
                                             </button>
@@ -365,12 +391,15 @@ function StoryManage() {
                 )}
             </div>
 
+            <ScrollTopButton />
+
             {viewerModalOpen && (
                 <div className="story-viewer-modal-bg" onClick={closeViewerModal}>
                     <div className="story-viewer-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="story-viewer-modal-head">
                             <div>
                                 <h2>스토리 본 사람</h2>
+
                                 <p>
                                     {selectedStory ? selectedStory.CDATE_TEXT : ""}
                                 </p>
@@ -393,9 +422,6 @@ function StoryManage() {
                                     className="story-viewer-user-item"
                                     key={user.VIEW_NO}
                                     onClick={() => goViewerProfile(user)}
-                                    style={{
-                                        cursor: "pointer"
-                                    }}
                                 >
                                     <div className="story-viewer-user-avatar">
                                         {getImageUrl(user.PROFILE_IMG) !== "" ? (

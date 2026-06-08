@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PageDecor from "./PageDecor";
+import ScrollTopButton from "./ScrollTopButton";
 import "./ProfileSettings.css";
 
 function ProfileSettings() {
@@ -46,6 +48,34 @@ function ProfileSettings() {
         getFollowingList();
         getBlockList();
     }, [navigate]);
+
+    function getProfileImageUrl(value) {
+        if (!value) {
+            return "";
+        }
+
+        if (String(value).startsWith("http")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/uploads/")) {
+            return "http://localhost:3010" + value;
+        }
+
+        if (String(value).startsWith("/images/")) {
+            return value;
+        }
+
+        return "/images/" + value;
+    }
+
+    function getFirstLetter(value) {
+        if (!value) {
+            return "K";
+        }
+
+        return String(value).substring(0, 1).toUpperCase();
+    }
 
     function setProfileForm(profileData) {
         setEditNickname(profileData.NICKNAME || "");
@@ -576,7 +606,14 @@ function ProfileSettings() {
                     className="settings-user-avatar"
                     onClick={() => moveProfile(user.USER_NO)}
                 >
-                    {(user.NICKNAME || "K").substring(0, 1).toUpperCase()}
+                    {getProfileImageUrl(user.PROFILE_IMG) !== "" ? (
+                        <img
+                            src={getProfileImageUrl(user.PROFILE_IMG)}
+                            alt={user.NICKNAME || "프로필"}
+                        />
+                    ) : (
+                        getFirstLetter(user.NICKNAME || user.USER_ID)
+                    )}
                 </div>
 
                 <div
@@ -640,9 +677,13 @@ function ProfileSettings() {
     if (loading) {
         return (
             <div className="settings-page">
+                <PageDecor />
+
                 <div className="settings-container">
                     <div className="settings-empty-box">불러오는 중...</div>
                 </div>
+
+                <ScrollTopButton />
             </div>
         );
     }
@@ -650,27 +691,64 @@ function ProfileSettings() {
     if (!profile) {
         return (
             <div className="settings-page">
+                <PageDecor />
+
                 <div className="settings-container">
                     <div className="settings-empty-box">프로필 정보가 없습니다.</div>
                 </div>
+
+                <ScrollTopButton />
             </div>
         );
     }
 
     return (
         <div className="settings-page">
-            <div className="settings-container">
-                <div className="settings-top">
-                    <button className="settings-back-btn" onClick={() => navigate("/profile/" + loginUserNo)}>
-                        ← 프로필
-                    </button>
+            <PageDecor />
 
-                    <h1>설정</h1>
-                </div>
+            <div className="settings-container">
+                <section className="settings-top">
+                    <PageDecor variant="box" />
+
+                    <div className="settings-top-title">
+                        <div className="settings-brand-mark">K</div>
+
+                        <div>
+                            <h1>프로필 설정</h1>
+                            <p>계정, 공개 범위, 알림, 팔로우 관리를 한 곳에서 정리해요.</p>
+                        </div>
+                    </div>
+
+                    <div className="settings-top-icons">
+                        <button
+                            type="button"
+                            onClick={() => navigate("/home")}
+                            title="홈으로"
+                        >
+                            ⌂
+                        </button>
+
+                        <button
+                            type="button"
+                            className="profile"
+                            onClick={() => navigate("/profile/" + loginUserNo)}
+                            title="프로필"
+                        >
+                            ↩
+                        </button>
+                    </div>
+                </section>
 
                 <section className="settings-summary-card">
                     <div className="settings-summary-avatar">
-                        {(profile.NICKNAME || "K").substring(0, 1).toUpperCase()}
+                        {getProfileImageUrl(profile.PROFILE_IMG) !== "" ? (
+                            <img
+                                src={getProfileImageUrl(profile.PROFILE_IMG)}
+                                alt={profile.NICKNAME || "프로필"}
+                            />
+                        ) : (
+                            getFirstLetter(profile.NICKNAME || profile.USER_ID)
+                        )}
                     </div>
 
                     <div className="settings-summary-info">
@@ -942,6 +1020,8 @@ function ProfileSettings() {
                     </main>
                 </section>
             </div>
+
+            <ScrollTopButton />
         </div>
     );
 }

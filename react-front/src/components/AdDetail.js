@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import PageDecor from "./PageDecor";
+import ScrollTopButton from "./ScrollTopButton";
 import "./AdDetail.css";
 
 function AdDetail() {
@@ -12,10 +14,54 @@ function AdDetail() {
 
     useEffect(() => {
         getAdDetail();
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [adNo]);
 
     function getToken() {
         return localStorage.getItem("token");
+    }
+
+    function refreshMenuCount() {
+        window.dispatchEvent(new Event("kstepMenuCountRefresh"));
+    }
+
+    function moveLoginPage(message) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userNo");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("nickname");
+        localStorage.removeItem("userType");
+
+        refreshMenuCount();
+
+        alert(message || "로그인이 필요합니다.");
+        navigate("/", { replace: true });
+    }
+
+    function isLoginRequired(data) {
+        if (!data) {
+            return false;
+        }
+
+        if (String(data.message || "").includes("로그인이 필요합니다")) {
+            return true;
+        }
+
+        if (String(data.message || "").includes("토큰")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function handleLoginRequired(data) {
+        if (isLoginRequired(data)) {
+            moveLoginPage(data.message || "로그인이 필요합니다.");
+            return true;
+        }
+
+        return false;
     }
 
     function safeText(value, defaultText) {
@@ -72,21 +118,6 @@ function AdDetail() {
         return "https://" + link;
     }
 
-    function getAdLinkUrl() {
-        if (!ad) {
-            return "";
-        }
-
-        return normalizeLinkUrl(
-            ad.LINK_URL ||
-            ad.LINK ||
-            ad.URL ||
-            ad.HOMEPAGE ||
-            ad.HOME_PAGE ||
-            ""
-        );
-    }
-
     function getAddressText() {
         if (!ad) {
             return "";
@@ -115,12 +146,121 @@ function AdDetail() {
         );
     }
 
+    function getOpenHoursText() {
+        if (!ad) {
+            return "";
+        }
+
+        return ad.OPEN_HOURS || ad.BUSINESS_HOURS || ad.OPERATING_HOURS || "";
+    }
+
+    function getMainMenuText() {
+        if (!ad) {
+            return "";
+        }
+
+        return ad.MAIN_MENU || ad.MENU_INFO || ad.MAIN_PRODUCT || "";
+    }
+
+    function getPriceInfoText() {
+        if (!ad) {
+            return "";
+        }
+
+        return ad.PRICE_INFO || ad.PRICE_RANGE || ad.PRICE || "";
+    }
+
+    function getParkingInfoText() {
+        if (!ad) {
+            return "";
+        }
+
+        return ad.PARKING_INFO || ad.PARKING || "";
+    }
+
+    function getMapUrl() {
+        if (!ad) {
+            return "";
+        }
+
+        return normalizeLinkUrl(
+            ad.MAP_URL ||
+            ad.NAVER_MAP_URL ||
+            ad.KAKAO_MAP_URL ||
+            ad.PLACE_URL ||
+            ""
+        );
+    }
+
+    function getInstagramUrl() {
+        if (!ad) {
+            return "";
+        }
+
+        return normalizeLinkUrl(
+            ad.INSTAGRAM_URL ||
+            ad.INSTA_URL ||
+            ad.SNS_URL ||
+            ""
+        );
+    }
+
+    function getAdLinkUrl() {
+        if (!ad) {
+            return "";
+        }
+
+        return normalizeLinkUrl(
+            ad.LINK_URL ||
+            ad.LINK ||
+            ad.URL ||
+            ad.HOMEPAGE ||
+            ad.HOME_PAGE ||
+            ""
+        );
+    }
+
+    function getKakaoMapSearchUrl() {
+        const addressText = getAddressText();
+        const businessName = ad ? safeText(ad.BUSINESS_NAME, "") : "";
+
+        const keyword = addressText !== ""
+            ? addressText
+            : businessName;
+
+        if (!keyword) {
+            return "";
+        }
+
+        return "https://map.kakao.com/link/search/" + encodeURIComponent(keyword);
+    }
+
+    function getGoogleMapEmbedUrl() {
+        const addressText = getAddressText();
+        const businessName = ad ? safeText(ad.BUSINESS_NAME, "") : "";
+
+        const keyword = addressText !== ""
+            ? addressText
+            : businessName;
+
+        if (!keyword) {
+            return "";
+        }
+
+        return "https://www.google.com/maps?q=" + encodeURIComponent(keyword) + "&output=embed";
+    }
+
     function getAdDetail() {
         const token = getToken();
 
         if (!token) {
-            alert("로그인이 필요합니다.");
-            navigate("/");
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
+        if (!adNo) {
+            alert("광고 번호가 없습니다.");
+            navigate("/home");
             return;
         }
 
@@ -150,6 +290,10 @@ function AdDetail() {
             .then(data => {
                 console.log("광고 상세 조회", data);
 
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 if (data.result === "success") {
                     setAd(data.ad);
                     sessionStorage.setItem("selectedAd", JSON.stringify(data.ad));
@@ -170,6 +314,11 @@ function AdDetail() {
     function getAdDetailFallback() {
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         fetch("http://localhost:3010/business/sponsor/list", {
             method: "GET",
             headers: {
@@ -179,6 +328,10 @@ function AdDetail() {
             .then(res => res.json())
             .then(data => {
                 console.log("광고 상세 대체 목록 조회", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
 
                 if (data.result === "success") {
                     const list = data.list || [];
@@ -202,6 +355,11 @@ function AdDetail() {
 
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         fetch("http://localhost:3010/business/sponsor/click", {
             method: "POST",
             headers: {
@@ -216,6 +374,10 @@ function AdDetail() {
             .then(data => {
                 console.log("광고 클릭 처리", data);
 
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 let linkUrl = "";
 
                 if (data.result === "success") {
@@ -224,6 +386,14 @@ function AdDetail() {
 
                 if (linkUrl === "") {
                     linkUrl = getAdLinkUrl();
+                }
+
+                if (linkUrl === "") {
+                    linkUrl = getMapUrl();
+                }
+
+                if (linkUrl === "") {
+                    linkUrl = getKakaoMapSearchUrl();
                 }
 
                 if (linkUrl === "") {
@@ -236,7 +406,7 @@ function AdDetail() {
             .catch(err => {
                 console.error(err);
 
-                const linkUrl = getAdLinkUrl();
+                const linkUrl = getAdLinkUrl() || getMapUrl() || getKakaoMapSearchUrl();
 
                 if (linkUrl === "") {
                     alert("연결된 외부 링크가 없습니다.");
@@ -254,6 +424,11 @@ function AdDetail() {
 
         const token = getToken();
 
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
         setSaving(true);
 
         fetch("http://localhost:3010/business/sponsor/save/toggle", {
@@ -270,19 +445,26 @@ function AdDetail() {
             .then(data => {
                 console.log("가게 저장 처리", data);
 
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
                 if (data.result === "success") {
-                    setAd({
-                        ...ad,
-                        SAVE_YN: data.saveYn
-                    });
+                    const nextSaveYn =
+                        data.saveYn ||
+                        data.savedYn ||
+                        data.SAVE_YN ||
+                        "N";
 
                     const savedAd = {
                         ...ad,
-                        SAVE_YN: data.saveYn
+                        SAVE_YN: nextSaveYn
                     };
 
+                    setAd(savedAd);
                     sessionStorage.setItem("selectedAd", JSON.stringify(savedAd));
-                    alert(data.message);
+
+                    alert(data.message || "가게 저장 처리가 완료되었습니다.");
                 } else {
                     alert(data.message || "가게 저장 처리에 실패했습니다.");
                 }
@@ -297,13 +479,17 @@ function AdDetail() {
     }
 
     function shareAd() {
+        if (!ad) {
+            return;
+        }
+
         const shareUrl = window.location.href;
-        const title = ad ? safeText(ad.BUSINESS_NAME, "K-STEP 추천 가게") : "K-STEP 추천 가게";
+        const title = safeText(ad.BUSINESS_NAME, "K-STEP 추천 가게");
 
         if (navigator.share) {
             navigator.share({
                 title: title,
-                text: title + " 광고를 확인해보세요.",
+                text: title + " 정보를 확인해보세요.",
                 url: shareUrl
             })
                 .catch(err => {
@@ -313,24 +499,71 @@ function AdDetail() {
             return;
         }
 
-        navigator.clipboard.writeText(shareUrl)
-            .then(() => {
-                alert("광고 링크가 복사되었습니다.");
-            })
-            .catch(err => {
-                console.error(err);
-                alert("링크 복사에 실패했습니다.");
-            });
+        copyText(shareUrl, "광고 링크가 복사되었습니다.");
+    }
+
+    function copyText(text, successMessage) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    alert(successMessage);
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("복사에 실패했습니다.");
+                });
+
+            return;
+        }
+
+        alert(text);
+    }
+
+    function copyAddress() {
+        const addressText = getAddressText();
+
+        if (!addressText) {
+            alert("복사할 주소가 없습니다.");
+            return;
+        }
+
+        copyText(addressText, "주소가 복사되었습니다.");
+    }
+
+    function openMapSearch() {
+        const mapUrl = getMapUrl() || getKakaoMapSearchUrl();
+
+        if (!mapUrl) {
+            alert("지도에서 검색할 주소나 가게명이 없습니다.");
+            return;
+        }
+
+        window.open(mapUrl, "_blank");
+    }
+
+    function openInstagram() {
+        const instagramUrl = getInstagramUrl();
+
+        if (!instagramUrl) {
+            alert("등록된 인스타그램 링크가 없습니다.");
+            return;
+        }
+
+        window.open(instagramUrl, "_blank");
     }
 
     if (loading && !ad) {
         return (
             <div className="ad-detail-page">
+                <PageDecor />
+
                 <div className="ad-detail-empty">
                     <div className="ad-detail-empty-icon">⌛</div>
                     <strong>광고 정보를 불러오는 중입니다...</strong>
                     <p>잠시만 기다려주세요.</p>
                 </div>
+
+                <ScrollTopButton />
             </div>
         );
     }
@@ -338,6 +571,8 @@ function AdDetail() {
     if (!ad) {
         return (
             <div className="ad-detail-page">
+                <PageDecor />
+
                 <div className="ad-detail-empty">
                     <div className="ad-detail-empty-icon">!</div>
                     <strong>광고 정보를 찾을 수 없습니다.</strong>
@@ -350,38 +585,71 @@ function AdDetail() {
                         홈으로 돌아가기
                     </button>
                 </div>
+
+                <ScrollTopButton />
             </div>
         );
     }
 
     const addressText = getAddressText();
     const phoneText = getPhoneText();
+    const openHoursText = getOpenHoursText();
+    const mainMenuText = getMainMenuText();
+    const priceInfoText = getPriceInfoText();
+    const parkingInfoText = getParkingInfoText();
     const linkUrl = getAdLinkUrl();
-    const saveYn = ad.SAVE_YN === "Y";
+    const mapUrl = getMapUrl();
+    const instagramUrl = getInstagramUrl();
+    const mapEmbedUrl = getGoogleMapEmbedUrl();
+    const saveYn = ad.SAVE_YN === "Y" || ad.SAVED_YN === "Y";
 
     return (
         <div className="ad-detail-page">
-            <div className="ad-detail-bg-flower flower-one">✿</div>
-            <div className="ad-detail-bg-flower flower-two">❀</div>
+            <PageDecor />
 
             <div className="ad-detail-wrap">
-                <div className="ad-detail-topbar">
-                    <button
-                        type="button"
-                        className="ad-detail-back"
-                        onClick={() => navigate(-1)}
-                    >
-                        ‹ 뒤로
-                    </button>
+                <section className="ad-detail-app-top">
+                    <PageDecor variant="box" />
 
-                    <button
-                        type="button"
-                        className="ad-detail-home-btn"
-                        onClick={() => navigate("/home")}
-                    >
-                        홈으로
-                    </button>
-                </div>
+                    <div className="ad-detail-brand-row">
+                        <div className="ad-detail-brand-mark">K</div>
+
+                        <div>
+                            <p className="ad-detail-top-label">K-STEP Local Sponsor</p>
+                            <h1>가게 상세</h1>
+                            <span>
+                                여행 중 들러보기 좋은 로컬 스폰서 정보를 확인해요.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="ad-detail-top-icons">
+                        <button
+                            type="button"
+                            onClick={() => navigate(-1)}
+                            title="뒤로가기"
+                        >
+                            ↩
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => navigate("/home")}
+                            title="홈으로"
+                        >
+                            ⌂
+                        </button>
+
+                        <button
+                            type="button"
+                            className="write"
+                            onClick={() => navigate("/feed/new")}
+                            title="작성"
+                        >
+                            +
+                        </button>
+                    </div>
+                </section>
 
                 <section className="ad-detail-hero">
                     <div className="ad-detail-image-box">
@@ -421,20 +689,20 @@ function AdDetail() {
                             {safeText(ad.AD_TEXT, "K-STEP 여행자에게 추천하는 로컬 스폰서입니다.")}
                         </p>
 
-                        <div className="ad-detail-mini-stat-row">
+                        <div className="ad-detail-feature-grid">
                             <div>
-                                <strong>{Number(ad.VIEW_COUNT || 0).toLocaleString()}</strong>
-                                <span>노출</span>
+                                <span>운영시간</span>
+                                <strong>{safeText(openHoursText, "매일 10:00 - 21:00")}</strong>
                             </div>
 
                             <div>
-                                <strong>{Number(ad.CLICK_COUNT || 0).toLocaleString()}</strong>
-                                <span>클릭</span>
+                                <span>가격대</span>
+                                <strong>{safeText(priceInfoText, "1인 평균 10,000원 - 30,000원")}</strong>
                             </div>
 
                             <div>
-                                <strong>{saveYn ? "저장됨" : "저장 가능"}</strong>
-                                <span>가게 저장</span>
+                                <span>주차</span>
+                                <strong>{safeText(parkingInfoText, "인근 주차장 이용 가능")}</strong>
                             </div>
                         </div>
 
@@ -463,12 +731,6 @@ function AdDetail() {
                                 공유하기
                             </button>
                         </div>
-
-                        {linkUrl === "" && (
-                            <p className="ad-detail-link-alert">
-                                아직 외부 링크가 등록되지 않은 광고입니다.
-                            </p>
-                        )}
                     </div>
                 </section>
 
@@ -509,26 +771,123 @@ function AdDetail() {
                         </div>
 
                         <div>
-                            <strong>외부 링크</strong>
-                            <p>{linkUrl !== "" ? linkUrl : "등록된 링크가 없습니다."}</p>
+                            <strong>운영시간</strong>
+                            <p>{safeText(openHoursText, "등록된 운영시간이 없습니다.")}</p>
+                        </div>
+
+                        <div>
+                            <strong>대표메뉴 / 상품</strong>
+                            <p>{safeText(mainMenuText, "등록된 대표 메뉴가 없습니다.")}</p>
+                        </div>
+
+                        <div>
+                            <strong>가격 정보</strong>
+                            <p>{safeText(priceInfoText, "등록된 가격 정보가 없습니다.")}</p>
+                        </div>
+
+                        <div>
+                            <strong>주차 정보</strong>
+                            <p>{safeText(parkingInfoText, "등록된 주차 정보가 없습니다.")}</p>
                         </div>
                     </div>
+
+                    <div className="ad-detail-link-row">
+                        <button
+                            type="button"
+                            onClick={openExternalLink}
+                        >
+                            외부 링크 열기
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={openMapSearch}
+                        >
+                            지도 보기
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={openInstagram}
+                        >
+                            인스타그램
+                        </button>
+                    </div>
+
+                    <div className="ad-detail-url-list">
+                        <p>
+                            <strong>외부 링크</strong>
+                            <span>{linkUrl || "등록된 외부 링크가 없습니다."}</span>
+                        </p>
+
+                        <p>
+                            <strong>지도 링크</strong>
+                            <span>{mapUrl || "등록된 지도 링크가 없습니다."}</span>
+                        </p>
+
+                        <p>
+                            <strong>인스타그램</strong>
+                            <span>{instagramUrl || "등록된 인스타그램 링크가 없습니다."}</span>
+                        </p>
+                    </div>
+                </section>
+
+                <section className="ad-detail-map-card">
+                    <div className="ad-detail-section-title">
+                        <div>
+                            <span>Map</span>
+                            <h3>위치 확인</h3>
+                        </div>
+
+                        <p>주소가 있으면 지도에서 바로 확인할 수 있어요.</p>
+                    </div>
+
+                    {mapEmbedUrl !== "" ? (
+                        <>
+                            <div className="ad-detail-map-box">
+                                <iframe
+                                    title="가게 위치 지도"
+                                    src={mapEmbedUrl}
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                ></iframe>
+                            </div>
+
+                            <div className="ad-detail-map-action-row">
+                                <button
+                                    type="button"
+                                    onClick={openMapSearch}
+                                >
+                                    지도에서 보기
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={copyAddress}
+                                >
+                                    주소 복사
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="ad-detail-map-empty">
+                            등록된 주소가 없어서 지도를 표시할 수 없습니다.
+                        </div>
+                    )}
                 </section>
 
                 <section className="ad-detail-bottom-grid">
                     <div className="ad-detail-card small">
                         <div className="ad-detail-section-title">
                             <div>
-                                <span>Point</span>
-                                <h3>여행자 추천 포인트</h3>
+                                <span>Menu</span>
+                                <h3>대표 메뉴 / 추천 상품</h3>
                             </div>
                         </div>
 
-                        <ul className="ad-detail-point-list">
-                            <li>여행 중 바로 들르기 좋은 로컬 장소예요.</li>
-                            <li>지역, 업종, 소개를 확인하고 일정에 넣어볼 수 있어요.</li>
-                            <li>마음에 들면 가게 저장으로 나중에 다시 확인할 수 있어요.</li>
-                        </ul>
+                        <p className="ad-detail-menu-text">
+                            {safeText(mainMenuText, "대표 메뉴 또는 추천 상품 정보가 아직 등록되지 않았습니다.")}
+                        </p>
                     </div>
 
                     <div className="ad-detail-card small">
@@ -546,6 +905,8 @@ function AdDetail() {
                     </div>
                 </section>
             </div>
+
+            <ScrollTopButton />
         </div>
     );
 }

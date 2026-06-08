@@ -19,8 +19,8 @@
 }
 
 .profile-story-circle.viewed {
-    background: #b8b2bb !important;
-    box-shadow: none !important;
+    background: #b8b2bb;
+    box-shadow: none;
 }
 
 .profile-story-circle.viewed .profile-story-image {
@@ -83,16 +83,285 @@
     display: none;
 }
 
-/* 프로필 스토리 보기 화면 */
+/* 업로드 모달 */
+
+.profile-story-upload-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    background: rgba(25, 22, 30, 0.72);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    box-sizing: border-box;
+}
+
+.profile-story-upload-modal {
+    width: min(460px, 100%);
+    max-height: 94vh;
+    border-radius: 30px;
+    background: linear-gradient(180deg, #fffafd, #fff5f8);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+}
+
+.profile-story-upload-head {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #f2dce5;
+}
+
+.profile-story-upload-head h3 {
+    margin: 0;
+    color: #2b1d3d;
+    font-size: 20px;
+    font-weight: 950;
+}
+
+.profile-story-upload-head p {
+    margin: 6px 0 0;
+    color: #947d89;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.profile-story-upload-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+}
+
+.profile-story-upload-preview-box {
+    width: 100%;
+    height: 360px;
+    border-radius: 24px;
+    overflow: hidden;
+    background: #111111;
+    margin-bottom: 12px;
+    position: relative;
+    touch-action: none;
+}
+
+.profile-story-upload-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    background: #111111;
+}
+
+.profile-story-upload-sticker {
+    position: absolute;
+    left: var(--upload-sticker-x);
+    top: var(--upload-sticker-y);
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    max-width: 84%;
+    color: var(--upload-sticker-color);
+    font-size: var(--upload-sticker-size);
+    font-weight: 950;
+    line-height: 1.25;
+    text-align: center;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+    cursor: grab;
+    user-select: none;
+}
+
+.profile-story-upload-sticker.with-bg {
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.42);
+}
+
+.profile-story-upload-sticker.active {
+    outline: 2px dashed rgba(255, 255, 255, 0.85);
+    outline-offset: 4px;
+}
+
+.profile-story-upload-thumb-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin-bottom: 12px;
+    padding-bottom: 4px;
+}
+
+.profile-story-upload-thumb {
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    border-radius: 15px;
+    overflow: hidden;
+    padding: 0;
+    border: 2px solid #ead6de;
+    background: #111111;
+    cursor: pointer;
+}
+
+.profile-story-upload-thumb.active {
+    border: 3px solid #e9839b;
+}
+
+.profile-story-upload-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.profile-story-upload-tool-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.profile-story-upload-main-btn,
+.profile-story-upload-sub-btn,
+.profile-story-upload-option-btn,
+.profile-story-upload-cancel-btn,
+.profile-story-upload-submit-btn {
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.profile-story-upload-main-btn {
+    height: 36px;
+    padding: 0 13px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #5b4a8d, #e9839b);
+    color: #ffffff;
+    font-weight: 950;
+}
+
+.profile-story-upload-sub-btn {
+    height: 36px;
+    padding: 0 13px;
+    border: 1px solid #ead6de;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #a45f76;
+    font-weight: 900;
+}
+
+.profile-story-upload-sub-btn:disabled {
+    color: #c6b7bf;
+    cursor: default;
+}
+
+.profile-story-upload-textarea {
+    width: 100%;
+    height: 82px;
+    resize: none;
+    border: 1px solid #efd6df;
+    border-radius: 18px;
+    outline: none;
+    padding: 13px 14px;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #3b3042;
+    background: #ffffff;
+}
+
+.profile-story-upload-textarea:focus {
+    border-color: #e9839b;
+    box-shadow: 0 0 0 4px rgba(233, 131, 155, 0.12);
+}
+
+.profile-story-upload-option-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.profile-story-color-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+}
+
+.profile-story-color-btn.active {
+    border: 3px solid #e9839b;
+}
+
+.profile-story-upload-option-btn {
+    height: 32px;
+    padding: 0 11px;
+    border-radius: 12px;
+    border: 1px solid #ead6de;
+    background: #ffffff;
+    color: #7b6572;
+    font-weight: 900;
+}
+
+.profile-story-upload-option-btn.active {
+    background: #fff0f4;
+}
+
+.profile-story-upload-empty-guide {
+    padding: 18px;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px dashed #ead6de;
+    color: #9b8390;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.profile-story-upload-footer {
+    padding: 0 20px 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.profile-story-upload-cancel-btn {
+    height: 40px;
+    padding: 0 15px;
+    border-radius: 15px;
+    border: 1px solid #ead6de;
+    background: #ffffff;
+    color: #8b6f7c;
+    font-weight: 900;
+}
+
+.profile-story-upload-submit-btn {
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 15px;
+    border: none;
+    background: linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    color: #ffffff;
+    font-weight: 950;
+}
+
+.profile-story-upload-cancel-btn:disabled,
+.profile-story-upload-submit-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+/* 스토리 보기 */
 
 .profile-story-viewer-bg {
     position: fixed;
     inset: 0;
-    z-index: 9900;
-    background:
-        radial-gradient(circle at 25% 18%, rgba(255, 210, 222, 0.22), transparent 30%),
-        rgba(25, 22, 30, 0.72);
-    backdrop-filter: blur(12px);
+    z-index: 2147483000;
+    background: rgba(25, 22, 30, 0.78);
+    backdrop-filter: blur(13px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -108,6 +377,7 @@
     border-radius: 32px;
     background: #111111;
     box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+    z-index: 2147483001;
 }
 
 .profile-story-viewer::before {
@@ -175,7 +445,6 @@
     }
 }
 
-/* 회색 박스 제거한 상단 정보 */
 .profile-story-viewer-head {
     position: absolute;
     top: 27px;
@@ -186,7 +455,6 @@
     padding: 0;
     border-radius: 0;
     background: transparent;
-    backdrop-filter: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -251,7 +519,7 @@
     border: none;
     border-radius: 50%;
     color: #ffffff;
-    background: rgba(0, 0, 0, 0.22);
+    background: rgba(0, 0, 0, 0.34);
     font-size: 22px;
     font-weight: 700;
     line-height: 1;
@@ -261,7 +529,7 @@
 }
 
 .profile-story-viewer-head button:hover {
-    background: rgba(0, 0, 0, 0.36);
+    background: rgba(0, 0, 0, 0.5);
 }
 
 .profile-story-viewer-image-box {
@@ -277,7 +545,8 @@
 .profile-story-viewer-image-box img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background: #111111;
 }
 
 .profile-story-click-zone {
@@ -299,6 +568,47 @@
     right: 0;
 }
 
+.profile-story-render-text {
+    position: absolute;
+    left: var(--story-text-x);
+    top: var(--story-text-y);
+    transform: translate(-50%, -50%);
+    z-index: 18;
+    max-width: 82%;
+    color: var(--story-text-color);
+    font-size: var(--story-text-size);
+    font-weight: 950;
+    line-height: 1.25;
+    text-align: center;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
+}
+
+.profile-story-render-text.with-bg {
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.42);
+}
+
+.profile-story-tag-mention {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    color: #cbb4ff;
+    font: inherit;
+    font-weight: 950;
+    cursor: pointer;
+    text-shadow: inherit;
+}
+
+.profile-story-tag-hashtag {
+    color: #f3c778;
+    font-weight: 950;
+}
+
 .profile-story-viewer-caption {
     position: absolute;
     left: 18px;
@@ -308,7 +618,7 @@
     padding: 12px 14px;
     border-radius: 18px;
     color: #ffffff;
-    background: rgba(40, 38, 45, 0.34);
+    background: rgba(40, 38, 45, 0.42);
     backdrop-filter: blur(10px);
     font-size: 13px;
     line-height: 1.45;
@@ -349,7 +659,7 @@
     border-radius: 15px;
     border: none;
     color: #ffffff;
-    background: rgba(0, 0, 0, 0.38);
+    background: rgba(0, 0, 0, 0.46);
     backdrop-filter: blur(10px);
     font-size: 12px;
     font-weight: 950;
@@ -362,6 +672,7 @@
 }
 
 /* 본 사람 목록 */
+
 .profile-story-viewer-list-bg {
     position: absolute;
     inset: 0;
@@ -501,8 +812,44 @@
     text-overflow: ellipsis;
 }
 
+/* 스토리 모달이 프로필 화면과 겹치는 문제 방지 */
+.profile-story-upload-bg,
+.profile-story-viewer-bg {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483646 !important;
+}
+
+.profile-story-upload-modal,
+.profile-story-viewer {
+    position: relative !important;
+    z-index: 2147483647 !important;
+}
+
+.profile-story-viewer-bg {
+    background: rgba(25, 22, 30, 0.82) !important;
+    backdrop-filter: blur(13px) !important;
+}
+
+.profile-story-viewer-image-box img {
+    object-fit: contain !important;
+}
+
 @media (max-width: 520px) {
     .profile-story-viewer {
         border-radius: 26px;
+    }
+
+    .profile-story-upload-modal {
+        border-radius: 26px;
+    }
+
+    .profile-story-upload-preview-box {
+        height: 330px;
+    }
+
+    .profile-story-upload-tool-row,
+    .profile-story-upload-footer {
+        flex-wrap: wrap;
     }
 }

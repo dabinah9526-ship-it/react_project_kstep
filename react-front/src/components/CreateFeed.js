@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PageDecor from "./PageDecor";
+import ScrollTopButton from "./ScrollTopButton";
 import "./CreateFeed.css";
 
 function CreateFeed() {
@@ -451,40 +453,45 @@ function CreateFeed() {
 
     return (
         <div className="create-page">
-            <div className="create-cloud create-cloud-one"></div>
-            <div className="create-cloud create-cloud-two"></div>
-
-            <div className="create-motif create-motif-one"></div>
-            <div className="create-motif create-motif-two"></div>
-
-            <div className="create-flower create-flower-one">✿</div>
-            <div className="create-flower create-flower-two">❀</div>
+            <PageDecor />
 
             <div className="create-container">
-                <div className="create-header">
-                    <button className="create-back-btn" onClick={() => navigate("/home")}>
-                        ← 피드로 돌아가기
-                    </button>
+                <section className="create-header">
+                    <PageDecor variant="box" />
 
-                    <div className="create-title-box">
-                        <p className="create-badge">Korea Route Diary</p>
-                        <h1>나만의 한국 여행 루트 작성하기</h1>
-                        <p>
-                            맛집, 카페, 쇼핑, 관광, 야경, 자연까지<br />
-                            오늘의 예쁜 순간을 하나의 여행 루트로 기록해보세요.
-                        </p>
+                    <div className="create-brand-row">
+                        <div className="create-brand-mark">K</div>
+
+                        <div>
+                            <h1>여행 루트 작성</h1>
+                            <p>
+                                사진 여러 장과 장소를 연결해 나만의 한국 여행 코스를 기록해요.
+                            </p>
+                        </div>
                     </div>
-                </div>
+
+                    <div className="create-top-icons">
+                        <button
+                            type="button"
+                            onClick={() => navigate("/home")}
+                            title="홈으로"
+                        >
+                            ⌂
+                        </button>
+
+                        <button
+                            type="button"
+                            className="write"
+                            onClick={saveFeed}
+                            title="올리기"
+                        >
+                            +
+                        </button>
+                    </div>
+                </section>
 
                 <div className="create-layout">
                     <section className="create-form-card">
-                        <div className="traditional-band create-band">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-
                         <div className="create-section-title">
                             <span>✦</span>
                             <div>
@@ -581,6 +588,7 @@ function CreateFeed() {
                             <div className="create-two-column">
                                 <div className="create-input-box">
                                     <label>지역</label>
+
                                     <select value={area} onChange={(e) => setArea(e.target.value)}>
                                         <option value="서울">서울</option>
                                         <option value="부산">부산</option>
@@ -599,6 +607,7 @@ function CreateFeed() {
 
                                 <div className="create-input-box">
                                     <label>카테고리</label>
+
                                     <select value={category} onChange={(e) => setCategory(e.target.value)}>
                                         <option value="맛집">맛집</option>
                                         <option value="카페">카페</option>
@@ -788,7 +797,11 @@ function CreateFeed() {
                                 </div>
                             </div>
 
-                            <button className="create-submit-btn" onClick={saveFeed}>
+                            <button
+                                type="button"
+                                className="create-submit-btn"
+                                onClick={saveFeed}
+                            >
                                 여행 루트 피드 올리기
                             </button>
                         </div>
@@ -877,6 +890,8 @@ function CreateFeed() {
                     </aside>
                 </div>
             </div>
+
+            <ScrollTopButton />
         </div>
     );
 }

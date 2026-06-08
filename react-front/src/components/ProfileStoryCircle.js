@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import "./ProfileStoryCircle.css";
 
@@ -6,6 +7,8 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
     const storyTextBoxRef = useRef(null);
+    const blockStoryOpenRef = useRef(false);
+    const blockTimerRef = useRef(null);
 
     const [hasStoryYn, setHasStoryYn] = useState("N");
     const [allViewYn, setAllViewYn] = useState("Y");
@@ -15,19 +18,16 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
     const [progressKey, setProgressKey] = useState(0);
     const [uploading, setUploading] = useState(false);
 
-    // 내 스토리 본 사람 목록
     const [viewerListOpen, setViewerListOpen] = useState(false);
     const [viewerList, setViewerList] = useState([]);
     const [viewerListLoading, setViewerListLoading] = useState(false);
     const [currentViewCount, setCurrentViewCount] = useState(0);
 
-    // 스토리 업로드 모달
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [storyUploadFiles, setStoryUploadFiles] = useState([]);
     const [storyUploadPreviews, setStoryUploadPreviews] = useState([]);
     const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
 
-    // 사진 위 글 스티커
     const [storyStickerListByIndex, setStoryStickerListByIndex] = useState([]);
     const [activeStickerId, setActiveStickerId] = useState(null);
     const [draggingStickerId, setDraggingStickerId] = useState(null);
@@ -36,6 +36,8 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         if (userNo) {
             getStoryStatus();
         }
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userNo]);
 
     useEffect(() => {
@@ -58,14 +60,67 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         setViewerList([]);
         setCurrentViewCount(Number(story.VIEW_COUNT || 0));
 
-        // 내 스토리든 남의 스토리든 본 기록 저장
         markStoryView(story.STORY_NO);
 
-        // 내 스토리일 때만 본 사람 목록 불러오기
         if (isMyStory(story)) {
             getViewerList(story.STORY_NO);
         }
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [viewerOpen, selectedStoryIndex, storyList.length]);
+
+    useEffect(() => {
+        if (uploadModalOpen || viewerOpen) {
+            document.body.classList.add("profile-story-modal-open");
+        } else {
+            document.body.classList.remove("profile-story-modal-open");
+        }
+
+        return () => {
+            document.body.classList.remove("profile-story-modal-open");
+        };
+    }, [uploadModalOpen, viewerOpen]);
+
+    function blockStoryOpenTemporarily() {
+        blockStoryOpenRef.current = true;
+
+        if (blockTimerRef.current) {
+            clearTimeout(blockTimerRef.current);
+        }
+
+        blockTimerRef.current = setTimeout(() => {
+            blockStoryOpenRef.current = false;
+        }, 500);
+    }
+
+    function stopOnly(e) {
+        if (!e) {
+            return;
+        }
+
+        e.stopPropagation();
+
+        if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+            e.nativeEvent.stopImmediatePropagation();
+        }
+
+        blockStoryOpenTemporarily();
+    }
+
+    function stopAll(e) {
+        if (!e) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+            e.nativeEvent.stopImmediatePropagation();
+        }
+
+        blockStoryOpenTemporarily();
+    }
 
     function getToken() {
         return localStorage.getItem("token");
@@ -117,6 +172,10 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
             return true;
         }
 
+        if (String(story.USER_NO) === String(getLoginUserNo())) {
+            return true;
+        }
+
         if (isMine()) {
             return true;
         }
@@ -124,18 +183,20 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         return false;
     }
 
-    function getStartStoryIndex(list) {
-        if (!list || list.length === 0) {
-            return 0;
+    function safeText(value, defaultText) {
+        if (value === undefined || value === null || value === "") {
+            return defaultText;
         }
 
-        const firstUnviewedIndex = list.findIndex(story => story.VIEW_YN !== "Y");
+        return value;
+    }
 
-        if (firstUnviewedIndex === -1) {
-            return 0;
+    function getFirstLetter(value) {
+        if (!value) {
+            return "K";
         }
 
-        return firstUnviewedIndex;
+        return String(value).substring(0, 1).toUpperCase();
     }
 
     function getImageUrl(value) {
@@ -158,20 +219,43 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         return "/images/" + value;
     }
 
-    function getFirstLetter(value) {
-        if (!value) {
-            return "K";
+    function getStoryImageUrl(story) {
+        if (!story) {
+            return "";
         }
 
-        return String(value).substring(0, 1).toUpperCase();
+        return getImageUrl(
+            story.STORY_IMG ||
+            story.STORY_IMAGE ||
+            story.IMG_URL ||
+            story.IMAGE_URL ||
+            story.FILE_URL ||
+            ""
+        );
     }
 
-    function safeText(value, defaultText) {
-        if (value === undefined || value === null || value === "") {
-            return defaultText;
+    function getStoryTextList(story) {
+        if (!story) {
+            return [];
         }
 
-        return value;
+        if (Array.isArray(story.TEXT_LIST)) {
+            return story.TEXT_LIST;
+        }
+
+        if (typeof story.TEXT_LIST === "string") {
+            try {
+                const parsedList = JSON.parse(story.TEXT_LIST);
+
+                if (Array.isArray(parsedList)) {
+                    return parsedList;
+                }
+            } catch (err) {
+                return [];
+            }
+        }
+
+        return [];
     }
 
     function getStoryTimeText(story) {
@@ -221,6 +305,20 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         }
 
         return Math.floor(diff / day) + "일 전";
+    }
+
+    function getStartStoryIndex(list) {
+        if (!list || list.length === 0) {
+            return 0;
+        }
+
+        const firstUnviewedIndex = list.findIndex(story => story.VIEW_YN !== "Y");
+
+        if (firstUnviewedIndex === -1) {
+            return 0;
+        }
+
+        return firstUnviewedIndex;
     }
 
     function getStoryStatus() {
@@ -302,6 +400,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         setSelectedPreviewIndex(0);
         setActiveStickerId(null);
         setUploadModalOpen(true);
+        blockStoryOpenTemporarily();
 
         e.target.value = "";
     }
@@ -328,7 +427,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         return stickerList.find(sticker => sticker.id === activeStickerId) || null;
     }
 
-    function addSticker() {
+    function addStickerAction() {
         const newSticker = {
             id: Date.now() + "-" + Math.random(),
             textContent: "",
@@ -350,6 +449,11 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         });
 
         setActiveStickerId(newSticker.id);
+    }
+
+    function addSticker(e) {
+        stopAll(e);
+        addStickerAction();
     }
 
     function updateActiveSticker(fieldName, value) {
@@ -376,7 +480,9 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         });
     }
 
-    function deleteActiveSticker() {
+    function deleteActiveSticker(e) {
+        stopAll(e);
+
         if (!activeStickerId) {
             return;
         }
@@ -447,8 +553,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
     }
 
     function startStickerDrag(e, stickerId) {
-        e.preventDefault();
-        e.stopPropagation();
+        stopAll(e);
 
         setActiveStickerId(stickerId);
         setDraggingStickerId(stickerId);
@@ -467,7 +572,9 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         setDraggingStickerId(null);
     }
 
-    async function uploadStory() {
+    async function uploadStory(e) {
+        stopAll(e);
+
         if (storyUploadFiles.length === 0) {
             alert("스토리 이미지를 선택해주세요.");
             return;
@@ -475,6 +582,11 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
 
         const token = getToken();
         const uploadCount = storyUploadFiles.length;
+
+        if (!token) {
+            alert("로그인이 필요합니다.");
+            return;
+        }
 
         setUploading(true);
 
@@ -533,7 +645,15 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         }
     }
 
-    function openStory() {
+    function openStory(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+
+        if (blockStoryOpenRef.current || uploadModalOpen || uploading || viewerOpen) {
+            return;
+        }
+
         if (hasStoryYn !== "Y") {
             if (isMine()) {
                 openFilePicker();
@@ -580,7 +700,11 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
             });
     }
 
-    function closeStoryViewer() {
+    function closeStoryViewer(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+
         setViewerOpen(false);
         setStoryList([]);
         setSelectedStoryIndex(0);
@@ -590,7 +714,11 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         getStoryStatus();
     }
 
-    function nextStory() {
+    function nextStory(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+
         if (storyList.length === 0) {
             closeStoryViewer();
             return;
@@ -604,7 +732,11 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         setSelectedStoryIndex(selectedStoryIndex + 1);
     }
 
-    function prevStory() {
+    function prevStory(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+
         if (storyList.length === 0) {
             return;
         }
@@ -618,6 +750,10 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
 
     function markStoryView(storyNo) {
         const token = getToken();
+
+        if (!token || !storyNo) {
+            return;
+        }
 
         fetch("http://localhost:3010/story/view", {
             method: "POST",
@@ -707,7 +843,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
     }
 
     function openViewerList(e) {
-        e.stopPropagation();
+        stopAll(e);
 
         if (!currentStory || !isMyStory(currentStory)) {
             return;
@@ -718,12 +854,12 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
     }
 
     function closeViewerList(e) {
-        e.stopPropagation();
+        stopAll(e);
         setViewerListOpen(false);
     }
 
     function moveViewerProfile(e, targetUserNo) {
-        e.stopPropagation();
+        stopAll(e);
 
         if (!targetUserNo) {
             return;
@@ -734,7 +870,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
     }
 
     function moveMentionProfile(e, keyword) {
-        e.stopPropagation();
+        stopAll(e);
 
         if (!keyword) {
             return;
@@ -765,7 +901,9 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
             });
     }
 
-    function removeStory(storyNo) {
+    function removeStory(e, storyNo) {
+        stopAll(e);
+
         if (!storyNo) {
             return;
         }
@@ -836,17 +974,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                         type="button"
                         key={index}
                         onClick={(e) => moveMentionProfile(e, keyword)}
-                        style={{
-                            border: "none",
-                            background: "transparent",
-                            padding: 0,
-                            margin: 0,
-                            color: "#cbb4ff",
-                            font: "inherit",
-                            fontWeight: 950,
-                            cursor: "pointer",
-                            textShadow: "inherit"
-                        }}
+                        className="profile-story-tag-mention"
                     >
                         {part}
                     </button>
@@ -857,10 +985,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                 return (
                     <span
                         key={index}
-                        style={{
-                            color: "#f3c778",
-                            fontWeight: 950
-                        }}
+                        className="profile-story-tag-hashtag"
                     >
                         {part}
                     </span>
@@ -876,54 +1001,392 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
     }
 
     function renderStoryTextList(story) {
-        const textList = story.TEXT_LIST || [];
+        const textList = getStoryTextList(story);
 
         if (textList.length === 0) {
             return null;
         }
 
-        return textList.map(text => (
+        return textList.map((text, index) => (
             <div
-                key={text.TEXT_NO}
+                key={text.TEXT_NO || text.textNo || index}
+                className={(text.BG_YN || text.bgYn) === "Y" ? "profile-story-render-text with-bg" : "profile-story-render-text"}
                 style={{
-                    position: "absolute",
-                    left: Number(text.POS_X || 50) + "%",
-                    top: Number(text.POS_Y || 50) + "%",
-                    transform: "translate(-50%, -50%)",
-                    zIndex: 18,
-                    maxWidth: "82%",
-                    padding: text.BG_YN === "Y" ? "7px 12px" : "0",
-                    borderRadius: "999px",
-                    background: text.BG_YN === "Y" ? "rgba(0, 0, 0, 0.42)" : "transparent",
-                    color: text.FONT_COLOR || "#ffffff",
-                    fontSize: Number(text.FONT_SIZE || 24) + "px",
-                    fontWeight: 950,
-                    lineHeight: 1.25,
-                    textAlign: "center",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    textShadow: "0 2px 10px rgba(0,0,0,0.55)",
-                    pointerEvents: "auto"
+                    "--story-text-x": Number(text.POS_X || text.posX || 50) + "%",
+                    "--story-text-y": Number(text.POS_Y || text.posY || 50) + "%",
+                    "--story-text-color": text.FONT_COLOR || text.fontColor || "#ffffff",
+                    "--story-text-size": Number(text.FONT_SIZE || text.fontSize || 24) + "px"
                 }}
             >
-                {renderTaggedText(text.TEXT_CONTENT)}
+                {renderTaggedText(text.TEXT_CONTENT || text.textContent)}
             </div>
         ));
     }
 
     const currentStory = storyList.length > 0 ? storyList[selectedStoryIndex] : null;
     const currentStoryIsMine = currentStory ? isMyStory(currentStory) : false;
-    const currentStoryTextList = currentStory ? (currentStory.TEXT_LIST || []) : [];
+    const currentStoryTextList = currentStory ? getStoryTextList(currentStory) : [];
     const currentStickerList = getCurrentStickerList();
     const activeSticker = getActiveSticker();
 
+    const uploadModal = uploadModalOpen ? (
+        <div
+            className="profile-story-upload-bg"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    closeUploadModal();
+                }
+            }}
+        >
+            <div
+                className="profile-story-upload-modal"
+                onClick={stopOnly}
+            >
+                <div className="profile-story-upload-head">
+                    <h3>스토리 꾸미기</h3>
+                    <p>사진마다 글을 여러 개 올리고 위치를 바꿀 수 있어요.</p>
+                </div>
+
+                <div className="profile-story-upload-body">
+                    <div
+                        ref={storyTextBoxRef}
+                        className="profile-story-upload-preview-box"
+                        onPointerMove={moveSticker}
+                        onPointerUp={stopStickerDrag}
+                        onPointerLeave={stopStickerDrag}
+                    >
+                        {storyUploadPreviews[selectedPreviewIndex] && (
+                            <img
+                                src={storyUploadPreviews[selectedPreviewIndex]}
+                                alt="스토리 미리보기"
+                                className="profile-story-upload-preview-img"
+                            />
+                        )}
+
+                        {currentStickerList.map(sticker => (
+                            <div
+                                key={sticker.id}
+                                className={
+                                    activeStickerId === sticker.id
+                                        ? sticker.bgYn === "Y"
+                                            ? "profile-story-upload-sticker with-bg active"
+                                            : "profile-story-upload-sticker active"
+                                        : sticker.bgYn === "Y"
+                                            ? "profile-story-upload-sticker with-bg"
+                                            : "profile-story-upload-sticker"
+                                }
+                                style={{
+                                    "--upload-sticker-x": sticker.posX + "%",
+                                    "--upload-sticker-y": sticker.posY + "%",
+                                    "--upload-sticker-color": sticker.fontColor,
+                                    "--upload-sticker-size": sticker.fontSize + "px"
+                                }}
+                                onPointerDown={(e) => startStickerDrag(e, sticker.id)}
+                            >
+                                {sticker.textContent || "글 입력"}
+                            </div>
+                        ))}
+                    </div>
+
+                    {storyUploadPreviews.length > 1 && (
+                        <div className="profile-story-upload-thumb-row">
+                            {storyUploadPreviews.map((previewUrl, index) => (
+                                <button
+                                    type="button"
+                                    key={previewUrl}
+                                    className={selectedPreviewIndex === index ? "profile-story-upload-thumb active" : "profile-story-upload-thumb"}
+                                    onClick={(e) => {
+                                        stopAll(e);
+                                        selectPreview(index);
+                                    }}
+                                >
+                                    <img
+                                        src={previewUrl}
+                                        alt={"선택 이미지 " + (index + 1)}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="profile-story-upload-tool-row">
+                        <button
+                            type="button"
+                            className="profile-story-upload-main-btn"
+                            onClick={addSticker}
+                        >
+                            + 글 추가
+                        </button>
+
+                        <button
+                            type="button"
+                            className="profile-story-upload-sub-btn"
+                            onClick={deleteActiveSticker}
+                            disabled={!activeSticker}
+                        >
+                            선택 글 삭제
+                        </button>
+                    </div>
+
+                    {activeSticker ? (
+                        <>
+                            <textarea
+                                value={activeSticker.textContent}
+                                onChange={(e) => updateActiveSticker("textContent", e.target.value)}
+                                maxLength={500}
+                                placeholder="사진 위에 올릴 글을 입력하세요. 예) #경주여행 @traveler01"
+                                className="profile-story-upload-textarea"
+                                onClick={stopOnly}
+                            />
+
+                            <div className="profile-story-upload-option-row">
+                                {["#FFFFFF", "#FFD9E4", "#F3C778", "#CBB4FF", "#2B1D3D"].map(color => (
+                                    <button
+                                        key={color}
+                                        type="button"
+                                        onClick={(e) => {
+                                            stopAll(e);
+                                            updateActiveSticker("fontColor", color);
+                                        }}
+                                        className={activeSticker.fontColor === color ? "profile-story-color-btn active" : "profile-story-color-btn"}
+                                        style={{ background: color }}
+                                    ></button>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    className="profile-story-upload-option-btn"
+                                    onClick={(e) => {
+                                        stopAll(e);
+                                        updateActiveSticker("fontSize", Math.max(18, activeSticker.fontSize - 2));
+                                    }}
+                                >
+                                    A-
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="profile-story-upload-option-btn"
+                                    onClick={(e) => {
+                                        stopAll(e);
+                                        updateActiveSticker("fontSize", Math.min(42, activeSticker.fontSize + 2));
+                                    }}
+                                >
+                                    A+
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className={activeSticker.bgYn === "Y" ? "profile-story-upload-option-btn active" : "profile-story-upload-option-btn"}
+                                    onClick={(e) => {
+                                        stopAll(e);
+                                        updateActiveSticker("bgYn", activeSticker.bgYn === "Y" ? "N" : "Y");
+                                    }}
+                                >
+                                    배경 {activeSticker.bgYn === "Y" ? "ON" : "OFF"}
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="profile-story-upload-empty-guide">
+                            + 글 추가를 눌러서 사진 위에 글을 올려주세요.
+                        </div>
+                    )}
+                </div>
+
+                <div className="profile-story-upload-footer">
+                    <button
+                        type="button"
+                        className="profile-story-upload-cancel-btn"
+                        onClick={(e) => {
+                            stopAll(e);
+                            closeUploadModal();
+                        }}
+                        disabled={uploading}
+                    >
+                        취소
+                    </button>
+
+                    <button
+                        type="button"
+                        className="profile-story-upload-submit-btn"
+                        onClick={uploadStory}
+                        disabled={uploading}
+                    >
+                        {uploading ? "올리는 중..." : storyUploadFiles.length + "장 올리기"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    ) : null;
+
+    const viewerModal = viewerOpen && currentStory ? (
+        <div
+            className="profile-story-viewer-bg"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    closeStoryViewer(e);
+                }
+            }}
+        >
+            <div className="profile-story-viewer" onClick={stopOnly}>
+                <div className="profile-story-progress-row">
+                    {storyList.map((story, index) => (
+                        <div className="profile-story-progress-track" key={story.STORY_NO || index}>
+                            {index < selectedStoryIndex && (
+                                <span className="done"></span>
+                            )}
+
+                            {index === selectedStoryIndex && (
+                                <span
+                                    key={currentStory.STORY_NO + "-" + progressKey}
+                                    className="profile-story-progress-fill"
+                                    onAnimationEnd={nextStory}
+                                ></span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <div className="profile-story-viewer-head">
+                    <div className="profile-story-viewer-profile">
+                        <div className="profile-story-viewer-avatar">
+                            {getImageUrl(currentStory.PROFILE_IMG) !== "" ? (
+                                <img
+                                    src={getImageUrl(currentStory.PROFILE_IMG)}
+                                    alt={safeText(currentStory.NICKNAME, "프로필")}
+                                />
+                            ) : (
+                                <span>{getFirstLetter(currentStory.NICKNAME || currentStory.USER_ID)}</span>
+                            )}
+                        </div>
+
+                        <div className="profile-story-viewer-user-text">
+                            <strong>{safeText(currentStory.NICKNAME, "traveler")}</strong>
+                            <p>{getStoryTimeText(currentStory)}</p>
+                        </div>
+                    </div>
+
+                    <button type="button" onClick={closeStoryViewer}>
+                        ×
+                    </button>
+                </div>
+
+                <div className="profile-story-viewer-image-box">
+                    <button
+                        type="button"
+                        className="profile-story-click-zone left"
+                        onClick={prevStory}
+                    ></button>
+
+                    <img
+                        src={getStoryImageUrl(currentStory)}
+                        alt="스토리"
+                    />
+
+                    {renderStoryTextList(currentStory)}
+
+                    <button
+                        type="button"
+                        className="profile-story-click-zone right"
+                        onClick={nextStory}
+                    ></button>
+                </div>
+
+                {currentStoryTextList.length === 0 && currentStory.STORY_CONTENT && (
+                    <div className={currentStoryIsMine ? "profile-story-viewer-caption owner-story" : "profile-story-viewer-caption"}>
+                        {currentStory.STORY_CONTENT}
+                    </div>
+                )}
+
+                {currentStoryIsMine && (
+                    <>
+                        <button
+                            type="button"
+                            className="profile-story-view-count-btn"
+                            onClick={openViewerList}
+                        >
+                            👁 본 사람 {currentViewCount}
+                        </button>
+
+                        <button
+                            type="button"
+                            className="profile-story-delete-btn"
+                            onClick={(e) => removeStory(e, currentStory.STORY_NO)}
+                        >
+                            삭제
+                        </button>
+                    </>
+                )}
+
+                {viewerListOpen && (
+                    <div className="profile-story-viewer-list-bg" onClick={closeViewerList}>
+                        <div className="profile-story-viewer-list-sheet" onClick={stopOnly}>
+                            <div className="profile-story-viewer-list-handle"></div>
+
+                            <div className="profile-story-viewer-list-head">
+                                <div>
+                                    <h3>본 사람</h3>
+                                    <p>{currentViewCount}명이 이 스토리를 봤어요.</p>
+                                </div>
+
+                                <button type="button" onClick={closeViewerList}>
+                                    ×
+                                </button>
+                            </div>
+
+                            <div className="profile-story-viewer-user-list">
+                                {viewerListLoading && (
+                                    <div className="profile-story-viewer-list-empty">
+                                        불러오는 중입니다...
+                                    </div>
+                                )}
+
+                                {!viewerListLoading && viewerList.length === 0 && (
+                                    <div className="profile-story-viewer-list-empty">
+                                        아직 본 사람이 없습니다.
+                                    </div>
+                                )}
+
+                                {!viewerListLoading && viewerList.map(user => (
+                                    <button
+                                        type="button"
+                                        className="profile-story-viewer-user-row"
+                                        key={user.VIEW_NO || user.USER_NO}
+                                        onClick={(e) => moveViewerProfile(e, user.USER_NO)}
+                                    >
+                                        <div className="profile-story-viewer-user-profile">
+                                            {getImageUrl(user.PROFILE_IMG) !== "" ? (
+                                                <img
+                                                    src={getImageUrl(user.PROFILE_IMG)}
+                                                    alt={safeText(user.NICKNAME, "프로필")}
+                                                />
+                                            ) : (
+                                                <span>{getFirstLetter(user.NICKNAME || user.USER_ID)}</span>
+                                            )}
+                                        </div>
+
+                                        <div className="profile-story-viewer-user-info">
+                                            <strong>{safeText(user.NICKNAME, "traveler")}</strong>
+                                            <p>@{safeText(user.USER_ID, "user")} · {safeText(user.VIEW_DATE_TEXT, "")}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    ) : null;
+
     return (
         <>
-            <div
-                className={getProfileStoryClass()}
-                onClick={openStory}
-            >
-                <div className="profile-story-image">
+            <div className={getProfileStoryClass()}>
+                <div
+                    className="profile-story-image"
+                    onClick={openStory}
+                >
                     {getImageUrl(profileImg) !== "" ? (
                         <img
                             src={getImageUrl(profileImg)}
@@ -939,7 +1402,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                         type="button"
                         className="profile-story-add-btn"
                         onClick={(e) => {
-                            e.stopPropagation();
+                            stopAll(e);
                             openFilePicker();
                         }}
                         disabled={uploading}
@@ -958,502 +1421,8 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                 />
             </div>
 
-            {uploadModalOpen && (
-                <div
-                    onClick={closeUploadModal}
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        zIndex: 10000,
-                        background: "rgba(25, 22, 30, 0.62)",
-                        backdropFilter: "blur(12px)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: "18px",
-                        boxSizing: "border-box"
-                    }}
-                >
-                    <div
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            width: "min(460px, 100%)",
-                            maxHeight: "94vh",
-                            borderRadius: "30px",
-                            background: "linear-gradient(180deg, #fffafd, #fff5f8)",
-                            boxShadow: "0 28px 80px rgba(0,0,0,0.28)",
-                            overflow: "hidden",
-                            display: "flex",
-                            flexDirection: "column"
-                        }}
-                    >
-                        <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid #f2dce5" }}>
-                            <h3 style={{ margin: 0, color: "#2b1d3d", fontSize: "20px", fontWeight: 950 }}>
-                                스토리 꾸미기
-                            </h3>
-                            <p style={{ margin: "6px 0 0", color: "#947d89", fontSize: "13px", fontWeight: 700 }}>
-                                사진마다 글을 여러 개 올리고 위치를 바꿀 수 있어요.
-                            </p>
-                        </div>
-
-                        <div style={{ padding: "16px 20px", overflowY: "auto" }}>
-                            <div
-                                ref={storyTextBoxRef}
-                                onPointerMove={moveSticker}
-                                onPointerUp={stopStickerDrag}
-                                onPointerLeave={stopStickerDrag}
-                                style={{
-                                    width: "100%",
-                                    height: "360px",
-                                    borderRadius: "24px",
-                                    overflow: "hidden",
-                                    background: "#111",
-                                    marginBottom: "12px",
-                                    position: "relative",
-                                    touchAction: "none"
-                                }}
-                            >
-                                {storyUploadPreviews[selectedPreviewIndex] && (
-                                    <img
-                                        src={storyUploadPreviews[selectedPreviewIndex]}
-                                        alt="스토리 미리보기"
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "cover",
-                                            display: "block"
-                                        }}
-                                    />
-                                )}
-
-                                {currentStickerList.map(sticker => (
-                                    <div
-                                        key={sticker.id}
-                                        onPointerDown={(e) => startStickerDrag(e, sticker.id)}
-                                        style={{
-                                            position: "absolute",
-                                            left: sticker.posX + "%",
-                                            top: sticker.posY + "%",
-                                            transform: "translate(-50%, -50%)",
-                                            zIndex: 3,
-                                            maxWidth: "84%",
-                                            padding: sticker.bgYn === "Y" ? "7px 12px" : "0",
-                                            borderRadius: "999px",
-                                            background: sticker.bgYn === "Y" ? "rgba(0,0,0,0.42)" : "transparent",
-                                            color: sticker.fontColor,
-                                            fontSize: sticker.fontSize + "px",
-                                            fontWeight: 950,
-                                            lineHeight: 1.25,
-                                            textAlign: "center",
-                                            whiteSpace: "pre-wrap",
-                                            wordBreak: "break-word",
-                                            textShadow: "0 2px 10px rgba(0,0,0,0.55)",
-                                            cursor: "grab",
-                                            userSelect: "none",
-                                            outline: activeStickerId === sticker.id ? "2px dashed rgba(255,255,255,0.85)" : "none",
-                                            outlineOffset: "4px"
-                                        }}
-                                    >
-                                        {sticker.textContent || "글 입력"}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {storyUploadPreviews.length > 1 && (
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "8px",
-                                        overflowX: "auto",
-                                        marginBottom: "12px",
-                                        paddingBottom: "4px"
-                                    }}
-                                >
-                                    {storyUploadPreviews.map((previewUrl, index) => (
-                                        <button
-                                            type="button"
-                                            key={previewUrl}
-                                            onClick={() => selectPreview(index)}
-                                            style={{
-                                                width: "54px",
-                                                height: "54px",
-                                                minWidth: "54px",
-                                                borderRadius: "15px",
-                                                overflow: "hidden",
-                                                padding: 0,
-                                                border: selectedPreviewIndex === index ? "3px solid #e9839b" : "2px solid #ead6de",
-                                                background: "#111",
-                                                cursor: "pointer"
-                                            }}
-                                        >
-                                            <img
-                                                src={previewUrl}
-                                                alt={"선택 이미지 " + (index + 1)}
-                                                style={{
-                                                    width: "100%",
-                                                    height: "100%",
-                                                    objectFit: "cover",
-                                                    display: "block"
-                                                }}
-                                            />
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
-                                <button
-                                    type="button"
-                                    onClick={addSticker}
-                                    style={{
-                                        height: "36px",
-                                        padding: "0 13px",
-                                        border: "none",
-                                        borderRadius: "14px",
-                                        background: "linear-gradient(135deg, #5b4a8d, #e9839b)",
-                                        color: "#fff",
-                                        fontWeight: 950,
-                                        cursor: "pointer",
-                                        fontFamily: "inherit"
-                                    }}
-                                >
-                                    + 글 추가
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={deleteActiveSticker}
-                                    disabled={!activeSticker}
-                                    style={{
-                                        height: "36px",
-                                        padding: "0 13px",
-                                        border: "1px solid #ead6de",
-                                        borderRadius: "14px",
-                                        background: "#fff",
-                                        color: activeSticker ? "#a45f76" : "#c6b7bf",
-                                        fontWeight: 900,
-                                        cursor: activeSticker ? "pointer" : "default",
-                                        fontFamily: "inherit"
-                                    }}
-                                >
-                                    선택 글 삭제
-                                </button>
-                            </div>
-
-                            {activeSticker ? (
-                                <>
-                                    <textarea
-                                        value={activeSticker.textContent}
-                                        onChange={(e) => updateActiveSticker("textContent", e.target.value)}
-                                        maxLength={500}
-                                        placeholder="사진 위에 올릴 글을 입력하세요. 예) #경주여행 @traveler01"
-                                        style={{
-                                            width: "100%",
-                                            height: "82px",
-                                            resize: "none",
-                                            border: "1px solid #efd6df",
-                                            borderRadius: "18px",
-                                            outline: "none",
-                                            padding: "13px 14px",
-                                            boxSizing: "border-box",
-                                            fontFamily: "inherit",
-                                            fontSize: "14px",
-                                            lineHeight: 1.5,
-                                            color: "#3b3042",
-                                            background: "#ffffff"
-                                        }}
-                                    />
-
-                                    <div style={{ marginTop: "10px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                                        {["#FFFFFF", "#FFD9E4", "#F3C778", "#CBB4FF", "#2B1D3D"].map(color => (
-                                            <button
-                                                key={color}
-                                                type="button"
-                                                onClick={() => updateActiveSticker("fontColor", color)}
-                                                style={{
-                                                    width: "30px",
-                                                    height: "30px",
-                                                    borderRadius: "50%",
-                                                    border: activeSticker.fontColor === color ? "3px solid #e9839b" : "2px solid #ffffff",
-                                                    background: color,
-                                                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                                                    cursor: "pointer"
-                                                }}
-                                            ></button>
-                                        ))}
-
-                                        <button
-                                            type="button"
-                                            onClick={() => updateActiveSticker("fontSize", Math.max(18, activeSticker.fontSize - 2))}
-                                            style={{
-                                                height: "32px",
-                                                padding: "0 11px",
-                                                borderRadius: "12px",
-                                                border: "1px solid #ead6de",
-                                                background: "#fff",
-                                                color: "#7b6572",
-                                                fontWeight: 900,
-                                                cursor: "pointer"
-                                            }}
-                                        >
-                                            A-
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => updateActiveSticker("fontSize", Math.min(42, activeSticker.fontSize + 2))}
-                                            style={{
-                                                height: "32px",
-                                                padding: "0 11px",
-                                                borderRadius: "12px",
-                                                border: "1px solid #ead6de",
-                                                background: "#fff",
-                                                color: "#7b6572",
-                                                fontWeight: 900,
-                                                cursor: "pointer"
-                                            }}
-                                        >
-                                            A+
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => updateActiveSticker("bgYn", activeSticker.bgYn === "Y" ? "N" : "Y")}
-                                            style={{
-                                                height: "32px",
-                                                padding: "0 12px",
-                                                borderRadius: "12px",
-                                                border: "1px solid #ead6de",
-                                                background: activeSticker.bgYn === "Y" ? "#fff0f4" : "#fff",
-                                                color: "#7b6572",
-                                                fontWeight: 900,
-                                                cursor: "pointer"
-                                            }}
-                                        >
-                                            배경 {activeSticker.bgYn === "Y" ? "ON" : "OFF"}
-                                        </button>
-                                    </div>
-                                </>
-                            ) : (
-                                <div
-                                    style={{
-                                        padding: "18px",
-                                        borderRadius: "18px",
-                                        background: "#fff",
-                                        border: "1px dashed #ead6de",
-                                        color: "#9b8390",
-                                        fontSize: "13px",
-                                        fontWeight: 800,
-                                        textAlign: "center"
-                                    }}
-                                >
-                                    `+ 글 추가`를 눌러서 사진 위에 글을 올려주세요.
-                                </div>
-                            )}
-                        </div>
-
-                        <div
-                            style={{
-                                padding: "0 20px 20px",
-                                display: "flex",
-                                gap: "10px",
-                                justifyContent: "flex-end"
-                            }}
-                        >
-                            <button
-                                type="button"
-                                onClick={closeUploadModal}
-                                disabled={uploading}
-                                style={{
-                                    height: "40px",
-                                    padding: "0 15px",
-                                    borderRadius: "15px",
-                                    border: "1px solid #ead6de",
-                                    background: "#fff",
-                                    color: "#8b6f7c",
-                                    fontWeight: 900,
-                                    cursor: uploading ? "default" : "pointer",
-                                    fontFamily: "inherit"
-                                }}
-                            >
-                                취소
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={uploadStory}
-                                disabled={uploading}
-                                style={{
-                                    height: "40px",
-                                    padding: "0 18px",
-                                    borderRadius: "15px",
-                                    border: "none",
-                                    background: "linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%)",
-                                    color: "#ffffff",
-                                    fontWeight: 950,
-                                    cursor: uploading ? "default" : "pointer",
-                                    fontFamily: "inherit"
-                                }}
-                            >
-                                {uploading ? "올리는 중..." : storyUploadFiles.length + "장 올리기"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {viewerOpen && currentStory && (
-                <div className="profile-story-viewer-bg" onClick={closeStoryViewer}>
-                    <div className="profile-story-viewer" onClick={(e) => e.stopPropagation()}>
-                        <div className="profile-story-progress-row">
-                            {storyList.map((story, index) => (
-                                <div className="profile-story-progress-track" key={story.STORY_NO || index}>
-                                    {index < selectedStoryIndex && (
-                                        <span className="done"></span>
-                                    )}
-
-                                    {index === selectedStoryIndex && (
-                                        <span
-                                            key={currentStory.STORY_NO + "-" + progressKey}
-                                            className="profile-story-progress-fill"
-                                            onAnimationEnd={nextStory}
-                                        ></span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="profile-story-viewer-head">
-                            <div className="profile-story-viewer-profile">
-                                <div className="profile-story-viewer-avatar">
-                                    {getImageUrl(currentStory.PROFILE_IMG) !== "" ? (
-                                        <img
-                                            src={getImageUrl(currentStory.PROFILE_IMG)}
-                                            alt={safeText(currentStory.NICKNAME, "프로필")}
-                                        />
-                                    ) : (
-                                        <span>{getFirstLetter(currentStory.NICKNAME || currentStory.USER_ID)}</span>
-                                    )}
-                                </div>
-
-                                <div className="profile-story-viewer-user-text">
-                                    <strong>{safeText(currentStory.NICKNAME, "traveler")}</strong>
-                                    <p>{getStoryTimeText(currentStory)}</p>
-                                </div>
-                            </div>
-
-                            <button type="button" onClick={closeStoryViewer}>
-                                ×
-                            </button>
-                        </div>
-
-                        <div className="profile-story-viewer-image-box">
-                            <button
-                                type="button"
-                                className="profile-story-click-zone left"
-                                onClick={prevStory}
-                            ></button>
-
-                            <img
-                                src={getImageUrl(currentStory.STORY_IMG)}
-                                alt="스토리"
-                            />
-
-                            {renderStoryTextList(currentStory)}
-
-                            <button
-                                type="button"
-                                className="profile-story-click-zone right"
-                                onClick={nextStory}
-                            ></button>
-                        </div>
-
-                        {currentStoryTextList.length === 0 && currentStory.STORY_CONTENT && (
-                            <div className={currentStoryIsMine ? "profile-story-viewer-caption owner-story" : "profile-story-viewer-caption"}>
-                                {currentStory.STORY_CONTENT}
-                            </div>
-                        )}
-
-                        {currentStoryIsMine && (
-                            <>
-                                <button
-                                    type="button"
-                                    className="profile-story-view-count-btn"
-                                    onClick={openViewerList}
-                                >
-                                    👁 본 사람 {currentViewCount}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="profile-story-delete-btn"
-                                    onClick={() => removeStory(currentStory.STORY_NO)}
-                                >
-                                    삭제
-                                </button>
-                            </>
-                        )}
-
-                        {viewerListOpen && (
-                            <div className="profile-story-viewer-list-bg" onClick={closeViewerList}>
-                                <div className="profile-story-viewer-list-sheet" onClick={(e) => e.stopPropagation()}>
-                                    <div className="profile-story-viewer-list-handle"></div>
-
-                                    <div className="profile-story-viewer-list-head">
-                                        <div>
-                                            <h3>본 사람</h3>
-                                            <p>{currentViewCount}명이 이 스토리를 봤어요.</p>
-                                        </div>
-
-                                        <button type="button" onClick={closeViewerList}>
-                                            ×
-                                        </button>
-                                    </div>
-
-                                    <div className="profile-story-viewer-user-list">
-                                        {viewerListLoading && (
-                                            <div className="profile-story-viewer-list-empty">
-                                                불러오는 중입니다...
-                                            </div>
-                                        )}
-
-                                        {!viewerListLoading && viewerList.length === 0 && (
-                                            <div className="profile-story-viewer-list-empty">
-                                                아직 본 사람이 없습니다.
-                                            </div>
-                                        )}
-
-                                        {!viewerListLoading && viewerList.map(user => (
-                                            <button
-                                                type="button"
-                                                className="profile-story-viewer-user-row"
-                                                key={user.VIEW_NO || user.USER_NO}
-                                                onClick={(e) => moveViewerProfile(e, user.USER_NO)}
-                                            >
-                                                <div className="profile-story-viewer-user-profile">
-                                                    {getImageUrl(user.PROFILE_IMG) !== "" ? (
-                                                        <img
-                                                            src={getImageUrl(user.PROFILE_IMG)}
-                                                            alt={safeText(user.NICKNAME, "프로필")}
-                                                        />
-                                                    ) : (
-                                                        <span>{getFirstLetter(user.NICKNAME || user.USER_ID)}</span>
-                                                    )}
-                                                </div>
-
-                                                <div className="profile-story-viewer-user-info">
-                                                    <strong>{safeText(user.NICKNAME, "traveler")}</strong>
-                                                    <p>@{safeText(user.USER_ID, "user")} · {safeText(user.VIEW_DATE_TEXT, "")}</p>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+            {uploadModalOpen && createPortal(uploadModal, document.body)}
+            {viewerOpen && currentStory && createPortal(viewerModal, document.body)}
         </>
     );
 }

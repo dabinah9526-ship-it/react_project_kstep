@@ -1,22 +1,24 @@
 .notifications-page {
     min-height: 100vh;
     position: relative;
-    overflow: hidden;
-    padding: 44px 18px;
+    overflow-x: hidden;
+    overflow-y: visible;
+    padding: 22px 18px 90px;
     box-sizing: border-box;
     font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
     background:
-        radial-gradient(circle at 18% 16%, rgba(255, 192, 203, 0.44), transparent 28%),
-        radial-gradient(circle at 84% 18%, rgba(222, 202, 255, 0.42), transparent 30%),
-        radial-gradient(circle at 50% 94%, rgba(255, 219, 170, 0.45), transparent 32%),
-        linear-gradient(135deg, #fffaf3 0%, #fff4f7 46%, #f9f6ff 100%);
+        radial-gradient(circle at 15% 12%, rgba(255, 192, 203, 0.2), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(222, 202, 255, 0.18), transparent 30%),
+        linear-gradient(135deg, #fffaf5 0%, #fff7f9 50%, #fbf8ff 100%);
+    color: #2b1d3d;
 }
 
 .notifications-page::before {
     content: "";
-    position: absolute;
+    position: fixed;
     inset: 0;
-    opacity: 0.33;
+    pointer-events: none;
+    opacity: 0.14;
     background-image:
         radial-gradient(rgba(151, 97, 82, 0.08) 0.7px, transparent 0.7px),
         radial-gradient(rgba(205, 116, 142, 0.07) 0.8px, transparent 0.8px);
@@ -24,166 +26,16 @@
     background-position: 0 0, 12px 18px;
 }
 
-/* 배경 구름 */
-.notifications-page .soft-cloud {
-    position: absolute;
-    border-radius: 999px;
-    opacity: 0.58;
-}
-
-.noti-cloud-one {
-    width: 420px;
-    height: 150px;
-    left: -120px;
-    top: 110px;
-    background: rgba(255, 255, 255, 0.62);
-    box-shadow:
-        120px -28px 0 rgba(255, 255, 255, 0.36),
-        240px 18px 0 rgba(255, 255, 255, 0.28);
-    animation: notiCloudOneMove 6s ease-in-out infinite;
-}
-
-.noti-cloud-two {
-    width: 360px;
-    height: 130px;
-    right: -110px;
-    bottom: 120px;
-    background: rgba(255, 255, 255, 0.56);
-    box-shadow:
-        -100px 28px 0 rgba(255, 255, 255, 0.32),
-        -210px -18px 0 rgba(255, 255, 255, 0.24);
-    animation: notiCloudTwoMove 6.5s ease-in-out infinite;
-}
-
-/* 전통 원형 문양 */
-.notifications-page .traditional-motif {
-    position: absolute;
-    width: 210px;
-    height: 210px;
-    border-radius: 50%;
-    opacity: 0.32;
-    background:
-        radial-gradient(circle at center, #fff9f1 0 18%, transparent 19%),
-        conic-gradient(from 0deg,
-            #f7a8b8 0deg 30deg,
-            #f8d58e 30deg 60deg,
-            #b7d9a8 60deg 90deg,
-            #d7c4ff 90deg 120deg,
-            #f7a8b8 120deg 150deg,
-            #f8d58e 150deg 180deg,
-            #b7d9a8 180deg 210deg,
-            #d7c4ff 210deg 240deg,
-            #f7a8b8 240deg 270deg,
-            #f8d58e 270deg 300deg,
-            #b7d9a8 300deg 330deg,
-            #d7c4ff 330deg 360deg);
-    box-shadow: 0 20px 50px rgba(177, 97, 123, 0.12);
-}
-
-.notifications-page .traditional-motif::before {
-    content: "";
-    position: absolute;
-    inset: 28px;
-    border-radius: 50%;
-    background:
-        radial-gradient(circle at center, rgba(255, 255, 255, 0.8) 0 20%, transparent 21%),
-        repeating-conic-gradient(from 15deg,
-            rgba(255, 255, 255, 0.62) 0deg 12deg,
-            transparent 12deg 24deg);
-}
-
-.notifications-page .traditional-motif::after {
-    content: "";
-    position: absolute;
-    inset: 72px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.78);
-    border: 1px solid rgba(255, 255, 255, 0.88);
-}
-
-.noti-motif-left {
-    left: 12%;
-    top: 13%;
-    transform: rotate(-12deg);
-    animation: notiMotifLeftRotate 13s linear infinite;
-}
-
-.noti-motif-right {
-    right: 12%;
-    bottom: 15%;
-    transform: rotate(16deg);
-    animation: notiMotifRightRotate 14s linear infinite;
-}
-
-/* 보자기 조각 */
-.notifications-page .bojagi-shape {
-    position: absolute;
-    border-radius: 42px;
-    opacity: 0.63;
-    box-shadow: 0 24px 55px rgba(130, 80, 75, 0.1);
-}
-
-.noti-bojagi-one {
-    width: 155px;
-    height: 155px;
-    left: 16%;
-    bottom: 22%;
-    background:
-        linear-gradient(90deg, rgba(255, 205, 213, 0.9) 50%, rgba(255, 231, 184, 0.9) 50%);
-    transform: rotate(-13deg);
-    animation: notiBojagiOneMove 4.8s ease-in-out infinite;
-}
-
-.noti-bojagi-two {
-    width: 126px;
-    height: 126px;
-    right: 16%;
-    top: 22%;
-    background:
-        linear-gradient(90deg, rgba(207, 226, 190, 0.9) 50%, rgba(225, 210, 255, 0.9) 50%);
-    transform: rotate(15deg);
-    animation: notiBojagiTwoMove 5s ease-in-out infinite;
-}
-
-.noti-bojagi-one::after,
-.noti-bojagi-two::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background:
-        linear-gradient(0deg, transparent 48%, rgba(255, 255, 255, 0.45) 48%, rgba(255, 255, 255, 0.45) 52%, transparent 52%),
-        linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.38) 48%, rgba(255, 255, 255, 0.38) 52%, transparent 52%);
-}
-
-/* 꽃 */
+/* 예전 개별 배경 장식 숨김 */
+.notifications-page .soft-cloud,
+.notifications-page .traditional-motif,
+.notifications-page .bojagi-shape,
 .notifications-page .flower-mark {
-    position: absolute;
-    z-index: 1;
-    font-weight: 900;
-    user-select: none;
-    text-shadow: 0 8px 18px rgba(170, 92, 104, 0.12);
+    display: none;
 }
 
-.noti-flower-one {
-    left: 22%;
-    top: 25%;
-    color: rgba(219, 113, 137, 0.56);
-    font-size: 31px;
-    animation: notiFlowerOneMove 3.2s ease-in-out infinite;
-}
-
-.noti-flower-two {
-    right: 23%;
-    bottom: 29%;
-    color: rgba(193, 139, 80, 0.46);
-    font-size: 34px;
-    animation: notiFlowerTwoMove 3.5s ease-in-out infinite;
-}
-
-/* 전체 카드 */
 .notifications-container {
-    width: 100%;
+    width: min(100%, 1040px);
     max-width: 1040px;
     position: relative;
     z-index: 2;
@@ -194,123 +46,75 @@
     width: 100%;
     position: relative;
     z-index: 2;
+    overflow: hidden;
     box-sizing: border-box;
     padding: 54px 36px 34px;
-    border-radius: 40px;
+    border-radius: 32px;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 252, 250, 0.96));
+        radial-gradient(circle at 92% 12%, rgba(255, 188, 206, 0.16), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 252, 250, 0.94));
     border: 1px solid rgba(245, 224, 217, 0.98);
     box-shadow:
-        0 30px 85px rgba(91, 65, 55, 0.14),
-        0 12px 38px rgba(223, 124, 154, 0.09),
+        0 24px 62px rgba(91, 65, 55, 0.09),
+        0 10px 30px rgba(223, 124, 154, 0.06),
         inset 0 1px 0 rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(18px);
 }
 
-.notifications-card .card-soft-glow {
-    position: absolute;
-    width: 190px;
-    height: 190px;
-    right: -50px;
-    top: -50px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 188, 206, 0.36), transparent 68%);
-    pointer-events: none;
-    animation: notiGlowPulse 3s ease-in-out infinite;
+.notifications-card > .page-decor-box-wrap {
+    z-index: 1;
 }
 
-.notifications-card .traditional-band {
-    position: absolute;
-    top: 17px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 7px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(255, 246, 239, 0.92);
-    border: 1px solid rgba(245, 218, 207, 0.95);
-}
-
-.notifications-card .traditional-band span {
-    width: 13px;
-    height: 13px;
-    border-radius: 50%;
+.notifications-header,
+.notifications-layout {
     position: relative;
-    background: conic-gradient(#e9839b, #f3c778, #95bf8f, #cbb4ff, #e9839b);
+    z-index: 2;
 }
 
-.notifications-card .traditional-band span::after {
-    content: "";
-    position: absolute;
-    inset: 4px;
-    border-radius: 50%;
-    background: #fffaf4;
-}
-
+/* 예전 수동 장식 숨김 */
+.notifications-card .card-soft-glow,
+.notifications-card .traditional-band,
 .notifications-card .norigae {
-    position: absolute;
-    top: -35px;
-    right: 36px;
-    width: 58px;
-    height: 104px;
-    transform-origin: top center;
-    animation: notiNorigaeSwing 2.6s ease-in-out infinite;
-}
-
-.notifications-card .norigae-string {
-    width: 2px;
-    height: 38px;
-    background: #e78398;
-    margin: 0 auto;
-}
-
-.notifications-card .norigae-knot {
-    width: 39px;
-    height: 39px;
-    margin: 0 auto;
-    border-radius: 50%;
-    background:
-        radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.28) 22%, transparent 23%),
-        conic-gradient(from 40deg, #e9839b, #f3c778, #95bf8f, #cbb4ff, #e9839b);
-    box-shadow: 0 10px 22px rgba(194, 94, 120, 0.24);
-}
-
-.notifications-card .norigae-ribbon {
-    display: flex;
-    justify-content: center;
-    gap: 4px;
-    margin-top: 3px;
-}
-
-.notifications-card .norigae-ribbon span {
-    display: block;
-    width: 8px;
-    height: 30px;
-    border-radius: 0 0 10px 10px;
-}
-
-.notifications-card .norigae-ribbon span:nth-child(1) {
-    background: linear-gradient(180deg, #e9839b, #f7b6c5);
-}
-
-.notifications-card .norigae-ribbon span:nth-child(2) {
-    background: linear-gradient(180deg, #f3c778, #f8dea5);
-}
-
-.notifications-card .norigae-ribbon span:nth-child(3) {
-    background: linear-gradient(180deg, #95bf8f, #cfe4bf);
+    display: none;
 }
 
 /* 헤더 */
 .notifications-header {
     width: 100%;
-    text-align: center;
-    margin-bottom: 26px;
+    margin-bottom: 22px;
 }
 
-.notifications-header h1 {
-    display: none !important;
+.notifications-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.notifications-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.notifications-brand-mark {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 950;
+    background:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.38), transparent 32%),
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow:
+        0 16px 28px rgba(91, 65, 55, 0.12),
+        0 8px 18px rgba(223, 124, 154, 0.16);
 }
 
 .notifications-page-label {
@@ -318,43 +122,82 @@
     align-items: center;
     justify-content: center;
     width: fit-content;
-    margin: 0 auto 18px;
-    padding: 6px 16px;
+    margin: 0 0 8px;
+    padding: 6px 13px;
     border-radius: 999px;
     background: linear-gradient(135deg, #fff7e8, #ffeef4);
     color: #a45f76;
     border: 1px solid #f2d7c7;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 950;
     letter-spacing: -0.2px;
-    text-align: center;
+}
+
+.notifications-header h1 {
+    display: block !important;
+    margin: 0;
+    color: #2b1d3d;
+    font-size: 26px;
+    line-height: 1.16;
+    font-weight: 950;
+    letter-spacing: -0.8px;
 }
 
 .notifications-main-copy {
-    width: 100%;
-    margin: 0;
-    text-align: center;
-    color: #df6f8e;
-    font-size: 25px;
-    line-height: 1.36;
-    font-weight: 950;
-    letter-spacing: -0.7px;
+    display: none;
 }
 
 .notifications-sub-copy {
     width: 100%;
-    max-width: 340px;
-    margin: 10px auto 0;
-    text-align: center;
+    max-width: none;
+    margin: 5px 0 0;
+    text-align: left;
     color: #827785;
-    font-size: 14px;
-    line-height: 1.66;
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 780;
+    word-break: keep-all;
+}
+
+.notifications-top-icons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.notifications-top-icons button {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(246, 211, 221, 0.95);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, 0.78);
+    color: #a45f76;
+    font-size: 17px;
+    font-weight: 950;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 10px 24px rgba(91, 65, 55, 0.06);
+    transition: 0.18s ease;
+}
+
+.notifications-top-icons button.write {
+    color: #ffffff;
+    font-size: 25px;
+    border: none;
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow: 0 14px 28px rgba(233, 131, 155, 0.2);
+}
+
+.notifications-top-icons button:hover {
+    transform: translateY(-2px);
 }
 
 /* 본문 */
 .notifications-layout {
     display: grid;
-    grid-template-columns: 1fr 260px;
+    grid-template-columns: minmax(0, 1fr) 260px;
     gap: 16px;
     align-items: stretch;
 }
@@ -364,7 +207,9 @@
     border-radius: 28px;
     background: rgba(255, 253, 250, 0.86);
     border: 1px solid #f0e4db;
-    box-shadow: 0 16px 36px rgba(91, 65, 55, 0.08);
+    box-shadow:
+        0 16px 36px rgba(91, 65, 55, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .notifications-list-card {
@@ -473,7 +318,7 @@
 .notification-icon {
     width: 50px;
     height: 50px;
-    border-radius: 50%;
+    border-radius: 18px;
     color: #ffffff;
     display: flex;
     align-items: center;
@@ -510,6 +355,10 @@
         linear-gradient(135deg, #f3c778 0%, #e9839b 100%);
 }
 
+.notification-text {
+    min-width: 0;
+}
+
 .notification-text strong {
     color: #3b3042;
     font-size: 15px;
@@ -522,6 +371,7 @@
     font-size: 13px;
     line-height: 1.5;
     font-weight: 750;
+    word-break: keep-all;
 }
 
 .notification-feed-title {
@@ -574,6 +424,7 @@
         0 13px 25px rgba(233, 131, 155, 0.22),
         inset 0 1px 0 rgba(255, 255, 255, 0.22);
     transition: 0.2s ease;
+    font-family: inherit;
 }
 
 .notifications-side-card button:hover {
@@ -588,7 +439,7 @@
     box-shadow: none;
 }
 
-/* 애니메이션 */
+/* 예전 애니메이션 이름이 남아있어도 오류 안 나게 유지 */
 @keyframes notiCloudOneMove {
     0% {
         transform: translateX(0) translateY(0);
@@ -748,30 +599,56 @@
 /* 모바일 */
 @media (max-width: 700px) {
     .notifications-page {
-        padding: 28px 14px 90px;
+        padding: 18px 12px 76px;
     }
 
     .notifications-card {
-        padding: 48px 24px 27px;
-        border-radius: 31px;
+        padding: 34px 18px 24px;
+        border-radius: 28px;
     }
 
-    .notifications-main-copy {
-        font-size: 21px;
+    .notifications-title-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .notifications-header h1 {
+        font-size: 23px;
+    }
+
+    .notifications-sub-copy {
+        font-size: 12px;
+    }
+
+    .notifications-top-icons {
+        width: 100%;
+        justify-content: flex-end;
     }
 
     .notification-item {
         grid-template-columns: 46px 1fr;
     }
 
+    .notification-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 16px;
+    }
+
     .notification-time {
         grid-column: 2;
     }
+}
 
-    .traditional-motif,
-    .bojagi-shape,
-    .flower-mark,
-    .soft-cloud {
-        display: none;
+@media (max-width: 520px) {
+    .notifications-brand-mark {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+    }
+
+    .notifications-list-card,
+    .notifications-side-card {
+        border-radius: 24px;
     }
 }

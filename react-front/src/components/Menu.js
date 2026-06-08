@@ -10,9 +10,24 @@ function Menu() {
 
     const [isLogin, setIsLogin] = useState(false);
     const [loginUserNo, setLoginUserNo] = useState("");
+    const [chatUnreadCount, setChatUnreadCount] = useState(0);
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
     useEffect(() => {
-        refreshLoginState();
+        refreshMenuState();
+
+        const timer = setInterval(() => {
+            refreshMenuState();
+        }, 30000);
+
+        window.addEventListener("focus", refreshMenuState);
+        window.addEventListener("kstepMenuCountRefresh", refreshMenuState);
+
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener("focus", refreshMenuState);
+            window.removeEventListener("kstepMenuCountRefresh", refreshMenuState);
+        };
     }, [location.pathname]);
 
     function clearLoginStorage() {
@@ -21,6 +36,10 @@ function Menu() {
         localStorage.removeItem("userId");
         localStorage.removeItem("nickname");
         localStorage.removeItem("userType");
+    }
+
+    function getToken() {
+        return localStorage.getItem("token");
     }
 
     function checkLoginState() {
@@ -39,7 +58,6 @@ function Menu() {
         try {
             const tokenParts = token.split(".");
 
-            // JWT 형식이 아니면 깨진 토큰으로 판단
             if (tokenParts.length !== 3) {
                 clearLoginStorage();
 
@@ -53,7 +71,6 @@ function Menu() {
             const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
             const decoded = JSON.parse(window.atob(base64));
 
-            // exp가 있으면 만료 체크
             if (decoded.exp && Date.now() >= decoded.exp * 1000) {
                 clearLoginStorage();
 
@@ -80,11 +97,143 @@ function Menu() {
         }
     }
 
-    function refreshLoginState() {
+    function refreshMenuState() {
         const loginState = checkLoginState();
 
         setIsLogin(loginState.isLogin);
         setLoginUserNo(loginState.userNo);
+
+        if (loginState.isLogin) {
+            getMenuCount();
+        } else {
+            setChatUnreadCount(0);
+            setNotificationUnreadCount(0);
+        }
+
+        return loginState;
+    }
+
+    function isLoginRequired(data) {
+        if (!data) {
+            return false;
+        }
+
+        if (String(data.message || "").includes("로그인이 필요합니다")) {
+            return true;
+        }
+
+        if (String(data.message || "").includes("토큰")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function handleMenuLoginRequired(data) {
+        if (isLoginRequired(data)) {
+            clearLoginStorage();
+            setIsLogin(false);
+            setLoginUserNo("");
+            setChatUnreadCount(0);
+            setNotificationUnreadCount(0);
+
+            if (location.pathname !== "/" && location.pathname !== "/join") {
+                navigate("/", { replace: true });
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    function getMenuCount() {
+        getChatUnreadCount();
+        getNotificationUnreadCount();
+    }
+
+    function getChatUnreadCount() {
+        const token = getToken();
+
+        if (!token) {
+            setChatUnreadCount(0);
+            return;
+        }
+
+        fetch("http://localhost:3010/chat/room/list", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("메뉴 채팅 카운트", data);
+
+                if (handleMenuLoginRequired(data)) {
+                    return;
+                }
+
+                if (data.result === "success") {
+                    const list = data.list || [];
+                    let totalCount = 0;
+
+                    for (let i = 0; i < list.length; i++) {
+                        totalCount += Number(list[i].UNREAD_COUNT || 0);
+                    }
+
+                    setChatUnreadCount(totalCount);
+                } else {
+                    setChatUnreadCount(0);
+                }
+            })
+            .catch(err => {
+                console.error("메뉴 채팅 카운트 조회 실패", err);
+                setChatUnreadCount(0);
+            });
+    }
+
+    function getNotificationUnreadCount() {
+        const token = getToken();
+
+        if (!token) {
+            setNotificationUnreadCount(0);
+            return;
+        }
+
+        fetch("http://localhost:3010/notification/list", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("메뉴 알림 카운트", data);
+
+                if (handleMenuLoginRequired(data)) {
+                    return;
+                }
+
+                if (data.result === "success") {
+                    const list = data.list || [];
+                    let totalCount = 0;
+
+                    for (let i = 0; i < list.length; i++) {
+                        if (list[i].READ_YN === "N") {
+                            totalCount++;
+                        }
+                    }
+
+                    setNotificationUnreadCount(totalCount);
+                } else {
+                    setNotificationUnreadCount(0);
+                }
+            })
+            .catch(err => {
+                console.error("메뉴 알림 카운트 조회 실패", err);
+                setNotificationUnreadCount(0);
+            });
     }
 
     const menuList = [
@@ -95,7 +244,7 @@ function Menu() {
             needLogin: true
         },
         {
-            name: "탐색",
+            name: "검색",
             path: "/explore",
             icon: "search",
             needLogin: true
@@ -107,7 +256,7 @@ function Menu() {
             needLogin: true
         },
         {
-            name: "저장함",
+            name: "즐겨찾기",
             path: "/saved",
             icon: "saved",
             needLogin: true
@@ -164,6 +313,8 @@ function Menu() {
         clearLoginStorage();
         setIsLogin(false);
         setLoginUserNo("");
+        setChatUnreadCount(0);
+        setNotificationUnreadCount(0);
         navigate("/");
     }
 
@@ -176,6 +327,8 @@ function Menu() {
 
         setIsLogin(false);
         setLoginUserNo("");
+        setChatUnreadCount(0);
+        setNotificationUnreadCount(0);
 
         navigate("/");
     }
@@ -214,6 +367,26 @@ function Menu() {
         }
 
         return false;
+    }
+
+    function getBadgeCount(icon) {
+        if (icon === "bell") {
+            return notificationUnreadCount;
+        }
+
+        if (icon === "chat") {
+            return chatUnreadCount;
+        }
+
+        return 0;
+    }
+
+    function getBadgeText(count) {
+        if (Number(count) > 99) {
+            return "99+";
+        }
+
+        return String(count);
     }
 
     function MenuIcon({ type }) {
@@ -295,7 +468,6 @@ function Menu() {
             );
         }
 
-        // 로그인 아이콘
         if (type === "login") {
             return (
                 <svg viewBox="0 0 24 24">
@@ -306,7 +478,6 @@ function Menu() {
             );
         }
 
-        // 로그아웃 아이콘
         if (type === "logout") {
             return (
                 <svg viewBox="0 0 24 24">
@@ -343,22 +514,32 @@ function Menu() {
                 </button>
 
                 <nav className="side-menu-list">
-                    {menuList.map((menu) => (
-                        <button
-                            key={menu.name}
-                            className={isActive(menu.path) ? "side-menu-btn active" : "side-menu-btn"}
-                            onClick={() => movePage(menu.path, menu.needLogin)}
-                            type="button"
-                        >
-                            <span className="side-menu-icon">
-                                <MenuIcon type={menu.icon} />
-                            </span>
+                    {menuList.map((menu) => {
+                        const badgeCount = getBadgeCount(menu.icon);
 
-                            <span className="side-menu-tooltip">
-                                {menu.name}
-                            </span>
-                        </button>
-                    ))}
+                        return (
+                            <button
+                                key={menu.name}
+                                className={isActive(menu.path) ? "side-menu-btn active" : "side-menu-btn"}
+                                onClick={() => movePage(menu.path, menu.needLogin)}
+                                type="button"
+                            >
+                                <span className="side-menu-icon">
+                                    <MenuIcon type={menu.icon} />
+                                </span>
+
+                                {badgeCount > 0 && (
+                                    <span className="side-menu-badge">
+                                        {getBadgeText(badgeCount)}
+                                    </span>
+                                )}
+
+                                <span className="side-menu-tooltip">
+                                    {menu.name}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </nav>
 
                 {isLogin ? (

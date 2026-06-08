@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import StoryBar from "./StoryBar";
+import PageDecor from "./PageDecor";
 import "./HomeFeed.css";
+import ScrollTopButton from "./ScrollTopButton";
 
 function HomeFeed() {
     const navigate = useNavigate();
@@ -1767,12 +1769,16 @@ function HomeFeed() {
                 }
             }}
         >
+            <PageDecor />
+
             <div className="home-bg-flower home-flower-one">✿</div>
             <div className="home-bg-flower home-flower-two">❀</div>
 
             <div className="home-layout">
                 <main className="home-main">
                     <section className="home-app-top">
+                        <PageDecor variant="box" />
+
                         <div className="home-brand-row">
                             <div className="home-brand-mark">K</div>
 
@@ -1968,13 +1974,9 @@ function HomeFeed() {
                 </aside>
             </div>
 
-            <button
-                type="button"
-                className="home-scroll-top-btn"
-                onClick={scrollToTop}
-            >
-                ↑
-            </button>
+            
+
+            <ScrollTopButton />
 
             {commentModalOpen && selectedFeed && (
                 <div className="home-comment-modal-bg" onClick={closeCommentModal}>

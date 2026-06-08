@@ -4,9 +4,8 @@
     overflow-x: hidden;
     font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
     background:
-        radial-gradient(circle at 15% 12%, rgba(255, 192, 203, 0.22), transparent 28%),
-        radial-gradient(circle at 84% 18%, rgba(222, 202, 255, 0.2), transparent 30%),
-        radial-gradient(circle at 50% 96%, rgba(255, 219, 170, 0.22), transparent 34%),
+        radial-gradient(circle at 15% 12%, rgba(255, 192, 203, 0.2), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(222, 202, 255, 0.18), transparent 30%),
         linear-gradient(135deg, #fffaf5 0%, #fff7f9 50%, #fbf8ff 100%);
     color: #2b1d3d;
 }
@@ -24,58 +23,141 @@
     background-position: 0 0, 12px 18px;
 }
 
-.detail-bg-flower {
-    position: fixed;
-    z-index: 0;
-    pointer-events: none;
-    color: rgba(223, 111, 142, 0.08);
-    font-size: 88px;
-    font-weight: 950;
-}
-
-.detail-flower-one {
-    top: 90px;
-    right: 90px;
-}
-
-.detail-flower-two {
-    left: 86px;
-    bottom: 82px;
-}
-
 .detail-layout {
     width: min(100%, 1180px);
     margin: 0 auto;
-    padding: 24px 18px 84px;
+    padding: 22px 18px 84px;
     box-sizing: border-box;
     position: relative;
-    z-index: 1;
+    z-index: 2;
 }
 
-.detail-topbar {
+/* 상단 */
+.detail-app-top {
+    position: relative;
+    overflow: hidden;
+    min-height: 150px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 15px;
+    gap: 16px;
+    padding: 54px 24px 28px;
+    margin-bottom: 16px;
+    border-radius: 32px;
+    background:
+        radial-gradient(circle at 92% 12%, rgba(255, 188, 206, 0.16), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 252, 250, 0.94));
+    border: 1px solid rgba(245, 224, 217, 0.98);
+    box-shadow:
+        0 24px 62px rgba(91, 65, 55, 0.09),
+        0 10px 30px rgba(223, 124, 154, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    box-sizing: border-box;
 }
 
-.detail-topbar button,
-.detail-empty-box button {
-    height: 40px;
-    border: none;
-    border-radius: 16px;
-    padding: 0 15px;
-    background: rgba(255, 255, 255, 0.82);
-    border: 1px solid rgba(245, 224, 217, 0.9);
-    color: #a45f76;
+.detail-app-top > .page-decor-box-wrap {
+    z-index: 1;
+}
+
+.detail-brand-row,
+.detail-top-actions {
+    position: relative;
+    z-index: 2;
+}
+
+.detail-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.detail-brand-mark {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 950;
+    background:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.38), transparent 32%),
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow:
+        0 16px 28px rgba(91, 65, 55, 0.12),
+        0 8px 18px rgba(223, 124, 154, 0.16);
+}
+
+.detail-brand-row h1 {
+    margin: 0;
+    color: #2b1d3d;
+    font-size: 26px;
+    line-height: 1.16;
+    font-weight: 950;
+    letter-spacing: -0.8px;
+}
+
+.detail-brand-row p {
+    margin: 5px 0 0;
+    color: #827785;
     font-size: 13px;
+    font-weight: 780;
+    line-height: 1.45;
+    word-break: keep-all;
+}
+
+/* 상단 오른쪽 아이콘 버튼 */
+.detail-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.detail-top-actions button {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgba(246, 211, 221, 0.95);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, 0.78);
+    color: #a45f76;
+    font-size: 17px;
     font-weight: 950;
     cursor: pointer;
     font-family: inherit;
-    box-shadow: 0 12px 26px rgba(91, 65, 55, 0.06);
+    box-shadow: 0 10px 24px rgba(91, 65, 55, 0.06);
+    transition: 0.18s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+.detail-top-actions button.write {
+    color: #ffffff;
+    font-size: 25px;
+    border: none;
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow: 0 14px 28px rgba(233, 131, 155, 0.2);
+}
+
+.detail-top-actions button:hover {
+    transform: translateY(-2px);
+    background: #fff0f4;
+    color: #df6f8e;
+}
+
+.detail-top-actions button.write:hover {
+    color: #ffffff;
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+}
+
+/* 전체 상세 구조 */
 .detail-post-shell {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 390px;
@@ -106,6 +188,7 @@
     overflow: hidden;
 }
 
+/* 이미지 */
 .detail-image-box {
     width: 100%;
     aspect-ratio: 4 / 4.6;
@@ -152,6 +235,11 @@
     cursor: pointer;
     transform: translateY(-50%);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+    transition: 0.16s ease;
+}
+
+.detail-image-arrow:hover {
+    background: rgba(255, 255, 255, 0.96);
 }
 
 .detail-image-prev {
@@ -203,6 +291,7 @@
     background: rgba(255, 255, 255, 0.95);
 }
 
+/* 작성자 */
 .detail-owner-row {
     padding: 14px 16px;
     display: grid;
@@ -244,6 +333,10 @@
     cursor: pointer;
 }
 
+.detail-owner-row strong:hover {
+    color: #df6f8e;
+}
+
 .detail-owner-row p {
     margin: 4px 0 0;
     color: #9a8f9e;
@@ -251,6 +344,7 @@
     font-weight: 800;
 }
 
+/* 루트 */
 .detail-route-card {
     padding: 18px;
 }
@@ -288,6 +382,7 @@
     color: #9a8f9e;
     font-size: 12px;
     font-weight: 850;
+    white-space: nowrap;
 }
 
 .detail-map-box {
@@ -427,6 +522,7 @@
     font-weight: 800;
 }
 
+/* 오른쪽 */
 .detail-right {
     position: sticky;
     top: 22px;
@@ -550,6 +646,7 @@
     font-weight: 850;
 }
 
+/* 댓글 */
 .detail-comment-panel {
     height: calc(100vh - 260px);
     min-height: 460px;
@@ -696,6 +793,7 @@
     cursor: pointer;
 }
 
+/* 댓글 입력 */
 .detail-comment-input-box {
     min-height: 76px;
     position: relative;
@@ -761,6 +859,7 @@
     cursor: default;
 }
 
+/* 비어있는 화면 */
 .detail-empty-box {
     width: min(100%, 520px);
     margin: 80px auto;
@@ -774,9 +873,28 @@
 
 .detail-empty-box button {
     display: block;
+    height: 40px;
     margin: 18px auto 0;
+    border: 1px solid rgba(246, 211, 221, 0.95);
+    border-radius: 16px;
+    padding: 0 14px;
+    background: rgba(255, 255, 255, 0.78);
+    color: #a45f76;
+    font-size: 13px;
+    font-weight: 950;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 10px 24px rgba(91, 65, 55, 0.06);
+    transition: 0.18s ease;
 }
 
+.detail-empty-box button:hover {
+    transform: translateY(-2px);
+    background: #fff0f4;
+    color: #df6f8e;
+}
+
+/* 반응형 */
 @media (max-width: 1100px) {
     .detail-layout {
         width: min(100%, 780px);
@@ -796,9 +914,34 @@
     }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 760px) {
     .detail-layout {
-        padding: 18px 10px 76px;
+        padding: 18px 12px 76px;
+    }
+
+    .detail-app-top {
+        min-height: auto;
+        padding: 34px 18px 22px;
+        border-radius: 28px;
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .detail-brand-row h1 {
+        font-size: 23px;
+    }
+
+    .detail-brand-row p {
+        font-size: 12px;
+    }
+
+    .detail-top-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .detail-top-actions button {
+        flex: none;
     }
 
     .detail-media-card,
@@ -840,5 +983,27 @@
 
     .detail-comment-input-box > span {
         right: 78px;
+    }
+}
+
+@media (max-width: 520px) {
+    .detail-layout {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .detail-brand-mark {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+    }
+
+    .detail-comment-item {
+        grid-template-columns: 36px minmax(0, 1fr);
+    }
+
+    .detail-comment-delete-btn {
+        grid-column: 2 / 3;
+        width: fit-content;
     }
 }

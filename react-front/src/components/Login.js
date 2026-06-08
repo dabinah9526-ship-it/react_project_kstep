@@ -7,8 +7,6 @@ function Login() {
 
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
-
-    // 비밀번호 보이기 / 숨기기
     const [showPassword, setShowPassword] = useState(false);
 
     function login() {
@@ -39,7 +37,6 @@ function Login() {
                 if (data.result === "success") {
                     alert("로그인되었습니다.");
 
-                    // 로그인 정보 저장
                     localStorage.setItem("token", data.token);
                     localStorage.setItem("userNo", data.user.USER_NO);
                     localStorage.setItem("userId", data.user.USER_ID);
@@ -55,6 +52,14 @@ function Login() {
                 console.error(err);
                 alert("서버 연결 중 오류가 발생했습니다.");
             });
+    }
+
+    function moveFindId() {
+        navigate("/find-account?tab=id");
+    }
+
+    function moveFindPassword() {
+        navigate("/find-account?tab=password");
     }
 
     return (
@@ -175,6 +180,18 @@ function Login() {
                     <button className="login-button" onClick={login}>
                         K-STEP 로그인
                     </button>
+
+                    <div className="login-find-row">
+                        <button type="button" onClick={moveFindId}>
+                            아이디 찾기
+                        </button>
+
+                        <span>|</span>
+
+                        <button type="button" onClick={moveFindPassword}>
+                            비밀번호 찾기
+                        </button>
+                    </div>
                 </div>
 
                 <div className="login-bottom">

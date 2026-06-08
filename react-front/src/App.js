@@ -17,11 +17,15 @@ import Notifications from './components/Notifications';
 import StoryManage from "./components/StoryManage";
 import AdDetail from "./components/AdDetail";
 import SavedList from "./components/SavedList";
+import FindAccount from "./components/FindAccount";
 
 function App() {
   const location = useLocation();
 
-  const isAuthPage = location.pathname === '/' || location.pathname === '/join';
+  const isAuthPage =
+    location.pathname === '/' ||
+    location.pathname === '/join' ||
+    location.pathname === '/find-account';
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -33,6 +37,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/join" element={<Join />} />
+          <Route path="/find-account" element={<FindAccount />} />
 
           <Route path="/home" element={<HomeFeed />} />
           <Route path="/feed/new" element={<CreateFeed />} />
@@ -45,7 +50,6 @@ function App() {
           <Route path="/story/manage" element={<StoryManage />} />
           <Route path="/ad/detail/:adNo" element={<AdDetail />} />
           <Route path="/saved" element={<SavedList />} />
-
         </Routes>
       </Box>
     </Box>

@@ -1,4 +1,4 @@
-.login-page {
+.find-account-page {
     min-height: 100vh;
     position: relative;
     overflow: hidden;
@@ -15,7 +15,7 @@
         linear-gradient(135deg, #fffaf3 0%, #fff4f7 46%, #f9f6ff 100%);
 }
 
-.login-page::before {
+.find-account-page::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -25,15 +25,17 @@
         radial-gradient(rgba(205, 116, 142, 0.07) 0.8px, transparent 0.8px);
     background-size: 22px 22px, 34px 34px;
     background-position: 0 0, 12px 18px;
+    pointer-events: none;
 }
 
-.soft-cloud {
+.find-soft-cloud {
     position: absolute;
     border-radius: 999px;
     opacity: 0.58;
+    pointer-events: none;
 }
 
-.login-cloud-one {
+.find-cloud-one {
     width: 420px;
     height: 150px;
     left: -120px;
@@ -42,10 +44,10 @@
     box-shadow:
         120px -28px 0 rgba(255, 255, 255, 0.36),
         240px 18px 0 rgba(255, 255, 255, 0.28);
-    animation: loginCloudOneMove 6s ease-in-out infinite;
+    animation: findCloudOneMove 6s ease-in-out infinite;
 }
 
-.login-cloud-two {
+.find-cloud-two {
     width: 360px;
     height: 130px;
     right: -110px;
@@ -54,15 +56,16 @@
     box-shadow:
         -100px 28px 0 rgba(255, 255, 255, 0.32),
         -210px -18px 0 rgba(255, 255, 255, 0.24);
-    animation: loginCloudTwoMove 6.5s ease-in-out infinite;
+    animation: findCloudTwoMove 6.5s ease-in-out infinite;
 }
 
-.traditional-motif {
+.find-traditional-motif {
     position: absolute;
     width: 210px;
     height: 210px;
     border-radius: 50%;
     opacity: 0.32;
+    pointer-events: none;
     background:
         radial-gradient(circle at center, #fff9f1 0 18%, transparent 19%),
         conic-gradient(from 0deg,
@@ -81,7 +84,7 @@
     box-shadow: 0 20px 50px rgba(177, 97, 123, 0.12);
 }
 
-.traditional-motif::before {
+.find-traditional-motif::before {
     content: "";
     position: absolute;
     inset: 28px;
@@ -93,7 +96,7 @@
             transparent 12deg 24deg);
 }
 
-.traditional-motif::after {
+.find-traditional-motif::after {
     content: "";
     position: absolute;
     inset: 72px;
@@ -102,28 +105,29 @@
     border: 1px solid rgba(255, 255, 255, 0.88);
 }
 
-.login-motif-left {
+.find-motif-left {
     left: 14%;
     top: 13%;
     transform: rotate(-12deg);
-    animation: loginMotifLeftRotate 13s linear infinite;
+    animation: findMotifLeftRotate 13s linear infinite;
 }
 
-.login-motif-right {
+.find-motif-right {
     right: 14%;
     bottom: 15%;
     transform: rotate(16deg);
-    animation: loginMotifRightRotate 14s linear infinite;
+    animation: findMotifRightRotate 14s linear infinite;
 }
 
-.bojagi-shape {
+.find-bojagi-shape {
     position: absolute;
     border-radius: 42px;
     opacity: 0.63;
+    pointer-events: none;
     box-shadow: 0 24px 55px rgba(130, 80, 75, 0.1);
 }
 
-.login-bojagi-one {
+.find-bojagi-one {
     width: 155px;
     height: 155px;
     left: 18%;
@@ -131,10 +135,10 @@
     background:
         linear-gradient(90deg, rgba(255, 205, 213, 0.9) 50%, rgba(255, 231, 184, 0.9) 50%);
     transform: rotate(-13deg);
-    animation: loginBojagiOneMove 4.8s ease-in-out infinite;
+    animation: findBojagiOneMove 4.8s ease-in-out infinite;
 }
 
-.login-bojagi-two {
+.find-bojagi-two {
     width: 126px;
     height: 126px;
     right: 18%;
@@ -142,11 +146,11 @@
     background:
         linear-gradient(90deg, rgba(207, 226, 190, 0.9) 50%, rgba(225, 210, 255, 0.9) 50%);
     transform: rotate(15deg);
-    animation: loginBojagiTwoMove 5s ease-in-out infinite;
+    animation: findBojagiTwoMove 5s ease-in-out infinite;
 }
 
-.login-bojagi-one::after,
-.login-bojagi-two::after {
+.find-bojagi-one::after,
+.find-bojagi-two::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -156,31 +160,32 @@
         linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.38) 48%, rgba(255, 255, 255, 0.38) 52%, transparent 52%);
 }
 
-.flower-mark {
+.find-flower-mark {
     position: absolute;
     z-index: 1;
     font-weight: 900;
     user-select: none;
+    pointer-events: none;
     text-shadow: 0 8px 18px rgba(170, 92, 104, 0.12);
 }
 
-.login-flower-one {
+.find-flower-one {
     left: 23%;
     top: 25%;
     color: rgba(219, 113, 137, 0.56);
     font-size: 31px;
-    animation: loginFlowerOneMove 3.2s ease-in-out infinite;
+    animation: findFlowerOneMove 3.2s ease-in-out infinite;
 }
 
-.login-flower-two {
+.find-flower-two {
     right: 24%;
     bottom: 29%;
     color: rgba(193, 139, 80, 0.46);
     font-size: 34px;
-    animation: loginFlowerTwoMove 3.5s ease-in-out infinite;
+    animation: findFlowerTwoMove 3.5s ease-in-out infinite;
 }
 
-.login-card {
+.find-account-card {
     width: 405px;
     position: relative;
     z-index: 20;
@@ -198,7 +203,7 @@
     pointer-events: auto;
 }
 
-.card-soft-glow {
+.find-card-soft-glow {
     position: absolute;
     width: 190px;
     height: 190px;
@@ -207,10 +212,10 @@
     border-radius: 50%;
     background: radial-gradient(circle, rgba(255, 188, 206, 0.36), transparent 68%);
     pointer-events: none;
-    animation: loginGlowPulse 3s ease-in-out infinite;
+    animation: findGlowPulse 3s ease-in-out infinite;
 }
 
-.traditional-band {
+.find-traditional-band {
     position: absolute;
     top: 17px;
     left: 50%;
@@ -221,9 +226,10 @@
     border-radius: 999px;
     background: rgba(255, 246, 239, 0.92);
     border: 1px solid rgba(245, 218, 207, 0.95);
+    pointer-events: none;
 }
 
-.traditional-band span {
+.find-traditional-band span {
     width: 13px;
     height: 13px;
     border-radius: 50%;
@@ -231,7 +237,7 @@
     background: conic-gradient(#e9839b, #f3c778, #95bf8f, #cbb4ff, #e9839b);
 }
 
-.traditional-band span::after {
+.find-traditional-band span::after {
     content: "";
     position: absolute;
     inset: 4px;
@@ -239,24 +245,25 @@
     background: #fffaf4;
 }
 
-.norigae {
+.find-norigae {
     position: absolute;
     top: -35px;
     right: 36px;
     width: 58px;
     height: 104px;
+    pointer-events: none;
     transform-origin: top center;
-    animation: loginNorigaeSwing 2.6s ease-in-out infinite;
+    animation: findNorigaeSwing 2.6s ease-in-out infinite;
 }
 
-.norigae-string {
+.find-norigae-string {
     width: 2px;
     height: 38px;
     background: #e78398;
     margin: 0 auto;
 }
 
-.norigae-knot {
+.find-norigae-knot {
     width: 39px;
     height: 39px;
     margin: 0 auto;
@@ -267,34 +274,33 @@
     box-shadow: 0 10px 22px rgba(194, 94, 120, 0.24);
 }
 
-.norigae-ribbon {
+.find-norigae-ribbon {
     display: flex;
     justify-content: center;
     gap: 4px;
     margin-top: 3px;
 }
 
-.norigae-ribbon span {
+.find-norigae-ribbon span {
     display: block;
     width: 8px;
     height: 30px;
     border-radius: 0 0 10px 10px;
 }
 
-.norigae-ribbon span:nth-child(1) {
+.find-norigae-ribbon span:nth-child(1) {
     background: linear-gradient(180deg, #e9839b, #f7b6c5);
 }
 
-.norigae-ribbon span:nth-child(2) {
+.find-norigae-ribbon span:nth-child(2) {
     background: linear-gradient(180deg, #f3c778, #f8dea5);
 }
 
-.norigae-ribbon span:nth-child(3) {
+.find-norigae-ribbon span:nth-child(3) {
     background: linear-gradient(180deg, #95bf8f, #cfe4bf);
 }
 
-/* 로그인 헤더 */
-.login-header {
+.find-account-header {
     width: 100%;
     text-align: center;
     display: flex;
@@ -307,13 +313,7 @@
     pointer-events: auto;
 }
 
-/* 기존 K-STEP 글씨 숨김 */
-.login-header h1 {
-    display: none !important;
-}
-
-/* 로고 */
-.login-logo-wrap {
+.find-account-logo-wrap {
     width: 100%;
     height: 90px;
     display: flex;
@@ -324,7 +324,7 @@
     overflow: visible;
 }
 
-.login-logo-img {
+.find-account-logo-img {
     width: 145px !important;
     height: 90px !important;
     max-width: 145px !important;
@@ -339,8 +339,7 @@
     display: block !important;
 }
 
-/* 로그인 라벨 */
-.login-page-label {
+.find-account-page-label {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -358,7 +357,7 @@
     align-self: center;
 }
 
-.login-main-copy {
+.find-account-main-copy {
     width: 100%;
     margin: 0;
     text-align: center;
@@ -369,7 +368,7 @@
     letter-spacing: -0.7px;
 }
 
-.login-sub-copy {
+.find-account-sub-copy {
     width: 100%;
     max-width: 340px;
     margin: 13px auto 0;
@@ -379,216 +378,36 @@
     line-height: 1.66;
 }
 
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 13px;
-    position: relative;
-    z-index: 30;
-    pointer-events: auto;
-}
-
-.login-input-box {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    position: relative;
-    z-index: 40;
-    pointer-events: auto;
-}
-
-.login-input-box label {
-    color: #4d405c;
-    font-size: 13px;
-    font-weight: 900;
-    padding-left: 5px;
-    position: relative;
-    z-index: 40;
-    pointer-events: auto;
-}
-
-.login-input-box input {
+.find-account-tab-row {
     width: 100%;
-    box-sizing: border-box;
-    border: 1px solid #eaded4;
-    background: rgba(255, 253, 250, 0.96);
-    color: #2d253a;
-    border-radius: 18px;
-    outline: none;
-    font-size: 14px;
-    height: 46px;
-    padding: 0 15px;
-    transition: 0.2s ease;
-    position: relative;
-    z-index: 1;
-    pointer-events: auto !important;
-    user-select: text;
-    -webkit-user-select: text;
-}
-
-.login-input-box input::placeholder {
-    color: #b8adb7;
-}
-
-.login-input-box input:focus {
-    border-color: #e9839b;
-    background: #ffffff;
-    box-shadow: 0 0 0 4px rgba(233, 131, 155, 0.14);
-    transform: translateY(-2px);
-}
-
-/* 비밀번호 입력칸 */
-.login-password-wrap {
-    position: relative;
-    width: 100%;
-    transition: 0.2s ease;
-    z-index: 50;
-    pointer-events: auto;
-}
-
-/* 비밀번호 input은 눈 아이콘 공간만큼 오른쪽 여백 */
-.login-input-box .login-password-wrap input {
-    padding-right: 52px !important;
-    position: relative;
-    z-index: 1;
-}
-
-/* 비밀번호 input은 wrapper가 같이 움직이게 해서 눈 아이콘 어긋남 방지 */
-.login-password-wrap:focus-within {
-    transform: translateY(-2px);
-}
-
-.login-input-box .login-password-wrap input:focus {
-    transform: none;
-}
-
-/* 브라우저 기본 비밀번호 눈 아이콘 숨김 */
-.login-password-wrap input::-ms-reveal,
-.login-password-wrap input::-ms-clear {
-    display: none;
-}
-
-.login-password-wrap input::-webkit-credentials-auto-fill-button {
-    visibility: hidden;
-    display: none !important;
-}
-
-/* 직접 만든 눈 아이콘 버튼 */
-.login-password-eye {
-    position: absolute !important;
-    right: 14px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    width: 30px !important;
-    height: 30px !important;
-    padding: 0 !important;
-    border: none !important;
-    border-radius: 50% !important;
-    background: transparent !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    z-index: 80 !important;
-    transition: 0.15s ease;
-}
-
-.login-password-eye:hover {
-    background: rgba(233, 131, 155, 0.1) !important;
-}
-
-/* 눈 아이콘 */
-.login-eye-icon {
-    width: 21px !important;
-    height: 21px !important;
-    stroke: #2d253a !important;
-    stroke-width: 1.8 !important;
-    stroke-linecap: round !important;
-    stroke-linejoin: round !important;
-}
-
-.login-password-eye:hover .login-eye-icon {
-    stroke: #df6f8e !important;
-}
-
-.login-button {
-    width: 100%;
-    height: 52px;
-    margin-top: 8px;
-    border: none;
-    border-radius: 19px;
-    color: #ffffff;
-    font-size: 15px;
-    font-weight: 950;
-    cursor: pointer;
-    background:
-        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
-    box-shadow:
-        0 17px 32px rgba(233, 131, 155, 0.27),
-        inset 0 1px 0 rgba(255, 255, 255, 0.22);
-    transition: 0.22s ease;
-    position: relative;
-    overflow: hidden;
-    z-index: 40;
-    pointer-events: auto !important;
-}
-
-.login-button:hover {
-    transform: translateY(-2px);
-    box-shadow:
-        0 22px 40px rgba(233, 131, 155, 0.34),
-        inset 0 1px 0 rgba(255, 255, 255, 0.22);
-}
-
-.login-button::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -130%;
-    width: 90%;
-    height: 100%;
-    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-    transform: skewX(-20deg);
-}
-
-.login-button:hover::after {
-    animation: loginButtonShine 0.75s ease;
-}
-
-/* 아이디 찾기 / 비밀번호 재설정 */
-.login-find-row {
-    width: 100%;
-    margin-top: 0;
-    padding: 6px;
-    box-sizing: border-box;
-    border-radius: 999px;
     display: grid;
     grid-template-columns: 1fr 1px 1fr;
     align-items: center;
     gap: 0;
+    padding: 6px;
+    box-sizing: border-box;
+    border-radius: 999px;
     background: rgba(255, 246, 249, 0.86);
     border: 1px solid rgba(246, 211, 221, 0.92);
     box-shadow:
         0 10px 24px rgba(184, 111, 145, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.95);
     position: relative;
-    z-index: 40;
+    z-index: 35;
     pointer-events: auto;
 }
 
-.login-find-row span {
+.find-account-tab-row::before {
+    content: "";
     width: 1px;
     height: 18px;
+    grid-column: 2;
+    grid-row: 1;
     display: block;
     background: rgba(223, 111, 142, 0.22);
-    color: transparent;
-    overflow: hidden;
 }
 
-.login-find-row button {
+.find-account-tab-row button {
     height: 34px !important;
     border: none !important;
     border-radius: 999px !important;
@@ -607,7 +426,16 @@
     pointer-events: auto !important;
 }
 
-.login-find-row button:hover {
+.find-account-tab-row button:first-child {
+    grid-column: 1;
+}
+
+.find-account-tab-row button:last-child {
+    grid-column: 3;
+}
+
+.find-account-tab-row button.active,
+.find-account-tab-row button:hover {
     color: #ffffff !important;
     text-decoration: none !important;
     background:
@@ -616,11 +444,269 @@
     transform: translateY(-1px);
 }
 
-.login-find-row button:active {
+.find-account-tab-row button:active {
     transform: translateY(0);
 }
 
-.login-bottom {
+.find-account-form {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    margin-top: 13px;
+    position: relative;
+    z-index: 35;
+    pointer-events: auto;
+}
+
+.find-account-guide-box {
+    padding: 13px 14px;
+    border-radius: 18px;
+    background: rgba(255, 246, 249, 0.78);
+    border: 1px solid rgba(246, 211, 221, 0.72);
+}
+
+.find-account-guide-box strong {
+    display: block;
+    color: #4d405c;
+    font-size: 13px;
+    font-weight: 950;
+}
+
+.find-account-guide-box span {
+    display: block;
+    margin-top: 5px;
+    color: #8b7f8b;
+    font-size: 12px;
+    line-height: 1.45;
+    font-weight: 760;
+    word-break: keep-all;
+}
+
+.find-account-input-box {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    position: relative;
+    z-index: 40;
+    pointer-events: auto;
+}
+
+.find-account-input-box label {
+    color: #4d405c;
+    font-size: 13px;
+    font-weight: 900;
+    padding-left: 5px;
+    position: relative;
+    z-index: 40;
+    pointer-events: auto;
+}
+
+.find-account-input-box input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #eaded4;
+    background: rgba(255, 253, 250, 0.96);
+    color: #2d253a;
+    border-radius: 18px;
+    outline: none;
+    font-size: 14px;
+    height: 46px;
+    padding: 0 15px;
+    transition: 0.2s ease;
+    font-family: inherit;
+    position: relative;
+    z-index: 1;
+    pointer-events: auto !important;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.find-account-input-box input::placeholder {
+    color: #b8adb7;
+}
+
+.find-account-input-box input:focus {
+    border-color: #e9839b;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(233, 131, 155, 0.14);
+    transform: translateY(-2px);
+}
+
+.find-account-password-wrap {
+    position: relative;
+    width: 100%;
+    transition: 0.2s ease;
+    z-index: 50;
+    pointer-events: auto;
+}
+
+.find-account-password-wrap input {
+    padding-right: 52px !important;
+    position: relative;
+    z-index: 1;
+}
+
+.find-account-password-wrap:focus-within {
+    transform: translateY(-2px);
+}
+
+.find-account-input-box .find-account-password-wrap input:focus {
+    transform: none;
+}
+
+.find-account-password-wrap input::-ms-reveal,
+.find-account-password-wrap input::-ms-clear {
+    display: none;
+}
+
+.find-account-password-wrap input::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    display: none !important;
+}
+
+.find-account-password-eye {
+    position: absolute !important;
+    right: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0.42 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 80 !important;
+    transition: 0.15s ease;
+}
+
+.find-account-password-eye:hover {
+    opacity: 0.62 !important;
+    background: transparent !important;
+}
+
+.find-account-eye-icon {
+    width: 21px !important;
+    height: 21px !important;
+    stroke: rgba(45, 37, 58, 0.42) !important;
+    stroke-width: 1.6 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+}
+
+.find-account-password-eye:hover .find-account-eye-icon {
+    stroke: rgba(223, 111, 142, 0.55) !important;
+}
+
+.find-account-main-btn {
+    width: 100%;
+    height: 52px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 19px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 950;
+    cursor: pointer;
+    font-family: inherit;
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow:
+        0 17px 32px rgba(233, 131, 155, 0.27),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    transition: 0.22s ease;
+    position: relative;
+    overflow: hidden;
+    z-index: 40;
+    pointer-events: auto !important;
+}
+
+.find-account-main-btn:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 22px 40px rgba(233, 131, 155, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.find-account-main-btn::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -130%;
+    width: 90%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    transform: skewX(-20deg);
+}
+
+.find-account-main-btn:hover::after {
+    animation: findButtonShine 0.75s ease;
+}
+
+.find-account-main-btn:disabled {
+    opacity: 0.58;
+    cursor: default;
+    transform: none;
+}
+
+.find-account-result-box {
+    padding: 17px;
+    border-radius: 22px;
+    background:
+        linear-gradient(135deg, rgba(255, 250, 246, 0.96), rgba(255, 240, 244, 0.9));
+    border: 1px solid rgba(246, 211, 221, 0.86);
+    text-align: center;
+    box-shadow: 0 10px 24px rgba(184, 111, 145, 0.08);
+}
+
+.find-account-result-box span {
+    display: block;
+    color: #a45f76;
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.find-account-result-box strong {
+    display: block;
+    margin-top: 6px;
+    color: #2d253a;
+    font-size: 22px;
+    font-weight: 950;
+}
+
+.find-account-result-action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 13px;
+}
+
+.find-account-result-action-row button {
+    height: 36px;
+    border: none;
+    border-radius: 999px;
+    color: #ffffff;
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    font-size: 12px;
+    font-weight: 950;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.find-account-result-action-row button:first-child {
+    color: #a45f76;
+    background: #fff7f9;
+    border: 1px solid rgba(246, 211, 221, 0.92);
+}
+
+.find-account-bottom {
     margin-top: 21px;
     padding-top: 19px;
     border-top: 1px solid #f0e4db;
@@ -629,16 +715,12 @@
     align-items: center;
     gap: 9px;
     position: relative;
-    z-index: 30;
+    z-index: 35;
+    color: #b49aa5;
     pointer-events: auto;
 }
 
-.login-bottom span {
-    color: #817783;
-    font-size: 14px;
-}
-
-.login-bottom button {
+.find-account-bottom button {
     border: none;
     background: transparent;
     color: #df6f8e;
@@ -646,67 +728,36 @@
     font-weight: 950;
     cursor: pointer;
     padding: 0;
+    font-family: inherit;
     position: relative;
     z-index: 40;
     pointer-events: auto !important;
 }
 
-.login-bottom button:hover {
+.find-account-bottom button:hover {
     text-decoration: underline;
 }
 
-/* ==============================
-   로그인 입력창 클릭 막힘 해결
-   장식 요소가 input/button을 덮는 문제 방지
-============================== */
-
-.login-page {
-    position: relative;
-}
-
-/* 배경 장식들은 클릭을 못 가져가게 막기 */
-.login-page::before,
-.login-page::after,
-.login-card::before,
-.login-card::after,
-.soft-cloud,
-.traditional-motif,
-.bojagi-shape,
-.flower-mark,
-.card-soft-glow,
-.norigae,
-.norigae-string,
-.norigae-knot,
-.norigae-ribbon,
-.traditional-band {
+/* 클릭 막힘 방지 */
+.find-account-page::before,
+.find-account-page::after,
+.find-account-card::before,
+.find-account-card::after,
+.find-soft-cloud,
+.find-traditional-motif,
+.find-bojagi-shape,
+.find-flower-mark,
+.find-card-soft-glow,
+.find-norigae,
+.find-norigae-string,
+.find-norigae-knot,
+.find-norigae-ribbon,
+.find-traditional-band {
     pointer-events: none !important;
 }
 
-/* ==============================
-   비밀번호 눈 아이콘 연하게 처리
-============================== */
-
-.login-password-eye {
-    opacity: 0.42 !important;
-    background: transparent !important;
-}
-
-.login-password-eye:hover {
-    opacity: 0.62 !important;
-    background: transparent !important;
-}
-
-.login-eye-icon {
-    stroke: rgba(45, 37, 58, 0.42) !important;
-    stroke-width: 1.6 !important;
-}
-
-.login-password-eye:hover .login-eye-icon {
-    stroke: rgba(223, 111, 142, 0.55) !important;
-}
-
-/* 애니메이션 */
-@keyframes loginCloudOneMove {
+/* 애니메이션 - Login.css와 동일한 움직임 */
+@keyframes findCloudOneMove {
     0% {
         transform: translateX(0) translateY(0);
     }
@@ -720,7 +771,7 @@
     }
 }
 
-@keyframes loginCloudTwoMove {
+@keyframes findCloudTwoMove {
     0% {
         transform: translateX(0) translateY(0);
     }
@@ -734,7 +785,7 @@
     }
 }
 
-@keyframes loginBojagiOneMove {
+@keyframes findBojagiOneMove {
     0% {
         transform: rotate(-13deg) translateY(0);
     }
@@ -748,7 +799,7 @@
     }
 }
 
-@keyframes loginBojagiTwoMove {
+@keyframes findBojagiTwoMove {
     0% {
         transform: rotate(15deg) translateY(0);
     }
@@ -762,7 +813,7 @@
     }
 }
 
-@keyframes loginMotifLeftRotate {
+@keyframes findMotifLeftRotate {
     0% {
         transform: rotate(-12deg);
     }
@@ -772,7 +823,7 @@
     }
 }
 
-@keyframes loginMotifRightRotate {
+@keyframes findMotifRightRotate {
     0% {
         transform: rotate(16deg);
     }
@@ -782,7 +833,7 @@
     }
 }
 
-@keyframes loginFlowerOneMove {
+@keyframes findFlowerOneMove {
     0% {
         transform: translateY(0) rotate(0deg) scale(1);
         opacity: 0.5;
@@ -799,7 +850,7 @@
     }
 }
 
-@keyframes loginFlowerTwoMove {
+@keyframes findFlowerTwoMove {
     0% {
         transform: translateY(0) rotate(0deg) scale(1);
         opacity: 0.46;
@@ -816,7 +867,7 @@
     }
 }
 
-@keyframes loginNorigaeSwing {
+@keyframes findNorigaeSwing {
     0% {
         transform: rotate(0deg);
     }
@@ -838,7 +889,7 @@
     }
 }
 
-@keyframes loginGlowPulse {
+@keyframes findGlowPulse {
     0% {
         opacity: 0.35;
         transform: scale(1);
@@ -855,7 +906,7 @@
     }
 }
 
-@keyframes loginButtonShine {
+@keyframes findButtonShine {
     0% {
         left: -130%;
     }
@@ -867,45 +918,55 @@
 
 /* 모바일 */
 @media (max-width: 520px) {
-    .login-page {
+    .find-account-page {
         padding: 26px 14px;
+        overflow-y: auto;
     }
 
-    .login-card {
+    .find-account-card {
         width: 100%;
         padding: 39px 24px 27px;
         border-radius: 31px;
     }
 
-    .login-main-copy {
+    .find-account-main-copy {
         font-size: 18px;
     }
 
-    .traditional-motif,
-    .bojagi-shape,
-    .flower-mark,
-    .soft-cloud {
+    .find-traditional-motif,
+    .find-bojagi-shape,
+    .find-flower-mark,
+    .find-soft-cloud {
         display: none;
     }
 
-    .login-logo-wrap {
+    .find-account-logo-wrap {
         height: 82px;
         margin: 0 auto 6px;
     }
 
-    .login-logo-img {
+    .find-account-logo-img {
         width: 125px !important;
         height: 78px !important;
         max-width: 125px !important;
         max-height: 78px !important;
     }
 
-    .login-find-row {
-        padding: 5px;
+    .find-account-tab-row {
+        grid-template-columns: 1fr;
+        border-radius: 24px;
     }
 
-    .login-find-row button {
-        font-size: 11px !important;
-        padding: 0 6px !important;
+    .find-account-tab-row::before {
+        display: none;
+    }
+
+    .find-account-tab-row button:first-child,
+    .find-account-tab-row button:last-child {
+        grid-column: auto;
+    }
+
+    .find-account-result-action-row {
+        grid-template-columns: 1fr;
     }
 }

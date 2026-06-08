@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import PageDecor from "./PageDecor";
+import ScrollTopButton from "./ScrollTopButton";
 import "./Chat.css";
 
 function Chat() {
@@ -80,12 +82,18 @@ function Chat() {
         return localStorage.getItem("token");
     }
 
+    function refreshMenuCount() {
+        window.dispatchEvent(new Event("kstepMenuCountRefresh"));
+    }
+
     function moveLoginPage(message) {
         localStorage.removeItem("token");
         localStorage.removeItem("userNo");
         localStorage.removeItem("userId");
         localStorage.removeItem("nickname");
         localStorage.removeItem("userType");
+
+        refreshMenuCount();
 
         alert(message || "로그인이 필요합니다.");
         navigate("/", { replace: true });
@@ -150,6 +158,8 @@ function Chat() {
         if (selectedRoomNo) {
             getMessageList(selectedRoomNo, false);
         }
+
+        refreshMenuCount();
     }
 
     function getRecommendUserList() {
@@ -325,6 +335,7 @@ function Chat() {
                     const list = data.list || [];
 
                     setRoomList(list);
+                    refreshMenuCount();
 
                     if (selectRoomNo) {
                         const selectedExists = list.some(item => String(item.ROOM_NO) === String(selectRoomNo));
@@ -412,6 +423,8 @@ function Chat() {
                         })
                     );
 
+                    refreshMenuCount();
+
                     if (!silent) {
                         getRoomList(roomNo, true);
                     }
@@ -454,6 +467,7 @@ function Chat() {
                 if (data.result === "success") {
                     setSelectedRoomNo(data.roomNo);
                     getRoomList(data.roomNo, false);
+                    refreshMenuCount();
                 } else {
                     alert(data.message);
                 }
@@ -467,6 +481,7 @@ function Chat() {
     function selectRoom(roomNo) {
         setSelectedRoomNo(roomNo);
         setMessage("");
+        refreshMenuCount();
     }
 
     function sendMessage() {
@@ -517,6 +532,7 @@ function Chat() {
                     setMessage("");
                     getMessageList(selectedRoomNo, false);
                     getRoomList(selectedRoomNo, true);
+                    refreshMenuCount();
                 } else {
                     alert(data.message);
                 }
@@ -600,6 +616,7 @@ function Chat() {
                     closeDeleteModal();
                     getMessageList(selectedRoomNo, false);
                     getRoomList(selectedRoomNo, true);
+                    refreshMenuCount();
                 } else {
                     alert(data.message);
                 }
@@ -640,6 +657,7 @@ function Chat() {
                     closeDeleteModal();
                     getMessageList(selectedRoomNo, false);
                     getRoomList(selectedRoomNo, true);
+                    refreshMenuCount();
                 } else {
                     alert(data.message);
                 }
@@ -690,6 +708,7 @@ function Chat() {
                     setSelectedRoomNo(null);
                     setMessageList([]);
                     getRoomList(null, false);
+                    refreshMenuCount();
                 } else {
                     alert(data.message);
                 }
@@ -734,236 +753,197 @@ function Chat() {
 
     return (
         <div className="chat-page">
-            <div className="chat-bg-flower chat-bg-flower-one">✿</div>
-            <div className="chat-bg-flower chat-bg-flower-two">❀</div>
+            <PageDecor />
 
-            <div className="chat-container">
-                <aside className="chat-list-card">
-                    <div className="chat-list-header">
+            <div className="chat-shell">
+                <section className="chat-app-top">
+                    <PageDecor variant="box" />
+
+                    <div className="chat-brand-row">
+                        <div className="chat-brand-mark">K</div>
+
                         <div>
-                            <p>K-STEP Direct</p>
+                            <p className="chat-top-label">K-STEP Direct</p>
                             <h1>여행자 메시지</h1>
-                        </div>
-
-                        <div className="chat-list-header-actions">
-                            <button
-                                className="chat-home-btn"
-                                onClick={refreshChat}
-                                type="button"
-                            >
-                                새로고침
-                            </button>
-
-                            <button
-                                className="chat-home-btn"
-                                onClick={() => navigate("/home")}
-                                type="button"
-                            >
-                                홈
-                            </button>
+                            <p className="chat-top-copy">
+                                {nickname}님, 여행자와 루트 이야기를 나눠보세요.
+                            </p>
                         </div>
                     </div>
 
-                    <div className="chat-search-box">
-                        <span>⌕</span>
+                    <div className="chat-top-icons">
+                        <button
+                            type="button"
+                            onClick={() => navigate("/home")}
+                            title="홈으로"
+                        >
+                            ⌂
+                        </button>
 
-                        <input
-                            value={searchKeyword}
-                            onChange={(e) => setSearchKeyword(e.target.value)}
-                            placeholder="여행자, 지역, 키워드 검색"
-                        />
+                        <button
+                            type="button"
+                            className="write"
+                            onClick={() => navigate("/feed/new")}
+                            title="작성"
+                        >
+                            +
+                        </button>
                     </div>
+                </section>
 
-                    <div className="chat-user-list">
-                        {loading && (
-                            <div className="chat-empty-user">
-                                채팅방을 불러오는 중입니다.
+                <div className="chat-container">
+                    <aside className="chat-list-card">
+                        <div className="chat-list-header">
+                            <div>
+                                <p>K-STEP Direct</p>
+                                <h1>대화 목록</h1>
                             </div>
-                        )}
 
-                        {!loading && filteredRoomList.length === 0 && searchKeyword.trim() !== "" && (
-                            <div className="chat-empty-user">
-                                검색 결과가 없습니다.
-                            </div>
-                        )}
-
-                        {!loading && roomList.length === 0 && searchKeyword.trim() === "" && (
-                            <>
-                                <div className="chat-empty-user pretty">
-                                    <strong>아직 대화가 없어요</strong>
-                                    <span>추천 여행자와 첫 대화를 시작해보세요.</span>
-                                </div>
-
-                                {recommendUserList.length === 0 && (
-                                    <div className="chat-empty-user">
-                                        추천할 여행자가 아직 없습니다.
-                                    </div>
-                                )}
-
-                                {recommendUserList.map(user => (
-                                    <div
-                                        className="chat-user-item"
-                                        key={user.USER_NO}
-                                        onClick={() => openRoom(user.USER_NO)}
-                                    >
-                                        <div className="chat-user-avatar-wrap">
-                                            <div className="chat-user-avatar">
-                                                {getProfileImageUrl(user.PROFILE_IMG) !== "" ? (
-                                                    <img
-                                                        src={getProfileImageUrl(user.PROFILE_IMG)}
-                                                        alt={safeText(user.NICKNAME, "프로필")}
-                                                    />
-                                                ) : (
-                                                    getFirstLetter(user.NICKNAME || user.USER_ID)
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="chat-user-info">
-                                            <div className="chat-user-name-row">
-                                                <strong>{safeText(user.NICKNAME, "여행자")}</strong>
-                                                <span>시작</span>
-                                            </div>
-
-                                            <p>{safeText(user.INTRO || user.BIO, "소개가 없습니다.")}</p>
-
-                                            <div className="chat-user-chip-row">
-                                                <em>{safeText(user.USER_TYPE, "TRAVELER")}</em>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </>
-                        )}
-
-                        {!loading && filteredRoomList.map(room => (
-                            <div
-                                className={String(selectedRoomNo) === String(room.ROOM_NO) ? "chat-user-item active" : "chat-user-item"}
-                                key={room.ROOM_NO}
-                                onClick={() => selectRoom(room.ROOM_NO)}
-                            >
-                                <div
-                                    className="chat-user-avatar-wrap"
-                                    onClick={(e) => moveProfile(room.OTHER_USER_NO, e)}
-                                    title="프로필 보기"
+                            <div className="chat-list-header-actions">
+                                <button
+                                    className="chat-home-btn"
+                                    onClick={refreshChat}
+                                    type="button"
                                 >
-                                    <div className="chat-user-avatar">
-                                        {getProfileImageUrl(room.PROFILE_IMG) !== "" ? (
-                                            <img
-                                                src={getProfileImageUrl(room.PROFILE_IMG)}
-                                                alt={safeText(room.NICKNAME, "프로필")}
-                                            />
-                                        ) : (
-                                            getFirstLetter(room.NICKNAME || room.USER_ID)
-                                        )}
-                                    </div>
-
-                                    <span className={room.ONLINE_YN === "Y" ? "chat-online-dot active" : "chat-online-dot"}></span>
-                                </div>
-
-                                <div className="chat-user-info">
-                                    <div className="chat-user-name-row">
-                                        <strong>{safeText(room.NICKNAME, "여행자")}</strong>
-                                        <span>{getDisplayTime(room.LAST_MESSAGE_DATE)}</span>
-                                    </div>
-
-                                    <p>{room.LAST_MESSAGE}</p>
-
-                                    <div className="chat-user-chip-row">
-                                        <em>{safeText(room.USER_TYPE, "TRAVELER")}</em>
-                                        <em className={room.ONLINE_YN === "Y" ? "online" : ""}>
-                                            {room.ONLINE_YN === "Y" ? "온라인" : "오프라인"}
-                                        </em>
-                                    </div>
-                                </div>
-
-                                {room.UNREAD_COUNT > 0 && (
-                                    <span className="chat-unread-count">
-                                        {room.UNREAD_COUNT}
-                                    </span>
-                                )}
+                                    새로고침
+                                </button>
                             </div>
-                        ))}
-                    </div>
-                </aside>
+                        </div>
 
-                <section className="chat-room-card">
-                    {currentRoom ? (
-                        <>
-                            <div className="chat-room-header">
-                                <div className="chat-room-title">
+                        <div className="chat-search-box">
+                            <span>⌕</span>
+
+                            <input
+                                value={searchKeyword}
+                                onChange={(e) => setSearchKeyword(e.target.value)}
+                                placeholder="여행자, 지역, 키워드 검색"
+                            />
+                        </div>
+
+                        <div className="chat-user-list">
+                            {loading && (
+                                <div className="chat-empty-user">
+                                    채팅방을 불러오는 중입니다.
+                                </div>
+                            )}
+
+                            {!loading && filteredRoomList.length === 0 && searchKeyword.trim() !== "" && (
+                                <div className="chat-empty-user">
+                                    검색 결과가 없습니다.
+                                </div>
+                            )}
+
+                            {!loading && roomList.length === 0 && searchKeyword.trim() === "" && (
+                                <>
+                                    <div className="chat-empty-user pretty">
+                                        <strong>아직 대화가 없어요</strong>
+                                        <span>추천 여행자와 첫 대화를 시작해보세요.</span>
+                                    </div>
+
+                                    {recommendUserList.length === 0 && (
+                                        <div className="chat-empty-user">
+                                            추천할 여행자가 아직 없습니다.
+                                        </div>
+                                    )}
+
+                                    {recommendUserList.map(user => (
+                                        <div
+                                            className="chat-user-item"
+                                            key={user.USER_NO}
+                                            onClick={() => openRoom(user.USER_NO)}
+                                        >
+                                            <div className="chat-user-avatar-wrap">
+                                                <div className="chat-user-avatar">
+                                                    {getProfileImageUrl(user.PROFILE_IMG) !== "" ? (
+                                                        <img
+                                                            src={getProfileImageUrl(user.PROFILE_IMG)}
+                                                            alt={safeText(user.NICKNAME, "프로필")}
+                                                        />
+                                                    ) : (
+                                                        getFirstLetter(user.NICKNAME || user.USER_ID)
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="chat-user-info">
+                                                <div className="chat-user-name-row">
+                                                    <strong>{safeText(user.NICKNAME, "여행자")}</strong>
+                                                    <span>시작</span>
+                                                </div>
+
+                                                <p>{safeText(user.INTRO || user.BIO, "소개가 없습니다.")}</p>
+
+                                                <div className="chat-user-chip-row">
+                                                    <em>{safeText(user.USER_TYPE, "TRAVELER")}</em>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+
+                            {!loading && filteredRoomList.map(room => (
+                                <div
+                                    className={String(selectedRoomNo) === String(room.ROOM_NO) ? "chat-user-item active" : "chat-user-item"}
+                                    key={room.ROOM_NO}
+                                    onClick={() => selectRoom(room.ROOM_NO)}
+                                >
                                     <div
                                         className="chat-user-avatar-wrap"
-                                        onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
+                                        onClick={(e) => moveProfile(room.OTHER_USER_NO, e)}
                                         title="프로필 보기"
                                     >
-                                        <div className="chat-user-avatar big">
-                                            {getProfileImageUrl(currentRoom.PROFILE_IMG) !== "" ? (
+                                        <div className="chat-user-avatar">
+                                            {getProfileImageUrl(room.PROFILE_IMG) !== "" ? (
                                                 <img
-                                                    src={getProfileImageUrl(currentRoom.PROFILE_IMG)}
-                                                    alt={safeText(currentRoom.NICKNAME, "프로필")}
+                                                    src={getProfileImageUrl(room.PROFILE_IMG)}
+                                                    alt={safeText(room.NICKNAME, "프로필")}
                                                 />
                                             ) : (
-                                                getFirstLetter(currentRoom.NICKNAME || currentRoom.USER_ID)
+                                                getFirstLetter(room.NICKNAME || room.USER_ID)
                                             )}
                                         </div>
 
-                                        <span className={currentRoom.ONLINE_YN === "Y" ? "chat-online-dot big active" : "chat-online-dot big"}></span>
+                                        <span className={room.ONLINE_YN === "Y" ? "chat-online-dot active" : "chat-online-dot"}></span>
                                     </div>
 
-                                    <div
-                                        className="chat-room-profile-text"
-                                        onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
-                                    >
-                                        <strong>{safeText(currentRoom.NICKNAME, "여행자")}</strong>
-                                        <p>
-                                            {safeText(currentRoom.USER_TYPE, "TRAVELER")} · {getOnlineText(currentRoom)}
-                                        </p>
+                                    <div className="chat-user-info">
+                                        <div className="chat-user-name-row">
+                                            <strong>{safeText(room.NICKNAME, "여행자")}</strong>
+                                            <span>{getDisplayTime(room.LAST_MESSAGE_DATE)}</span>
+                                        </div>
+
+                                        <p>{room.LAST_MESSAGE}</p>
+
+                                        <div className="chat-user-chip-row">
+                                            <em>{safeText(room.USER_TYPE, "TRAVELER")}</em>
+                                            <em className={room.ONLINE_YN === "Y" ? "online" : ""}>
+                                                {room.ONLINE_YN === "Y" ? "온라인" : "오프라인"}
+                                            </em>
+                                        </div>
                                     </div>
+
+                                    {room.UNREAD_COUNT > 0 && (
+                                        <span className="chat-unread-count">
+                                            {room.UNREAD_COUNT}
+                                        </span>
+                                    )}
                                 </div>
+                            ))}
+                        </div>
+                    </aside>
 
-                                <div className="chat-room-actions">
-                                    <button
-                                        type="button"
-                                        className="chat-profile-btn"
-                                        onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
-                                    >
-                                        프로필
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        className="chat-delete-room-btn"
-                                        onClick={deleteRoomForMe}
-                                    >
-                                        나에게서만 채팅방 삭제
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="chat-message-area">
-                                <div className="chat-date-divider">
-                                    <span>대화</span>
-                                </div>
-
-                                {messageList.length === 0 && (
-                                    <div className="chat-empty-message">
-                                        아직 대화가 없습니다.
-                                        <br />
-                                        첫 메시지를 보내보세요.
-                                    </div>
-                                )}
-
-                                {messageList.map(item => (
-                                    <div
-                                        key={item.MESSAGE_NO}
-                                        className={item.MINE_YN === "Y" ? "chat-message-row me" : "chat-message-row other"}
-                                    >
-                                        {item.MINE_YN !== "Y" && (
-                                            <div
-                                                className="chat-message-avatar"
-                                                onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
-                                            >
+                    <section className="chat-room-card">
+                        {currentRoom ? (
+                            <>
+                                <div className="chat-room-header">
+                                    <div className="chat-room-title">
+                                        <div
+                                            className="chat-user-avatar-wrap"
+                                            onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
+                                            title="프로필 보기"
+                                        >
+                                            <div className="chat-user-avatar big">
                                                 {getProfileImageUrl(currentRoom.PROFILE_IMG) !== "" ? (
                                                     <img
                                                         src={getProfileImageUrl(currentRoom.PROFILE_IMG)}
@@ -973,135 +953,204 @@ function Chat() {
                                                     getFirstLetter(currentRoom.NICKNAME || currentRoom.USER_ID)
                                                 )}
                                             </div>
-                                        )}
 
-                                        <div className="chat-message-group">
-                                            {item.MINE_YN !== "Y" && (
-                                                <strong
-                                                    className="chat-message-name"
-                                                    onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
-                                                >
-                                                    {safeText(currentRoom.NICKNAME, "여행자")}
-                                                </strong>
-                                            )}
+                                            <span className={currentRoom.ONLINE_YN === "Y" ? "chat-online-dot big active" : "chat-online-dot big"}></span>
+                                        </div>
 
-                                            <div className="chat-message-bubble-wrap">
-                                                <div className={item.MESSAGE_STATUS === "D" ? "chat-message deleted" : item.MINE_YN === "Y" ? "chat-message me" : "chat-message other"}>
-                                                    {getMessageText(item)}
-                                                </div>
-
-                                                {item.MESSAGE_STATUS !== "D" && (
-                                                    <button
-                                                        type="button"
-                                                        className="chat-message-delete-btn"
-                                                        onClick={() => openDeleteModal(item)}
-                                                    >
-                                                        삭제
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <div className="chat-message-meta">
-                                                {showUnreadOne(item) && (
-                                                    <span className="chat-message-unread-one">1</span>
-                                                )}
-
-                                                <span className="chat-message-time">
-                                                    {getDisplayTime(item.CDATE_TEXT)}
-                                                </span>
-                                            </div>
+                                        <div
+                                            className="chat-room-profile-text"
+                                            onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
+                                        >
+                                            <strong>{safeText(currentRoom.NICKNAME, "여행자")}</strong>
+                                            <p>
+                                                {safeText(currentRoom.USER_TYPE, "TRAVELER")} · {getOnlineText(currentRoom)}
+                                            </p>
                                         </div>
                                     </div>
-                                ))}
 
-                                <div ref={messageEndRef}></div>
-                            </div>
+                                    <div className="chat-room-actions">
+                                        <button
+                                            type="button"
+                                            className="chat-profile-btn"
+                                            onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
+                                        >
+                                            프로필
+                                        </button>
 
-                            <div className="chat-input-area">
-                                <div className="chat-input-box">
-                                    <textarea
-                                        value={message}
-                                        maxLength={1000}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        onKeyDown={enterSend}
-                                        placeholder="메시지를 입력하세요. Shift + Enter로 줄바꿈"
-                                    ></textarea>
-
-                                    <span className="chat-message-count">
-                                        {message.length}/1000
-                                    </span>
-                                </div>
-
-                                <button
-                                    className={message.trim() === "" ? "chat-send-btn disabled" : "chat-send-btn"}
-                                    onClick={sendMessage}
-                                >
-                                    전송
-                                </button>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="chat-no-room">
-                            <div className="chat-no-room-icon">✉</div>
-
-                            <p className="chat-no-room-label">K-STEP Direct</p>
-
-                            <h2>{nickname}님, 여행 대화를 시작해보세요</h2>
-
-                            <p>
-                                여행 루트가 궁금한 사람에게 메시지를 보내거나,
-                                추천 여행자와 새 대화를 시작할 수 있어요.
-                            </p>
-
-                            <div className="chat-no-room-actions">
-                                <button
-                                    type="button"
-                                    onClick={() => navigate("/explore")}
-                                >
-                                    여행자 탐색
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={refreshChat}
-                                >
-                                    새로고침
-                                </button>
-                            </div>
-
-                            {recommendUserList.length > 0 && (
-                                <div className="chat-start-section">
-                                    <strong>추천 대화 상대</strong>
-
-                                    <div className="chat-start-user-row">
-                                        {recommendUserList.slice(0, 4).map(user => (
-                                            <button
-                                                type="button"
-                                                className="chat-start-user"
-                                                key={user.USER_NO}
-                                                onClick={() => openRoom(user.USER_NO)}
-                                            >
-                                                <span className="chat-start-avatar">
-                                                    {getProfileImageUrl(user.PROFILE_IMG) !== "" ? (
-                                                        <img
-                                                            src={getProfileImageUrl(user.PROFILE_IMG)}
-                                                            alt={safeText(user.NICKNAME, "프로필")}
-                                                        />
-                                                    ) : (
-                                                        getFirstLetter(user.NICKNAME || user.USER_ID)
-                                                    )}
-                                                </span>
-
-                                                <em>{safeText(user.NICKNAME, "여행자")}</em>
-                                            </button>
-                                        ))}
+                                        <button
+                                            type="button"
+                                            className="chat-delete-room-btn"
+                                            onClick={deleteRoomForMe}
+                                        >
+                                            나에게서만 채팅방 삭제
+                                        </button>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    )}
-                </section>
+
+                                <div className="chat-message-area">
+                                    <div className="chat-date-divider">
+                                        <span>대화</span>
+                                    </div>
+
+                                    {messageList.length === 0 && (
+                                        <div className="chat-empty-message">
+                                            아직 대화가 없습니다.
+                                            <br />
+                                            첫 메시지를 보내보세요.
+                                        </div>
+                                    )}
+
+                                    {messageList.map(item => (
+                                        <div
+                                            key={item.MESSAGE_NO}
+                                            className={item.MINE_YN === "Y" ? "chat-message-row me" : "chat-message-row other"}
+                                        >
+                                            {item.MINE_YN !== "Y" && (
+                                                <div
+                                                    className="chat-message-avatar"
+                                                    onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
+                                                >
+                                                    {getProfileImageUrl(currentRoom.PROFILE_IMG) !== "" ? (
+                                                        <img
+                                                            src={getProfileImageUrl(currentRoom.PROFILE_IMG)}
+                                                            alt={safeText(currentRoom.NICKNAME, "프로필")}
+                                                        />
+                                                    ) : (
+                                                        getFirstLetter(currentRoom.NICKNAME || currentRoom.USER_ID)
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="chat-message-group">
+                                                {item.MINE_YN !== "Y" && (
+                                                    <strong
+                                                        className="chat-message-name"
+                                                        onClick={(e) => moveProfile(currentRoom.OTHER_USER_NO, e)}
+                                                    >
+                                                        {safeText(currentRoom.NICKNAME, "여행자")}
+                                                    </strong>
+                                                )}
+
+                                                <div className="chat-message-bubble-wrap">
+                                                    <div className={item.MESSAGE_STATUS === "D" ? "chat-message deleted" : item.MINE_YN === "Y" ? "chat-message me" : "chat-message other"}>
+                                                        {getMessageText(item)}
+                                                    </div>
+
+                                                    {item.MESSAGE_STATUS !== "D" && (
+                                                        <button
+                                                            type="button"
+                                                            className="chat-message-delete-btn"
+                                                            onClick={() => openDeleteModal(item)}
+                                                        >
+                                                            삭제
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <div className="chat-message-meta">
+                                                    {showUnreadOne(item) && (
+                                                        <span className="chat-message-unread-one">1</span>
+                                                    )}
+
+                                                    <span className="chat-message-time">
+                                                        {getDisplayTime(item.CDATE_TEXT)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <div ref={messageEndRef}></div>
+                                </div>
+
+                                <div className="chat-input-area">
+                                    <div className="chat-input-box">
+                                        <textarea
+                                            value={message}
+                                            maxLength={1000}
+                                            onChange={(e) => setMessage(e.target.value)}
+                                            onKeyDown={enterSend}
+                                            placeholder="메시지를 입력하세요. Shift + Enter로 줄바꿈"
+                                        ></textarea>
+
+                                        <span className="chat-message-count">
+                                            {message.length}/1000
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        className={message.trim() === "" ? "chat-send-btn disabled" : "chat-send-btn"}
+                                        onClick={sendMessage}
+                                    >
+                                        전송
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="chat-no-room">
+                                <div className="chat-no-room-icon">✉</div>
+
+                                <p className="chat-no-room-label">K-STEP Direct</p>
+
+                                <h2>{nickname}님, 여행 대화를 시작해보세요</h2>
+
+                                <p>
+                                    여행 루트가 궁금한 사람에게 메시지를 보내거나,
+                                    추천 여행자와 새 대화를 시작할 수 있어요.
+                                </p>
+
+                                <div className="chat-no-room-actions">
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/explore")}
+                                    >
+                                        여행자 탐색
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={refreshChat}
+                                    >
+                                        새로고침
+                                    </button>
+                                </div>
+
+                                {recommendUserList.length > 0 && (
+                                    <div className="chat-start-section">
+                                        <strong>추천 대화 상대</strong>
+
+                                        <div className="chat-start-user-row">
+                                            {recommendUserList.slice(0, 4).map(user => (
+                                                <button
+                                                    type="button"
+                                                    className="chat-start-user"
+                                                    key={user.USER_NO}
+                                                    onClick={() => openRoom(user.USER_NO)}
+                                                >
+                                                    <span className="chat-start-avatar">
+                                                        {getProfileImageUrl(user.PROFILE_IMG) !== "" ? (
+                                                            <img
+                                                                src={getProfileImageUrl(user.PROFILE_IMG)}
+                                                                alt={safeText(user.NICKNAME, "프로필")}
+                                                            />
+                                                        ) : (
+                                                            getFirstLetter(user.NICKNAME || user.USER_ID)
+                                                        )}
+                                                    </span>
+
+                                                    <em>{safeText(user.NICKNAME, "여행자")}</em>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </section>
+                </div>
             </div>
+
+            <ScrollTopButton />
 
             {deleteTargetMessage && (
                 <div className="chat-delete-modal-bg">

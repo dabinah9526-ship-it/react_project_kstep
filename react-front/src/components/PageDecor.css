@@ -1,0 +1,415 @@
+/* ==============================
+   페이지 배경용 장식
+   구름 / 원형 문양 / 보자기 / 꽃
+============================== */
+
+.page-decor-page-wrap {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* 구름 */
+.page-decor-cloud {
+    position: absolute;
+    border-radius: 999px;
+    opacity: 0.42;
+    pointer-events: none;
+}
+
+.page-decor-cloud-one {
+    width: 420px;
+    height: 150px;
+    left: 4%;
+    top: 100px;
+    background: rgba(255, 255, 255, 0.58);
+    box-shadow:
+        120px -28px 0 rgba(255, 255, 255, 0.32),
+        240px 18px 0 rgba(255, 255, 255, 0.24);
+    animation: pageDecorCloudOneMove 6s ease-in-out infinite;
+}
+
+.page-decor-cloud-two {
+    width: 360px;
+    height: 130px;
+    right: -90px;
+    bottom: 120px;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow:
+        -100px 28px 0 rgba(255, 255, 255, 0.28),
+        -210px -18px 0 rgba(255, 255, 255, 0.22);
+    animation: pageDecorCloudTwoMove 6.5s ease-in-out infinite;
+}
+
+/* 한국 전통 원형 문양 */
+.page-decor-traditional-motif {
+    position: absolute;
+    width: 210px;
+    height: 210px;
+    border-radius: 50%;
+    opacity: 0.22;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at center, #fff9f1 0 18%, transparent 19%),
+        conic-gradient(from 0deg,
+            #f7a8b8 0deg 30deg,
+            #f8d58e 30deg 60deg,
+            #b7d9a8 60deg 90deg,
+            #d7c4ff 90deg 120deg,
+            #f7a8b8 120deg 150deg,
+            #f8d58e 150deg 180deg,
+            #b7d9a8 180deg 210deg,
+            #d7c4ff 210deg 240deg,
+            #f7a8b8 240deg 270deg,
+            #f8d58e 270deg 300deg,
+            #b7d9a8 300deg 330deg,
+            #d7c4ff 330deg 360deg);
+    box-shadow: 0 20px 50px rgba(177, 97, 123, 0.12);
+}
+
+.page-decor-traditional-motif::before {
+    content: "";
+    position: absolute;
+    inset: 28px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.8) 0 20%, transparent 21%),
+        repeating-conic-gradient(from 15deg,
+            rgba(255, 255, 255, 0.62) 0deg 12deg,
+            transparent 12deg 24deg);
+}
+
+.page-decor-traditional-motif::after {
+    content: "";
+    position: absolute;
+    inset: 72px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.88);
+}
+
+.page-decor-motif-left {
+    left: 110px;
+    top: 150px;
+    transform: rotate(-12deg);
+    animation: pageDecorMotifLeftRotate 13s linear infinite;
+}
+
+.page-decor-motif-right {
+    right: 90px;
+    bottom: 130px;
+    transform: rotate(16deg);
+    animation: pageDecorMotifRightRotate 14s linear infinite;
+}
+
+/* 보자기 조각 */
+.page-decor-bojagi {
+    position: absolute;
+    border-radius: 42px;
+    opacity: 0.42;
+    pointer-events: none;
+    box-shadow: 0 24px 55px rgba(130, 80, 75, 0.1);
+}
+
+.page-decor-bojagi-one {
+    width: 155px;
+    height: 155px;
+    left: 14%;
+    bottom: 22%;
+    background:
+        linear-gradient(90deg, rgba(255, 205, 213, 0.9) 50%, rgba(255, 231, 184, 0.9) 50%);
+    transform: rotate(-13deg);
+    animation: pageDecorBojagiOneMove 4.8s ease-in-out infinite;
+}
+
+.page-decor-bojagi-two {
+    width: 126px;
+    height: 126px;
+    right: 12%;
+    top: 24%;
+    background:
+        linear-gradient(90deg, rgba(207, 226, 190, 0.9) 50%, rgba(225, 210, 255, 0.9) 50%);
+    transform: rotate(15deg);
+    animation: pageDecorBojagiTwoMove 5s ease-in-out infinite;
+}
+
+.page-decor-bojagi::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        linear-gradient(0deg, transparent 48%, rgba(255, 255, 255, 0.45) 48%, rgba(255, 255, 255, 0.45) 52%, transparent 52%),
+        linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.38) 48%, rgba(255, 255, 255, 0.38) 52%, transparent 52%);
+}
+
+/* 꽃 */
+.page-decor-flower {
+    position: absolute;
+    z-index: 1;
+    font-weight: 900;
+    user-select: none;
+    pointer-events: none;
+    text-shadow: 0 8px 18px rgba(170, 92, 104, 0.12);
+}
+
+.page-decor-flower-one {
+    right: 78px;
+    top: 105px;
+    color: rgba(219, 113, 137, 0.56);
+    font-size: 86px;
+    animation: pageDecorFlowerOneMove 3.2s ease-in-out infinite;
+}
+
+.page-decor-flower-two {
+    left: 120px;
+    bottom: 82px;
+    color: rgba(193, 139, 80, 0.42);
+    font-size: 88px;
+    animation: pageDecorFlowerTwoMove 3.5s ease-in-out infinite;
+}
+
+/* ==============================
+   박스 안쪽 장식
+   점 4개 밴드 / 노리개만
+============================== */
+
+.page-decor-box-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: inherit;
+}
+
+/* 위쪽 점 4개 밴드 */
+.page-decor-box-band {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 7px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 246, 239, 0.92);
+    border: 1px solid rgba(245, 218, 207, 0.95);
+    box-shadow: 0 10px 24px rgba(184, 111, 145, 0.06);
+}
+
+.page-decor-box-band span {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    position: relative;
+    background: conic-gradient(#e9839b, #f3c778, #95bf8f, #cbb4ff, #e9839b);
+}
+
+.page-decor-box-band span::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: #fffaf4;
+}
+
+/* 오른쪽 노리개 */
+.page-decor-box-norigae {
+    position: absolute;
+    top: -34px;
+    right: 44px;
+    width: 58px;
+    height: 104px;
+    transform-origin: top center;
+    animation: pageDecorNorigaeSwing 2.6s ease-in-out infinite;
+}
+
+.page-decor-box-norigae-string {
+    width: 2px;
+    height: 38px;
+    background: #e78398;
+    margin: 0 auto;
+}
+
+.page-decor-box-norigae-knot {
+    width: 39px;
+    height: 39px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.28) 22%, transparent 23%),
+        conic-gradient(from 40deg, #e9839b, #f3c778, #95bf8f, #cbb4ff, #e9839b);
+    box-shadow: 0 10px 22px rgba(194, 94, 120, 0.24);
+}
+
+.page-decor-box-norigae-ribbon {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 3px;
+}
+
+.page-decor-box-norigae-ribbon span {
+    display: block;
+    width: 8px;
+    height: 30px;
+    border-radius: 0 0 10px 10px;
+}
+
+.page-decor-box-norigae-ribbon span:nth-child(1) {
+    background: linear-gradient(180deg, #e9839b, #f7b6c5);
+}
+
+.page-decor-box-norigae-ribbon span:nth-child(2) {
+    background: linear-gradient(180deg, #f3c778, #f8dea5);
+}
+
+.page-decor-box-norigae-ribbon span:nth-child(3) {
+    background: linear-gradient(180deg, #95bf8f, #cfe4bf);
+}
+
+/* ==============================
+   움직임
+============================== */
+
+@keyframes pageDecorCloudOneMove {
+    0% {
+        transform: translateX(0) translateY(0);
+    }
+
+    50% {
+        transform: translateX(42px) translateY(-8px);
+    }
+
+    100% {
+        transform: translateX(0) translateY(0);
+    }
+}
+
+@keyframes pageDecorCloudTwoMove {
+    0% {
+        transform: translateX(0) translateY(0);
+    }
+
+    50% {
+        transform: translateX(-38px) translateY(8px);
+    }
+
+    100% {
+        transform: translateX(0) translateY(0);
+    }
+}
+
+@keyframes pageDecorBojagiOneMove {
+    0% {
+        transform: rotate(-13deg) translateY(0);
+    }
+
+    50% {
+        transform: rotate(-6deg) translateY(-18px);
+    }
+
+    100% {
+        transform: rotate(-13deg) translateY(0);
+    }
+}
+
+@keyframes pageDecorBojagiTwoMove {
+    0% {
+        transform: rotate(15deg) translateY(0);
+    }
+
+    50% {
+        transform: rotate(22deg) translateY(15px);
+    }
+
+    100% {
+        transform: rotate(15deg) translateY(0);
+    }
+}
+
+@keyframes pageDecorMotifLeftRotate {
+    0% {
+        transform: rotate(-12deg);
+    }
+
+    100% {
+        transform: rotate(348deg);
+    }
+}
+
+@keyframes pageDecorMotifRightRotate {
+    0% {
+        transform: rotate(16deg);
+    }
+
+    100% {
+        transform: rotate(-344deg);
+    }
+}
+
+@keyframes pageDecorFlowerOneMove {
+    0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: translateY(-13px) rotate(12deg) scale(1.15);
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.5;
+    }
+}
+
+@keyframes pageDecorFlowerTwoMove {
+    0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.46;
+    }
+
+    50% {
+        transform: translateY(12px) rotate(-14deg) scale(1.14);
+        opacity: 0.86;
+    }
+
+    100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0.46;
+    }
+}
+
+@keyframes pageDecorNorigaeSwing {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    25% {
+        transform: rotate(5deg);
+    }
+
+    50% {
+        transform: rotate(0deg);
+    }
+
+    75% {
+        transform: rotate(-5deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@media (max-width: 760px) {
+    .page-decor-page-wrap,
+    .page-decor-box-wrap {
+        display: none;
+    }
+}

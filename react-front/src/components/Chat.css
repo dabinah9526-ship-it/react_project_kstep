@@ -1,22 +1,23 @@
 .chat-page {
     min-height: 100vh;
-    padding: 34px;
+    padding: 22px 18px 90px;
     box-sizing: border-box;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: visible;
     font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
     background:
-        radial-gradient(circle at 18% 16%, rgba(255, 192, 203, 0.36), transparent 28%),
-        radial-gradient(circle at 84% 18%, rgba(222, 202, 255, 0.34), transparent 30%),
-        radial-gradient(circle at 50% 100%, rgba(255, 219, 170, 0.28), transparent 30%),
-        linear-gradient(135deg, #fffaf3 0%, #fff4f7 46%, #f9f6ff 100%);
+        radial-gradient(circle at 15% 12%, rgba(255, 192, 203, 0.2), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(222, 202, 255, 0.18), transparent 30%),
+        linear-gradient(135deg, #fffaf5 0%, #fff7f9 50%, #fbf8ff 100%);
+    color: #2b1d3d;
 }
 
 .chat-page::before {
     content: "";
-    position: absolute;
+    position: fixed;
     inset: 0;
-    opacity: 0.25;
+    opacity: 0.14;
     pointer-events: none;
     background-image:
         radial-gradient(rgba(151, 97, 82, 0.08) 0.7px, transparent 0.7px),
@@ -26,29 +27,144 @@
 }
 
 .chat-bg-flower {
-    position: absolute;
-    z-index: 0;
-    pointer-events: none;
-    font-size: 92px;
+    display: none;
+}
+
+.chat-shell {
+    position: relative;
+    z-index: 2;
+    width: min(100%, 1180px);
+    margin: 0 auto;
+}
+
+.chat-app-top {
+    position: relative;
+    overflow: hidden;
+    min-height: 150px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 54px 24px 28px;
+    margin-bottom: 16px;
+    border-radius: 32px;
+    background:
+        radial-gradient(circle at 92% 12%, rgba(255, 188, 206, 0.16), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 252, 250, 0.94));
+    border: 1px solid rgba(245, 224, 217, 0.98);
+    box-shadow:
+        0 24px 62px rgba(91, 65, 55, 0.09),
+        0 10px 30px rgba(223, 124, 154, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    box-sizing: border-box;
+}
+
+.chat-app-top > .page-decor-box-wrap {
+    z-index: 1;
+}
+
+.chat-brand-row,
+.chat-top-icons {
+    position: relative;
+    z-index: 2;
+}
+
+.chat-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.chat-brand-mark {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 20px;
     font-weight: 950;
-    color: rgba(223, 111, 142, 0.13);
+    background:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.38), transparent 32%),
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow:
+        0 16px 28px rgba(91, 65, 55, 0.12),
+        0 8px 18px rgba(223, 124, 154, 0.16);
 }
 
-.chat-bg-flower-one {
-    top: 70px;
-    right: 90px;
+.chat-top-label {
+    width: fit-content;
+    margin: 0 0 8px;
+    padding: 6px 13px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #fff7e8, #ffeef4);
+    color: #a45f76;
+    border: 1px solid #f2d7c7;
+    font-size: 12px;
+    font-weight: 950;
 }
 
-.chat-bg-flower-two {
-    bottom: 70px;
-    left: 95px;
+.chat-brand-row h1 {
+    margin: 0;
+    color: #2b1d3d;
+    font-size: 26px;
+    line-height: 1.16;
+    font-weight: 950;
+    letter-spacing: -0.8px;
+}
+
+.chat-top-copy {
+    margin: 5px 0 0;
+    color: #827785;
+    font-size: 13px;
+    font-weight: 780;
+    line-height: 1.45;
+    word-break: keep-all;
+}
+
+.chat-top-icons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.chat-top-icons button {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(246, 211, 221, 0.95);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, 0.78);
+    color: #a45f76;
+    font-size: 17px;
+    font-weight: 950;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 10px 24px rgba(91, 65, 55, 0.06);
+    transition: 0.18s ease;
+}
+
+.chat-top-icons button.write {
+    color: #ffffff;
+    font-size: 25px;
+    border: none;
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow: 0 14px 28px rgba(233, 131, 155, 0.2);
+}
+
+.chat-top-icons button:hover {
+    transform: translateY(-2px);
 }
 
 .chat-container {
     position: relative;
     z-index: 1;
-    max-width: 1180px;
-    height: calc(100vh - 68px);
+    width: 100%;
+    height: calc(100vh - 238px);
     min-height: 680px;
     margin: 0 auto;
     display: grid;
@@ -880,10 +996,7 @@
     text-overflow: ellipsis;
 }
 
-/* =========================
-   K-STEP 디자인 메시지 삭제 모달
-========================= */
-
+/* 삭제 모달 */
 .chat-delete-modal-bg {
     position: fixed;
     inset: 0;
@@ -1172,7 +1285,13 @@
     .chat-page {
         min-height: 100vh;
         overflow-y: auto;
-        padding: 22px 14px;
+        padding: 22px 14px 90px;
+    }
+
+    .chat-app-top {
+        min-height: auto;
+        padding: 34px 18px 22px;
+        border-radius: 28px;
     }
 
     .chat-container {
@@ -1192,7 +1311,25 @@
 
 @media (max-width: 640px) {
     .chat-page {
-        padding: 16px 10px;
+        padding: 16px 10px 84px;
+    }
+
+    .chat-app-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .chat-brand-row h1 {
+        font-size: 23px;
+    }
+
+    .chat-top-copy {
+        font-size: 12px;
+    }
+
+    .chat-top-icons {
+        width: 100%;
+        justify-content: flex-end;
     }
 
     .chat-container {
@@ -1298,5 +1435,13 @@
     .chat-delete-modal-btn-row {
         padding-left: 18px;
         padding-right: 18px;
+    }
+}
+
+@media (max-width: 520px) {
+    .chat-brand-mark {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
     }
 }

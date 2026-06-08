@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ProfileStoryCircle from "./ProfileStoryCircle";
+import PageDecor from "./PageDecor";
+import ScrollTopButton from "./ScrollTopButton";
 import "./Profile.css";
 
 function Profile() {
     const navigate = useNavigate();
+    const profileImageInputRef = useRef(null);
 
     const { userNo } = useParams();
     const [searchParams] = useSearchParams();
@@ -21,6 +24,7 @@ function Profile() {
     const [loading, setLoading] = useState(false);
     const [listLoading, setListLoading] = useState(false);
     const [messageLoading, setMessageLoading] = useState(false);
+    const [profileImageUploading, setProfileImageUploading] = useState(false);
 
     const [activeTab, setActiveTab] = useState("feed");
 
@@ -46,7 +50,9 @@ function Profile() {
         setFollowingList([]);
 
         getProfile();
-    }, [navigate, profileUserNo]);
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [profileUserNo]);
 
     function moveLoginPage(message) {
         localStorage.removeItem("token");
@@ -496,6 +502,107 @@ function Profile() {
             });
     }
 
+    function openProfileImagePicker(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+
+        if (profileImageUploading) {
+            return;
+        }
+
+        if (profileImageInputRef.current) {
+            profileImageInputRef.current.click();
+        }
+    }
+
+    function selectProfileImage(e) {
+        const file = e.target.files && e.target.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        if (!file.type.startsWith("image/")) {
+            alert("이미지 파일만 선택할 수 있습니다.");
+            e.target.value = "";
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert("프로필 사진은 5MB 이하만 가능합니다.");
+            e.target.value = "";
+            return;
+        }
+
+        updateProfileImage(file);
+        e.target.value = "";
+    }
+
+    function updateProfileImage(file) {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            moveLoginPage("로그인이 필요합니다.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("profileImage", file);
+
+        setProfileImageUploading(true);
+
+        fetch("http://localhost:3010/user/profile/image/update", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token
+            },
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("프로필 사진 변경 결과", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
+                if (data.result === "success") {
+                    const nextProfileImg =
+                        data.profileImg ||
+                        data.PROFILE_IMG ||
+                        data.profileImage ||
+                        data.imageUrl ||
+                        "";
+
+                    if (nextProfileImg !== "") {
+                        setProfile(prevProfile => {
+                            if (!prevProfile) {
+                                return prevProfile;
+                            }
+
+                            return {
+                                ...prevProfile,
+                                PROFILE_IMG: nextProfileImg
+                            };
+                        });
+                    }
+
+                    alert(data.message || "프로필 사진이 변경되었습니다.");
+                    getProfile();
+                } else {
+                    alert(data.message || "프로필 사진 변경에 실패했습니다.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("프로필 사진 변경 중 오류가 발생했습니다.");
+            })
+            .finally(() => {
+                setProfileImageUploading(false);
+            });
+    }
+
     function openFeedDetail(feedNo) {
         sessionStorage.setItem("selectedFeedNo", feedNo);
 
@@ -535,14 +642,20 @@ function Profile() {
             return;
         }
 
-        navigator.clipboard.writeText(shareUrl)
-            .then(() => {
-                alert("프로필 링크가 복사되었습니다.");
-            })
-            .catch(err => {
-                console.error(err);
-                alert("링크 복사에 실패했습니다.");
-            });
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(shareUrl)
+                .then(() => {
+                    alert("프로필 링크가 복사되었습니다.");
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("링크 복사에 실패했습니다.");
+                });
+
+            return;
+        }
+
+        alert(shareUrl);
     }
 
     function goCreateFeed() {
@@ -777,6 +890,10 @@ function Profile() {
                                 <span>{safeText(feed.AREA, "Korea")}</span>
                                 <span>{safeText(feed.CATEGORY, "여행")}</span>
                             </div>
+
+                            <div className="profile-feed-hover-layer">
+                                <strong>루트 보기</strong>
+                            </div>
                         </div>
 
                         <div className="profile-feed-card-body">
@@ -856,11 +973,15 @@ function Profile() {
     if (loading) {
         return (
             <div className="profile-page">
+                <PageDecor />
+
                 <div className="profile-container">
                     <section className="profile-section">
                         프로필 정보를 불러오는 중입니다...
                     </section>
                 </div>
+
+                <ScrollTopButton />
             </div>
         );
     }
@@ -868,11 +989,15 @@ function Profile() {
     if (!profile) {
         return (
             <div className="profile-page">
+                <PageDecor />
+
                 <div className="profile-container">
                     <section className="profile-section">
                         프로필 정보가 없습니다.
                     </section>
                 </div>
+
+                <ScrollTopButton />
             </div>
         );
     }
@@ -881,22 +1006,48 @@ function Profile() {
 
     return (
         <div className="profile-page">
-            <div className="profile-bg-flower profile-flower-one">✿</div>
-            <div className="profile-bg-flower profile-flower-two">❀</div>
+            <PageDecor />
 
             <div className="profile-container">
                 <section className="profile-hero-card">
+                    <PageDecor variant="box" />
+
                     <div className="profile-cover-strip">
                         <span>K-STEP PROFILE</span>
                         <strong>{safeText(profile.AREA, "Korea Travel")}</strong>
                     </div>
 
                     <div className="profile-avatar-box">
-                        <ProfileStoryCircle
-                            userNo={profile.USER_NO}
-                            nickname={profile.NICKNAME || profile.USER_ID}
-                            profileImg={profile.PROFILE_IMG}
-                        />
+                        <div className="profile-story-wrap">
+                            <ProfileStoryCircle
+                                userNo={profile.USER_NO}
+                                nickname={profile.NICKNAME || profile.USER_ID}
+                                profileImg={profile.PROFILE_IMG}
+                            />
+
+                            {isMyProfile() && (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="profile-image-edit-btn"
+                                        onClick={openProfileImagePicker}
+                                        disabled={profileImageUploading}
+                                        title="프로필 사진 변경"
+                                        aria-label="프로필 사진 변경"
+                                    >
+                                        {profileImageUploading ? "..." : "📷"}
+                                    </button>
+
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        ref={profileImageInputRef}
+                                        className="profile-image-hidden-input"
+                                        onChange={selectProfileImage}
+                                    />
+                                </>
+                            )}
+                        </div>
 
                         <div className="profile-type-badge">
                             {safeText(profile.USER_TYPE, "TRAVELER")}
@@ -989,7 +1140,7 @@ function Profile() {
                                     </button>
 
                                     <button className="profile-soft-btn" onClick={goSaved}>
-                                        저장함
+                                        즐겨찾기
                                     </button>
 
                                     <button className="profile-soft-btn" onClick={shareProfile}>
@@ -1059,6 +1210,8 @@ function Profile() {
                     )}
                 </section>
             </div>
+
+            <ScrollTopButton />
         </div>
     );
 }

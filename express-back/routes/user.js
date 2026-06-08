@@ -2,9 +2,44 @@ const express = require('express');
 const oracledb = require('oracledb');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const db = require("../db");
 const router = express.Router();
+
+const profileUploadDir = path.join(__dirname, "..", "uploads", "profile");
+
+if (!fs.existsSync(profileUploadDir)) {
+    fs.mkdirSync(profileUploadDir, { recursive: true });
+}
+
+const profileImageStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, profileUploadDir);
+    },
+    filename: function (req, file, cb) {
+        const ext = path.extname(file.originalname);
+        const fileName = Date.now() + "-" + Math.round(Math.random() * 1000000000) + ext;
+
+        cb(null, fileName);
+    }
+});
+
+const uploadProfileImage = multer({
+    storage: profileImageStorage,
+    limits: {
+        fileSize: 5 * 1024 * 1024
+    },
+    fileFilter: function (req, file, cb) {
+        if (file.mimetype.startsWith("image/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("이미지 파일만 업로드할 수 있습니다."));
+        }
+    }
+});
 
 function checkToken(req) {
     const authHeader = req.headers.authorization;
@@ -31,7 +66,69 @@ function yn(value) {
     return value === "Y" ? "Y" : "N";
 }
 
+async function tableExists(connection, tableName) {
+    const result = await connection.execute(
+        `
+            SELECT COUNT(*) AS CNT
+            FROM USER_TABLES
+            WHERE TABLE_NAME = UPPER(:tableName)
+        `,
+        {
+            tableName: tableName
+        },
+        {
+            outFormat: oracledb.OUT_FORMAT_OBJECT
+        }
+    );
+
+    return result.rows[0].CNT > 0;
+}
+
+async function columnExists(connection, tableName, columnName) {
+    const result = await connection.execute(
+        `
+            SELECT COUNT(*) AS CNT
+            FROM USER_TAB_COLUMNS
+            WHERE TABLE_NAME = UPPER(:tableName)
+              AND COLUMN_NAME = UPPER(:columnName)
+        `,
+        {
+            tableName: tableName,
+            columnName: columnName
+        },
+        {
+            outFormat: oracledb.OUT_FORMAT_OBJECT
+        }
+    );
+
+    return result.rows[0].CNT > 0;
+}
+
+async function ensureProfileImgColumn(connection) {
+    const exists = await columnExists(connection, "USERS", "PROFILE_IMG");
+
+    if (!exists) {
+        await connection.execute(
+            `
+                ALTER TABLE USERS
+                ADD PROFILE_IMG VARCHAR2(500)
+            `
+        );
+
+        await connection.commit();
+    }
+}
+
 async function getBlockStatus(connection, loginUserNo, targetUserNo) {
+    const blockTableExists = await tableExists(connection, "USER_BLOCK");
+
+    if (!blockTableExists) {
+        return {
+            blockedByMe: false,
+            blockedMe: false
+        };
+    }
+
     const result = await connection.execute(
         `
             SELECT
@@ -168,7 +265,9 @@ async function canViewBookmarkList(connection, loginUserNo, targetUserNo) {
     return result.rows[0].BOOKMARK_PUBLIC_YN === "Y";
 }
 
-// 아이디 중복체크
+/* =========================
+   아이디 중복체크
+========================= */
 router.post('/check-id', async (req, res) => {
     const { userId } = req.body;
 
@@ -188,7 +287,7 @@ router.post('/check-id', async (req, res) => {
             `
                 SELECT COUNT(*) AS CNT
                 FROM USERS
-                WHERE USER_ID = :userId
+                WHERE LOWER(TRIM(USER_ID)) = LOWER(TRIM(:userId))
                   AND USER_STATUS = 'Y'
             `,
             {
@@ -226,7 +325,9 @@ router.post('/check-id', async (req, res) => {
     }
 });
 
-// 닉네임 중복체크
+/* =========================
+   닉네임 중복체크
+========================= */
 router.post('/check-nickname', async (req, res) => {
     const { nickname } = req.body;
 
@@ -284,7 +385,171 @@ router.post('/check-nickname', async (req, res) => {
     }
 });
 
-// 회원가입
+/* =========================
+   아이디 찾기
+========================= */
+router.post('/find-id', async (req, res) => {
+    const { email, nickname } = req.body;
+
+    let connection;
+
+    try {
+        if (!email || !nickname) {
+            return res.json({
+                result: "fail",
+                message: "이메일과 닉네임을 입력해주세요."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const result = await connection.execute(
+            `
+                SELECT USER_ID
+                FROM USERS
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(:email))
+                  AND TRIM(NICKNAME) = TRIM(:nickname)
+                  AND USER_STATUS = 'Y'
+            `,
+            {
+                email: email,
+                nickname: nickname
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (result.rows.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "일치하는 계정을 찾을 수 없습니다."
+            });
+        }
+
+        res.json({
+            result: "success",
+            message: "아이디를 찾았습니다.",
+            userId: result.rows[0].USER_ID
+        });
+
+    } catch (error) {
+        console.error("find id error", error);
+
+        res.status(500).json({
+            result: "fail",
+            message: "아이디 찾기 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+/* =========================
+   비밀번호 재설정
+========================= */
+router.post('/password/reset', async (req, res) => {
+    const { userId, email, newPassword, newPasswordConfirm } = req.body;
+
+    let connection;
+
+    try {
+        if (!userId || !email || !newPassword || !newPasswordConfirm) {
+            return res.json({
+                result: "fail",
+                message: "아이디, 이메일, 새 비밀번호를 모두 입력해주세요."
+            });
+        }
+
+        if (newPassword !== newPasswordConfirm) {
+            return res.json({
+                result: "fail",
+                message: "새 비밀번호가 서로 다릅니다."
+            });
+        }
+
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,20}$/;
+
+        if (!passwordRegex.test(newPassword)) {
+            return res.json({
+                result: "fail",
+                message: "비밀번호는 영문과 숫자를 포함해서 8~20자로 입력해주세요."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const userResult = await connection.execute(
+            `
+                SELECT USER_NO
+                FROM USERS
+                WHERE LOWER(TRIM(USER_ID)) = LOWER(TRIM(:userId))
+                  AND LOWER(TRIM(EMAIL)) = LOWER(TRIM(:email))
+                  AND USER_STATUS = 'Y'
+            `,
+            {
+                userId: userId,
+                email: email
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "아이디와 이메일이 일치하는 계정을 찾을 수 없습니다."
+            });
+        }
+
+        const hashPassword = await bcrypt.hash(newPassword, 10);
+
+        await connection.execute(
+            `
+                UPDATE USERS
+                SET PASSWORD = :password
+                WHERE USER_NO = :userNo
+                  AND USER_STATUS = 'Y'
+            `,
+            {
+                password: hashPassword,
+                userNo: userResult.rows[0].USER_NO
+            }
+        );
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            message: "비밀번호가 재설정되었습니다. 새 비밀번호로 로그인해주세요."
+        });
+
+    } catch (error) {
+        console.error("password reset error", error);
+
+        if (connection) {
+            await connection.rollback();
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "비밀번호 재설정 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+/* =========================
+   회원가입
+========================= */
 router.post('/join', async (req, res) => {
     const { userId, password, nickname, userType, email, bio } = req.body;
 
@@ -320,7 +585,7 @@ router.post('/join', async (req, res) => {
             `
                 SELECT COUNT(*) AS CNT
                 FROM USERS
-                WHERE USER_ID = :userId
+                WHERE LOWER(TRIM(USER_ID)) = LOWER(TRIM(:userId))
                   AND USER_STATUS = 'Y'
             `,
             {
@@ -430,7 +695,9 @@ router.post('/join', async (req, res) => {
     }
 });
 
-// 로그인
+/* =========================
+   로그인
+========================= */
 router.post('/login', async (req, res) => {
     const { userId, password } = req.body;
 
@@ -445,6 +712,8 @@ router.post('/login', async (req, res) => {
         }
 
         connection = await db.getConnection();
+
+        await ensureProfileImgColumn(connection);
 
         const result = await connection.execute(
             `
@@ -575,7 +844,9 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// 추천 사용자 목록 조회
+/* =========================
+   추천 사용자 목록
+========================= */
 router.get('/recommend/list', async (req, res) => {
     let connection;
 
@@ -690,7 +961,9 @@ router.get('/recommend/list', async (req, res) => {
     }
 });
 
-// 프로필 조회
+/* =========================
+   프로필 조회
+========================= */
 router.get('/profile/:userNo', async (req, res) => {
     const { userNo } = req.params;
 
@@ -707,6 +980,8 @@ router.get('/profile/:userNo', async (req, res) => {
         }
 
         connection = await db.getConnection();
+
+        await ensureProfileImgColumn(connection);
 
         const blockStatus = await getBlockStatus(connection, loginUser.userNo, userNo);
 
@@ -846,7 +1121,9 @@ router.get('/profile/:userNo', async (req, res) => {
     }
 });
 
-// 프로필 수정
+/* =========================
+   프로필 수정
+========================= */
 router.post('/profile/update', async (req, res) => {
     const { nickname, email, userType, bio } = req.body;
 
@@ -926,7 +1203,7 @@ router.post('/profile/update', async (req, res) => {
 
         res.json({
             result: "success",
-            message: "프로필 정보가 수정되었습니다."
+            message: "프로필이 수정되었습니다."
         });
 
     } catch (error) {
@@ -948,8 +1225,10 @@ router.post('/profile/update', async (req, res) => {
     }
 });
 
-// 공개 / 비공개 전환
-router.post('/privacy/toggle', async (req, res) => {
+/* =========================
+   프로필 이미지 변경
+========================= */
+router.post('/profile/image/update', uploadProfileImage.single("profileImage"), async (req, res) => {
     let connection;
 
     try {
@@ -962,69 +1241,42 @@ router.post('/privacy/toggle', async (req, res) => {
             });
         }
 
-        connection = await db.getConnection();
-
-        const result = await connection.execute(
-            `
-                SELECT ACCOUNT_PRIVATE_YN
-                FROM USERS
-                WHERE USER_NO = :userNo
-                  AND USER_STATUS = 'Y'
-            `,
-            {
-                userNo: loginUser.userNo
-            },
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
-            }
-        );
-
-        if (result.rows.length === 0) {
+        if (!req.file) {
             return res.json({
                 result: "fail",
-                message: "존재하지 않는 사용자입니다."
+                message: "프로필 사진을 선택해주세요."
             });
         }
 
-        const currentYn = result.rows[0].ACCOUNT_PRIVATE_YN || "N";
-        const nextYn = currentYn === "Y" ? "N" : "Y";
+        const profileImg = "/uploads/profile/" + req.file.filename;
+
+        connection = await db.getConnection();
+
+        await ensureProfileImgColumn(connection);
 
         await connection.execute(
             `
                 UPDATE USERS
-                SET ACCOUNT_PRIVATE_YN = :nextYn
+                SET PROFILE_IMG = :profileImg
                 WHERE USER_NO = :userNo
+                  AND USER_STATUS = 'Y'
             `,
             {
-                nextYn: nextYn,
+                profileImg: profileImg,
                 userNo: loginUser.userNo
             }
         );
-
-        if (nextYn === "N") {
-            await connection.execute(
-                `
-                    UPDATE USER_FOLLOW
-                    SET FOLLOW_STATUS = 'ACCEPTED'
-                    WHERE FOLLOWING_NO = :userNo
-                      AND FOLLOW_STATUS = 'PENDING'
-                `,
-                {
-                    userNo: loginUser.userNo
-                }
-            );
-        }
 
         await connection.commit();
 
         res.json({
             result: "success",
-            accountPrivateYn: nextYn,
-            message: nextYn === "Y" ? "비공개 계정으로 전환되었습니다." : "공개 계정으로 전환되었습니다."
+            message: "프로필 사진이 변경되었습니다.",
+            profileImg: profileImg
         });
 
     } catch (error) {
-        console.error("privacy toggle error", error);
+        console.error("profile image update error", error);
 
         if (connection) {
             await connection.rollback();
@@ -1032,7 +1284,8 @@ router.post('/privacy/toggle', async (req, res) => {
 
         res.status(500).json({
             result: "fail",
-            message: "계정 공개 설정 변경 중 오류가 발생했습니다."
+            message: "프로필 사진 변경 중 오류가 발생했습니다.",
+            error: error.message
         });
 
     } finally {
@@ -1042,409 +1295,9 @@ router.post('/privacy/toggle', async (req, res) => {
     }
 });
 
-// 저장한 루트 공개 / 비공개 전환
-router.post('/bookmark/privacy/toggle', async (req, res) => {
-    let connection;
-
-    try {
-        const loginUser = checkToken(req);
-
-        if (!loginUser) {
-            return res.status(401).json({
-                result: "fail",
-                message: "로그인이 필요합니다."
-            });
-        }
-
-        connection = await db.getConnection();
-
-        const result = await connection.execute(
-            `
-                SELECT BOOKMARK_PUBLIC_YN
-                FROM USERS
-                WHERE USER_NO = :userNo
-                  AND USER_STATUS = 'Y'
-            `,
-            {
-                userNo: loginUser.userNo
-            },
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
-            }
-        );
-
-        if (result.rows.length === 0) {
-            return res.json({
-                result: "fail",
-                message: "존재하지 않는 사용자입니다."
-            });
-        }
-
-        const currentYn = result.rows[0].BOOKMARK_PUBLIC_YN || "N";
-        const nextYn = currentYn === "Y" ? "N" : "Y";
-
-        await connection.execute(
-            `
-                UPDATE USERS
-                SET BOOKMARK_PUBLIC_YN = :nextYn
-                WHERE USER_NO = :userNo
-            `,
-            {
-                nextYn: nextYn,
-                userNo: loginUser.userNo
-            }
-        );
-
-        await connection.commit();
-
-        res.json({
-            result: "success",
-            bookmarkPublicYn: nextYn,
-            message: nextYn === "Y" ? "저장한 루트가 공개되었습니다." : "저장한 루트가 비공개되었습니다."
-        });
-
-    } catch (error) {
-        console.error("bookmark privacy toggle error", error);
-
-        if (connection) {
-            await connection.rollback();
-        }
-
-        res.status(500).json({
-            result: "fail",
-            message: "저장한 루트 공개 설정 변경 중 오류가 발생했습니다."
-        });
-
-    } finally {
-        if (connection) {
-            await connection.close();
-        }
-    }
-});
-
-// 알림 설정 변경
-router.post('/notifications/update', async (req, res) => {
-    const { followYn, commentYn, likeYn, chatYn } = req.body;
-
-    let connection;
-
-    try {
-        const loginUser = checkToken(req);
-
-        if (!loginUser) {
-            return res.status(401).json({
-                result: "fail",
-                message: "로그인이 필요합니다."
-            });
-        }
-
-        connection = await db.getConnection();
-
-        await connection.execute(
-            `
-                UPDATE USERS
-                SET
-                    NOTI_FOLLOW_YN = :followYn,
-                    NOTI_COMMENT_YN = :commentYn,
-                    NOTI_LIKE_YN = :likeYn,
-                    NOTI_CHAT_YN = :chatYn
-                WHERE USER_NO = :userNo
-                  AND USER_STATUS = 'Y'
-            `,
-            {
-                followYn: yn(followYn),
-                commentYn: yn(commentYn),
-                likeYn: yn(likeYn),
-                chatYn: yn(chatYn),
-                userNo: loginUser.userNo
-            }
-        );
-
-        await connection.commit();
-
-        res.json({
-            result: "success",
-            message: "알림 설정이 저장되었습니다."
-        });
-
-    } catch (error) {
-        console.error("notifications update error", error);
-
-        if (connection) {
-            await connection.rollback();
-        }
-
-        res.status(500).json({
-            result: "fail",
-            message: "알림 설정 저장 중 오류가 발생했습니다."
-        });
-
-    } finally {
-        if (connection) {
-            await connection.close();
-        }
-    }
-});
-
-// 비밀번호 변경
-router.post('/password/change', async (req, res) => {
-    const { currentPassword, newPassword, newPasswordConfirm } = req.body;
-
-    let connection;
-
-    try {
-        const loginUser = checkToken(req);
-
-        if (!loginUser) {
-            return res.status(401).json({
-                result: "fail",
-                message: "로그인이 필요합니다."
-            });
-        }
-
-        if (!currentPassword || !newPassword || !newPasswordConfirm) {
-            return res.json({
-                result: "fail",
-                message: "현재 비밀번호와 새 비밀번호를 모두 입력해주세요."
-            });
-        }
-
-        if (newPassword !== newPasswordConfirm) {
-            return res.json({
-                result: "fail",
-                message: "새 비밀번호가 일치하지 않습니다."
-            });
-        }
-
-        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,20}$/;
-
-        if (!passwordRegex.test(newPassword)) {
-            return res.json({
-                result: "fail",
-                message: "새 비밀번호는 영문과 숫자를 포함해서 8~20자로 입력해주세요."
-            });
-        }
-
-        connection = await db.getConnection();
-
-        const result = await connection.execute(
-            `
-                SELECT PASSWORD
-                FROM USERS
-                WHERE USER_NO = :userNo
-                  AND USER_STATUS = 'Y'
-            `,
-            {
-                userNo: loginUser.userNo
-            },
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
-            }
-        );
-
-        if (result.rows.length === 0) {
-            return res.json({
-                result: "fail",
-                message: "사용자 정보를 찾을 수 없습니다."
-            });
-        }
-
-        let isPasswordOk = false;
-
-        if (result.rows[0].PASSWORD && result.rows[0].PASSWORD.startsWith("$2")) {
-            isPasswordOk = await bcrypt.compare(currentPassword, result.rows[0].PASSWORD);
-        }
-
-        if (!isPasswordOk && result.rows[0].PASSWORD === currentPassword) {
-            isPasswordOk = true;
-        }
-
-        if (!isPasswordOk) {
-            return res.json({
-                result: "fail",
-                message: "현재 비밀번호가 일치하지 않습니다."
-            });
-        }
-
-        const hashPassword = await bcrypt.hash(newPassword, 10);
-
-        await connection.execute(
-            `
-                UPDATE USERS
-                SET PASSWORD = :password
-                WHERE USER_NO = :userNo
-            `,
-            {
-                password: hashPassword,
-                userNo: loginUser.userNo
-            }
-        );
-
-        await connection.commit();
-
-        res.json({
-            result: "success",
-            message: "비밀번호가 변경되었습니다. 다시 로그인해주세요."
-        });
-
-    } catch (error) {
-        console.error("password change error", error);
-
-        if (connection) {
-            await connection.rollback();
-        }
-
-        res.status(500).json({
-            result: "fail",
-            message: "비밀번호 변경 중 오류가 발생했습니다."
-        });
-
-    } finally {
-        if (connection) {
-            await connection.close();
-        }
-    }
-});
-
-// 회원 탈퇴
-router.post('/leave', async (req, res) => {
-    const { password } = req.body;
-
-    let connection;
-
-    try {
-        const loginUser = checkToken(req);
-
-        if (!loginUser) {
-            return res.status(401).json({
-                result: "fail",
-                message: "로그인이 필요합니다."
-            });
-        }
-
-        if (!password) {
-            return res.json({
-                result: "fail",
-                message: "비밀번호를 입력해주세요."
-            });
-        }
-
-        connection = await db.getConnection();
-
-        const result = await connection.execute(
-            `
-                SELECT PASSWORD
-                FROM USERS
-                WHERE USER_NO = :userNo
-                  AND USER_STATUS = 'Y'
-            `,
-            {
-                userNo: loginUser.userNo
-            },
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
-            }
-        );
-
-        if (result.rows.length === 0) {
-            return res.json({
-                result: "fail",
-                message: "사용자 정보를 찾을 수 없습니다."
-            });
-        }
-
-        let isPasswordOk = false;
-
-        if (result.rows[0].PASSWORD && result.rows[0].PASSWORD.startsWith("$2")) {
-            isPasswordOk = await bcrypt.compare(password, result.rows[0].PASSWORD);
-        }
-
-        if (!isPasswordOk && result.rows[0].PASSWORD === password) {
-            isPasswordOk = true;
-        }
-
-        if (!isPasswordOk) {
-            return res.json({
-                result: "fail",
-                message: "비밀번호가 일치하지 않습니다."
-            });
-        }
-
-        await connection.execute(
-            `
-                DELETE FROM USER_FOLLOW
-                WHERE FOLLOWER_NO = :userNo
-                   OR FOLLOWING_NO = :userNo
-            `,
-            {
-                userNo: loginUser.userNo
-            }
-        );
-
-        await connection.execute(
-            `
-                DELETE FROM USER_BLOCK
-                WHERE BLOCKER_NO = :userNo
-                   OR BLOCKED_NO = :userNo
-            `,
-            {
-                userNo: loginUser.userNo
-            }
-        );
-
-        await connection.execute(
-            `
-                DELETE FROM FEED_BOOKMARK
-                WHERE USER_NO = :userNo
-            `,
-            {
-                userNo: loginUser.userNo
-            }
-        );
-
-        await connection.execute(
-            `
-                UPDATE USERS
-                SET
-                    USER_STATUS = 'N',
-                    USER_ID = 'deleted_' || USER_NO || '_' || TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
-                    NICKNAME = 'deleted_' || USER_NO,
-                    EMAIL = NULL,
-                    BIO = NULL
-                WHERE USER_NO = :userNo
-            `,
-            {
-                userNo: loginUser.userNo
-            }
-        );
-
-        await connection.commit();
-
-        res.json({
-            result: "success",
-            message: "회원 탈퇴가 완료되었습니다."
-        });
-
-    } catch (error) {
-        console.error("leave error", error);
-
-        if (connection) {
-            await connection.rollback();
-        }
-
-        res.status(500).json({
-            result: "fail",
-            message: "회원 탈퇴 중 오류가 발생했습니다."
-        });
-
-    } finally {
-        if (connection) {
-            await connection.close();
-        }
-    }
-});
-
-// 작성 피드 목록
+/* =========================
+   프로필 피드 조회
+========================= */
 router.get('/profile/:userNo/feed', async (req, res) => {
     const { userNo } = req.params;
 
@@ -1467,7 +1320,8 @@ router.get('/profile/:userNo/feed', async (req, res) => {
         if (!canView) {
             return res.json({
                 result: "private",
-                message: "비공개 계정입니다."
+                message: "비공개 계정입니다.",
+                list: []
             });
         }
 
@@ -1486,22 +1340,36 @@ router.get('/profile/:userNo/feed', async (req, res) => {
                     F.CDATE,
                     F.USER_NO,
                     U.NICKNAME,
-                    CASE
-                        WHEN B.BOOKMARK_NO IS NULL THEN 'N'
-                        ELSE 'Y'
-                    END AS BOOKMARK_YN
+                    U.PROFILE_IMG,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM FEED_LIKE FL
+                        WHERE FL.FEED_NO = F.FEED_NO
+                    ) AS LIKE_COUNT,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM FEED_COMMENT FC
+                        WHERE FC.FEED_NO = F.FEED_NO
+                          AND NVL(FC.COMMENT_STATUS, 'Y') = 'Y'
+                    ) AS COMMENT_COUNT,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM FEED_BOOKMARK FB
+                        WHERE FB.FEED_NO = F.FEED_NO
+                    ) AS BOOKMARK_COUNT
+
                 FROM FEED F
-                LEFT JOIN USERS U
+                INNER JOIN USERS U
                     ON F.USER_NO = U.USER_NO
-                LEFT JOIN FEED_BOOKMARK B
-                    ON F.FEED_NO = B.FEED_NO
-                   AND B.USER_NO = :loginUserNo
                 WHERE F.USER_NO = :userNo
+                  AND U.USER_STATUS = 'Y'
                 ORDER BY F.FEED_NO DESC
             `,
             {
-                userNo: userNo,
-                loginUserNo: loginUser.userNo
+                userNo: userNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT,
@@ -1531,7 +1399,9 @@ router.get('/profile/:userNo/feed', async (req, res) => {
     }
 });
 
-// 저장한 루트 목록
+/* =========================
+   프로필 즐겨찾기 조회
+========================= */
 router.get('/profile/:userNo/bookmark', async (req, res) => {
     const { userNo } = req.params;
 
@@ -1554,7 +1424,8 @@ router.get('/profile/:userNo/bookmark', async (req, res) => {
         if (!canView) {
             return res.json({
                 result: "private",
-                message: "저장한 루트가 비공개입니다."
+                message: "즐겨찾기 목록이 비공개입니다.",
+                list: []
             });
         }
 
@@ -1573,14 +1444,35 @@ router.get('/profile/:userNo/bookmark', async (req, res) => {
                     F.CDATE,
                     F.USER_NO,
                     U.NICKNAME,
-                    'Y' AS BOOKMARK_YN
-                FROM FEED_BOOKMARK FB
+                    U.PROFILE_IMG,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM FEED_LIKE FL
+                        WHERE FL.FEED_NO = F.FEED_NO
+                    ) AS LIKE_COUNT,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM FEED_COMMENT FC
+                        WHERE FC.FEED_NO = F.FEED_NO
+                          AND NVL(FC.COMMENT_STATUS, 'Y') = 'Y'
+                    ) AS COMMENT_COUNT,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM FEED_BOOKMARK FB
+                        WHERE FB.FEED_NO = F.FEED_NO
+                    ) AS BOOKMARK_COUNT
+
+                FROM FEED_BOOKMARK B
                 INNER JOIN FEED F
-                    ON FB.FEED_NO = F.FEED_NO
-                LEFT JOIN USERS U
+                    ON B.FEED_NO = F.FEED_NO
+                INNER JOIN USERS U
                     ON F.USER_NO = U.USER_NO
-                WHERE FB.USER_NO = :userNo
-                ORDER BY FB.BOOKMARK_NO DESC
+                WHERE B.USER_NO = :userNo
+                  AND U.USER_STATUS = 'Y'
+                ORDER BY B.BOOKMARK_NO DESC
             `,
             {
                 userNo: userNo
@@ -1599,11 +1491,11 @@ router.get('/profile/:userNo/bookmark', async (req, res) => {
         });
 
     } catch (error) {
-        console.error("bookmark list error", error);
+        console.error("profile bookmark error", error);
 
         res.status(500).json({
             result: "fail",
-            message: "저장한 루트 목록 조회 중 오류가 발생했습니다."
+            message: "즐겨찾기 목록 조회 중 오류가 발생했습니다."
         });
 
     } finally {
@@ -1613,7 +1505,9 @@ router.get('/profile/:userNo/bookmark', async (req, res) => {
     }
 });
 
-// 팔로워 목록
+/* =========================
+   팔로워 목록
+========================= */
 router.get('/follower/list/:userNo', async (req, res) => {
     const { userNo } = req.params;
 
@@ -1636,7 +1530,8 @@ router.get('/follower/list/:userNo', async (req, res) => {
         if (!canView) {
             return res.json({
                 result: "private",
-                message: "비공개 계정입니다."
+                message: "비공개 계정입니다.",
+                list: []
             });
         }
 
@@ -1649,11 +1544,13 @@ router.get('/follower/list/:userNo', async (req, res) => {
                     U.USER_TYPE,
                     U.PROFILE_IMG,
                     U.BIO,
+
                     (
                         SELECT COUNT(*)
                         FROM FEED F
                         WHERE F.USER_NO = U.USER_NO
                     ) AS FEED_COUNT
+
                 FROM USER_FOLLOW UF
                 INNER JOIN USERS U
                     ON UF.FOLLOWER_NO = U.USER_NO
@@ -1690,7 +1587,9 @@ router.get('/follower/list/:userNo', async (req, res) => {
     }
 });
 
-// 팔로잉 목록
+/* =========================
+   팔로잉 목록
+========================= */
 router.get('/following/list/:userNo', async (req, res) => {
     const { userNo } = req.params;
 
@@ -1713,7 +1612,8 @@ router.get('/following/list/:userNo', async (req, res) => {
         if (!canView) {
             return res.json({
                 result: "private",
-                message: "비공개 계정입니다."
+                message: "비공개 계정입니다.",
+                list: []
             });
         }
 
@@ -1726,11 +1626,13 @@ router.get('/following/list/:userNo', async (req, res) => {
                     U.USER_TYPE,
                     U.PROFILE_IMG,
                     U.BIO,
+
                     (
                         SELECT COUNT(*)
                         FROM FEED F
                         WHERE F.USER_NO = U.USER_NO
                     ) AS FEED_COUNT
+
                 FROM USER_FOLLOW UF
                 INNER JOIN USERS U
                     ON UF.FOLLOWING_NO = U.USER_NO
@@ -1767,7 +1669,9 @@ router.get('/following/list/:userNo', async (req, res) => {
     }
 });
 
-// 팔로우 / 언팔로우
+/* =========================
+   팔로우 / 팔로우 취소 / 요청
+========================= */
 router.post('/follow/toggle', async (req, res) => {
     const { targetUserNo } = req.body;
 
@@ -1786,29 +1690,20 @@ router.post('/follow/toggle', async (req, res) => {
         if (!targetUserNo) {
             return res.json({
                 result: "fail",
-                message: "사용자 번호가 없습니다."
+                message: "대상 사용자 번호가 없습니다."
             });
         }
 
         if (String(loginUser.userNo) === String(targetUserNo)) {
             return res.json({
                 result: "fail",
-                message: "자기 자신은 팔로우할 수 없습니다."
+                message: "나 자신은 팔로우할 수 없습니다."
             });
         }
 
         connection = await db.getConnection();
 
-        const blockStatus = await getBlockStatus(connection, loginUser.userNo, targetUserNo);
-
-        if (blockStatus.blockedByMe || blockStatus.blockedMe) {
-            return res.json({
-                result: "fail",
-                message: "팔로우할 수 없는 사용자입니다."
-            });
-        }
-
-        const userCheckResult = await connection.execute(
+        const targetResult = await connection.execute(
             `
                 SELECT
                     USER_NO,
@@ -1825,43 +1720,39 @@ router.post('/follow/toggle', async (req, res) => {
             }
         );
 
-        if (userCheckResult.rows.length === 0) {
+        if (targetResult.rows.length === 0) {
             return res.json({
                 result: "fail",
                 message: "존재하지 않는 사용자입니다."
             });
         }
 
-        const targetUser = userCheckResult.rows[0];
-
-        const followCheckResult = await connection.execute(
+        const checkResult = await connection.execute(
             `
-                SELECT
-                    FOLLOW_NO,
-                    FOLLOW_STATUS
+                SELECT FOLLOW_STATUS
                 FROM USER_FOLLOW
-                WHERE FOLLOWER_NO = :followerNo
-                  AND FOLLOWING_NO = :followingNo
+                WHERE FOLLOWER_NO = :loginUserNo
+                  AND FOLLOWING_NO = :targetUserNo
             `,
             {
-                followerNo: loginUser.userNo,
-                followingNo: targetUserNo
+                loginUserNo: loginUser.userNo,
+                targetUserNo: targetUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
             }
         );
 
-        if (followCheckResult.rows.length > 0) {
+        if (checkResult.rows.length > 0) {
             await connection.execute(
                 `
                     DELETE FROM USER_FOLLOW
-                    WHERE FOLLOWER_NO = :followerNo
-                      AND FOLLOWING_NO = :followingNo
+                    WHERE FOLLOWER_NO = :loginUserNo
+                      AND FOLLOWING_NO = :targetUserNo
                 `,
                 {
-                    followerNo: loginUser.userNo,
-                    followingNo: targetUserNo
+                    loginUserNo: loginUser.userNo,
+                    targetUserNo: targetUserNo
                 }
             );
 
@@ -1870,22 +1761,26 @@ router.post('/follow/toggle', async (req, res) => {
             return res.json({
                 result: "success",
                 followYn: "N",
-                message: followCheckResult.rows[0].FOLLOW_STATUS === "PENDING" ? "팔로우 요청을 취소했습니다." : "팔로우를 취소했습니다."
+                message: "팔로우를 취소했습니다."
             });
         }
 
-        const followStatus = targetUser.ACCOUNT_PRIVATE_YN === "Y" ? "PENDING" : "ACCEPTED";
+        const followStatus = targetResult.rows[0].ACCOUNT_PRIVATE_YN === "Y"
+            ? "PENDING"
+            : "ACCEPTED";
 
         await connection.execute(
             `
                 INSERT INTO USER_FOLLOW (
                     FOLLOWER_NO,
                     FOLLOWING_NO,
-                    FOLLOW_STATUS
+                    FOLLOW_STATUS,
+                    CDATE
                 ) VALUES (
                     :followerNo,
                     :followingNo,
-                    :followStatus
+                    :followStatus,
+                    SYSDATE
                 )
             `,
             {
@@ -1922,7 +1817,9 @@ router.post('/follow/toggle', async (req, res) => {
     }
 });
 
-// 팔로우 요청 목록
+/* =========================
+   팔로우 요청 목록
+========================= */
 router.get('/follow/request/list', async (req, res) => {
     let connection;
 
@@ -1947,11 +1844,7 @@ router.get('/follow/request/list', async (req, res) => {
                     U.USER_TYPE,
                     U.PROFILE_IMG,
                     U.BIO,
-                    (
-                        SELECT COUNT(*)
-                        FROM FEED F
-                        WHERE F.USER_NO = U.USER_NO
-                    ) AS FEED_COUNT
+                    UF.CDATE
                 FROM USER_FOLLOW UF
                 INNER JOIN USERS U
                     ON UF.FOLLOWER_NO = U.USER_NO
@@ -1974,7 +1867,7 @@ router.get('/follow/request/list', async (req, res) => {
         });
 
     } catch (error) {
-        console.error("request list error", error);
+        console.error("follow request list error", error);
 
         res.status(500).json({
             result: "fail",
@@ -1988,7 +1881,6 @@ router.get('/follow/request/list', async (req, res) => {
     }
 });
 
-// 팔로우 요청 승인
 router.post('/follow/request/accept', async (req, res) => {
     const { requesterUserNo } = req.body;
 
@@ -2028,7 +1920,7 @@ router.post('/follow/request/accept', async (req, res) => {
         });
 
     } catch (error) {
-        console.error("request accept error", error);
+        console.error("follow accept error", error);
 
         if (connection) {
             await connection.rollback();
@@ -2046,7 +1938,6 @@ router.post('/follow/request/accept', async (req, res) => {
     }
 });
 
-// 팔로우 요청 거절
 router.post('/follow/request/reject', async (req, res) => {
     const { requesterUserNo } = req.body;
 
@@ -2085,7 +1976,7 @@ router.post('/follow/request/reject', async (req, res) => {
         });
 
     } catch (error) {
-        console.error("request reject error", error);
+        console.error("follow reject error", error);
 
         if (connection) {
             await connection.rollback();
@@ -2103,7 +1994,6 @@ router.post('/follow/request/reject', async (req, res) => {
     }
 });
 
-// 팔로워 삭제
 router.post('/follow/remove-follower', async (req, res) => {
     const { followerUserNo } = req.body;
 
@@ -2137,7 +2027,7 @@ router.post('/follow/remove-follower', async (req, res) => {
 
         res.json({
             result: "success",
-            message: "팔로워를 삭제했습니다."
+            message: "팔로워에서 삭제했습니다."
         });
 
     } catch (error) {
@@ -2159,72 +2049,9 @@ router.post('/follow/remove-follower', async (req, res) => {
     }
 });
 
-// 차단 목록
-router.get('/block/list', async (req, res) => {
-    let connection;
-
-    try {
-        const loginUser = checkToken(req);
-
-        if (!loginUser) {
-            return res.status(401).json({
-                result: "fail",
-                message: "로그인이 필요합니다."
-            });
-        }
-
-        connection = await db.getConnection();
-
-        const result = await connection.execute(
-            `
-                SELECT
-                    U.USER_NO,
-                    U.USER_ID,
-                    U.NICKNAME,
-                    U.USER_TYPE,
-                    U.PROFILE_IMG,
-                    U.BIO,
-                    (
-                        SELECT COUNT(*)
-                        FROM FEED F
-                        WHERE F.USER_NO = U.USER_NO
-                    ) AS FEED_COUNT
-                FROM USER_BLOCK UB
-                INNER JOIN USERS U
-                    ON UB.BLOCKED_NO = U.USER_NO
-                WHERE UB.BLOCKER_NO = :loginUserNo
-                  AND U.USER_STATUS = 'Y'
-                ORDER BY UB.CDATE DESC
-            `,
-            {
-                loginUserNo: loginUser.userNo
-            },
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
-            }
-        );
-
-        res.json({
-            result: "success",
-            list: result.rows
-        });
-
-    } catch (error) {
-        console.error("block list error", error);
-
-        res.status(500).json({
-            result: "fail",
-            message: "차단 목록 조회 중 오류가 발생했습니다."
-        });
-
-    } finally {
-        if (connection) {
-            await connection.close();
-        }
-    }
-});
-
-// 차단 / 차단 해제
+/* =========================
+   차단
+========================= */
 router.post('/block/toggle', async (req, res) => {
     const { targetUserNo } = req.body;
 
@@ -2243,14 +2070,14 @@ router.post('/block/toggle', async (req, res) => {
         if (!targetUserNo) {
             return res.json({
                 result: "fail",
-                message: "사용자 번호가 없습니다."
+                message: "대상 사용자 번호가 없습니다."
             });
         }
 
         if (String(loginUser.userNo) === String(targetUserNo)) {
             return res.json({
                 result: "fail",
-                message: "자기 자신은 차단할 수 없습니다."
+                message: "나 자신은 차단할 수 없습니다."
             });
         }
 
@@ -2258,30 +2085,30 @@ router.post('/block/toggle', async (req, res) => {
 
         const checkResult = await connection.execute(
             `
-                SELECT BLOCK_NO
+                SELECT COUNT(*) AS CNT
                 FROM USER_BLOCK
-                WHERE BLOCKER_NO = :blockerNo
-                  AND BLOCKED_NO = :blockedNo
+                WHERE BLOCKER_NO = :loginUserNo
+                  AND BLOCKED_NO = :targetUserNo
             `,
             {
-                blockerNo: loginUser.userNo,
-                blockedNo: targetUserNo
+                loginUserNo: loginUser.userNo,
+                targetUserNo: targetUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
             }
         );
 
-        if (checkResult.rows.length > 0) {
+        if (checkResult.rows[0].CNT > 0) {
             await connection.execute(
                 `
                     DELETE FROM USER_BLOCK
-                    WHERE BLOCKER_NO = :blockerNo
-                      AND BLOCKED_NO = :blockedNo
+                    WHERE BLOCKER_NO = :loginUserNo
+                      AND BLOCKED_NO = :targetUserNo
                 `,
                 {
-                    blockerNo: loginUser.userNo,
-                    blockedNo: targetUserNo
+                    loginUserNo: loginUser.userNo,
+                    targetUserNo: targetUserNo
                 }
             );
 
@@ -2297,11 +2124,15 @@ router.post('/block/toggle', async (req, res) => {
         await connection.execute(
             `
                 INSERT INTO USER_BLOCK (
+                    BLOCK_NO,
                     BLOCKER_NO,
-                    BLOCKED_NO
+                    BLOCKED_NO,
+                    CDATE
                 ) VALUES (
+                    (SELECT NVL(MAX(BLOCK_NO), 0) + 1 FROM USER_BLOCK),
                     :blockerNo,
-                    :blockedNo
+                    :blockedNo,
+                    SYSDATE
                 )
             `,
             {
@@ -2348,6 +2179,502 @@ router.post('/block/toggle', async (req, res) => {
         res.status(500).json({
             result: "fail",
             message: "차단 처리 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+router.get('/block/list', async (req, res) => {
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const result = await connection.execute(
+            `
+                SELECT
+                    U.USER_NO,
+                    U.USER_ID,
+                    U.NICKNAME,
+                    U.USER_TYPE,
+                    U.PROFILE_IMG,
+                    U.BIO
+                FROM USER_BLOCK B
+                INNER JOIN USERS U
+                    ON B.BLOCKED_NO = U.USER_NO
+                WHERE B.BLOCKER_NO = :loginUserNo
+                  AND U.USER_STATUS = 'Y'
+                ORDER BY B.CDATE DESC
+            `,
+            {
+                loginUserNo: loginUser.userNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        res.json({
+            result: "success",
+            list: result.rows
+        });
+
+    } catch (error) {
+        console.error("block list error", error);
+
+        res.status(500).json({
+            result: "fail",
+            message: "차단 목록 조회 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+/* =========================
+   공개 범위 / 알림
+========================= */
+router.post('/privacy/toggle', async (req, res) => {
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const result = await connection.execute(
+            `
+                SELECT ACCOUNT_PRIVATE_YN
+                FROM USERS
+                WHERE USER_NO = :userNo
+            `,
+            {
+                userNo: loginUser.userNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        const currentYn = result.rows[0].ACCOUNT_PRIVATE_YN || "N";
+        const nextYn = currentYn === "Y" ? "N" : "Y";
+
+        await connection.execute(
+            `
+                UPDATE USERS
+                SET ACCOUNT_PRIVATE_YN = :nextYn
+                WHERE USER_NO = :userNo
+            `,
+            {
+                nextYn: nextYn,
+                userNo: loginUser.userNo
+            }
+        );
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            privateYn: nextYn,
+            message: nextYn === "Y" ? "비공개 계정으로 변경했습니다." : "공개 계정으로 변경했습니다."
+        });
+
+    } catch (error) {
+        console.error("privacy toggle error", error);
+
+        if (connection) {
+            await connection.rollback();
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "공개 범위 변경 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+router.post('/bookmark/privacy/toggle', async (req, res) => {
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const result = await connection.execute(
+            `
+                SELECT BOOKMARK_PUBLIC_YN
+                FROM USERS
+                WHERE USER_NO = :userNo
+            `,
+            {
+                userNo: loginUser.userNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        const currentYn = result.rows[0].BOOKMARK_PUBLIC_YN || "N";
+        const nextYn = currentYn === "Y" ? "N" : "Y";
+
+        await connection.execute(
+            `
+                UPDATE USERS
+                SET BOOKMARK_PUBLIC_YN = :nextYn
+                WHERE USER_NO = :userNo
+            `,
+            {
+                nextYn: nextYn,
+                userNo: loginUser.userNo
+            }
+        );
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            bookmarkPublicYn: nextYn,
+            message: nextYn === "Y" ? "즐겨찾기 목록을 공개했습니다." : "즐겨찾기 목록을 비공개했습니다."
+        });
+
+    } catch (error) {
+        console.error("bookmark privacy toggle error", error);
+
+        if (connection) {
+            await connection.rollback();
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "즐겨찾기 공개 설정 변경 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+router.post('/notifications/update', async (req, res) => {
+    const { followYn, commentYn, likeYn, chatYn } = req.body;
+
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        await connection.execute(
+            `
+                UPDATE USERS
+                SET
+                    NOTI_FOLLOW_YN = :followYn,
+                    NOTI_COMMENT_YN = :commentYn,
+                    NOTI_LIKE_YN = :likeYn,
+                    NOTI_CHAT_YN = :chatYn
+                WHERE USER_NO = :userNo
+            `,
+            {
+                followYn: yn(followYn),
+                commentYn: yn(commentYn),
+                likeYn: yn(likeYn),
+                chatYn: yn(chatYn),
+                userNo: loginUser.userNo
+            }
+        );
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            message: "알림 설정이 저장되었습니다."
+        });
+
+    } catch (error) {
+        console.error("notifications update error", error);
+
+        if (connection) {
+            await connection.rollback();
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "알림 설정 저장 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+/* =========================
+   비밀번호 변경
+========================= */
+router.post('/password/change', async (req, res) => {
+    const { currentPassword, newPassword, newPasswordConfirm } = req.body;
+
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        if (!currentPassword || !newPassword || !newPasswordConfirm) {
+            return res.json({
+                result: "fail",
+                message: "비밀번호를 모두 입력해주세요."
+            });
+        }
+
+        if (newPassword !== newPasswordConfirm) {
+            return res.json({
+                result: "fail",
+                message: "새 비밀번호가 서로 다릅니다."
+            });
+        }
+
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,20}$/;
+
+        if (!passwordRegex.test(newPassword)) {
+            return res.json({
+                result: "fail",
+                message: "비밀번호는 영문과 숫자를 포함해서 8~20자로 입력해주세요."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const userResult = await connection.execute(
+            `
+                SELECT PASSWORD
+                FROM USERS
+                WHERE USER_NO = :userNo
+                  AND USER_STATUS = 'Y'
+            `,
+            {
+                userNo: loginUser.userNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "사용자를 찾을 수 없습니다."
+            });
+        }
+
+        const user = userResult.rows[0];
+
+        let isPasswordOk = false;
+
+        if (user.PASSWORD && user.PASSWORD.startsWith("$2")) {
+            isPasswordOk = await bcrypt.compare(currentPassword, user.PASSWORD);
+        }
+
+        if (!isPasswordOk && user.PASSWORD === currentPassword) {
+            isPasswordOk = true;
+        }
+
+        if (!isPasswordOk) {
+            return res.json({
+                result: "fail",
+                message: "현재 비밀번호가 틀렸습니다."
+            });
+        }
+
+        const hashPassword = await bcrypt.hash(newPassword, 10);
+
+        await connection.execute(
+            `
+                UPDATE USERS
+                SET PASSWORD = :password
+                WHERE USER_NO = :userNo
+                  AND USER_STATUS = 'Y'
+            `,
+            {
+                password: hashPassword,
+                userNo: loginUser.userNo
+            }
+        );
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            message: "비밀번호가 변경되었습니다. 다시 로그인해주세요."
+        });
+
+    } catch (error) {
+        console.error("password change error", error);
+
+        if (connection) {
+            await connection.rollback();
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "비밀번호 변경 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+/* =========================
+   회원탈퇴
+========================= */
+router.post('/leave', async (req, res) => {
+    const { password } = req.body;
+
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        if (!password) {
+            return res.json({
+                result: "fail",
+                message: "비밀번호를 입력해주세요."
+            });
+        }
+
+        connection = await db.getConnection();
+
+        const userResult = await connection.execute(
+            `
+                SELECT PASSWORD
+                FROM USERS
+                WHERE USER_NO = :userNo
+                  AND USER_STATUS = 'Y'
+            `,
+            {
+                userNo: loginUser.userNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "사용자를 찾을 수 없습니다."
+            });
+        }
+
+        const user = userResult.rows[0];
+
+        let isPasswordOk = false;
+
+        if (user.PASSWORD && user.PASSWORD.startsWith("$2")) {
+            isPasswordOk = await bcrypt.compare(password, user.PASSWORD);
+        }
+
+        if (!isPasswordOk && user.PASSWORD === password) {
+            isPasswordOk = true;
+        }
+
+        if (!isPasswordOk) {
+            return res.json({
+                result: "fail",
+                message: "비밀번호가 틀렸습니다."
+            });
+        }
+
+        await connection.execute(
+            `
+                UPDATE USERS
+                SET USER_STATUS = 'N'
+                WHERE USER_NO = :userNo
+            `,
+            {
+                userNo: loginUser.userNo
+            }
+        );
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            message: "회원탈퇴가 완료되었습니다."
+        });
+
+    } catch (error) {
+        console.error("leave error", error);
+
+        if (connection) {
+            await connection.rollback();
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "회원탈퇴 중 오류가 발생했습니다."
         });
 
     } finally {
