@@ -1,0 +1,55 @@
+.language-toggle {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    z-index: 9999;
+    display: flex;
+    gap: 5px;
+    padding: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(246, 211, 221, 0.9);
+    box-shadow:
+        0 14px 34px rgba(91, 65, 55, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.language-toggle button {
+    height: 31px;
+    border: none;
+    border-radius: 999px;
+    padding: 0 12px;
+    background: transparent;
+    color: #a45f76;
+    font-size: 12px;
+    font-weight: 950;
+    cursor: pointer;
+    font-family: inherit;
+    transition: 0.18s ease;
+}
+
+.language-toggle button.active {
+    color: #ffffff;
+    background:
+        linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%);
+    box-shadow: 0 8px 18px rgba(233, 131, 155, 0.18);
+}
+
+.language-toggle button:hover {
+    transform: translateY(-1px);
+}
+
+@media (max-width: 620px) {
+    .language-toggle {
+        top: auto;
+        right: 14px;
+        bottom: 18px;
+    }
+
+    .language-toggle button {
+        height: 30px;
+        padding: 0 10px;
+        font-size: 11px;
+    }
+}

@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageDecor from "./PageDecor";
 import ScrollTopButton from "./ScrollTopButton";
+import { getLang, t } from "../utils/language";
 import "./ProfileSettings.css";
 
 function ProfileSettings() {
     const navigate = useNavigate();
     const loginUserNo = localStorage.getItem("userNo");
+
+    const [language, setLanguage] = useState(getLang());
 
     const [profile, setProfile] = useState(null);
     const [requestList, setRequestList] = useState([]);
@@ -34,10 +37,22 @@ function ProfileSettings() {
     const [leavePassword, setLeavePassword] = useState("");
 
     useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
+
+    useEffect(() => {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            alert("로그인이 필요합니다.");
+            alert(t("loginRequired"));
             navigate("/");
             return;
         }
@@ -48,6 +63,190 @@ function ProfileSettings() {
         getFollowingList();
         getBlockList();
     }, [navigate]);
+
+    function getPageText(key) {
+        const ko = {
+            profileFetchError: "프로필 조회 오류",
+            requestFetchError: "요청 목록 조회 오류",
+            followerFetchError: "팔로워 조회 오류",
+            followingFetchError: "팔로잉 조회 오류",
+            blockFetchError: "차단 목록 조회 오류",
+            nicknameRequired: "닉네임을 입력해주세요.",
+            bioLimit: "소개글은 500자 이하로 입력해주세요.",
+            profileUpdateError: "프로필 수정 오류",
+            privacyUpdateError: "공개 설정 변경 오류",
+            bookmarkPrivacyError: "저장 루트 설정 오류",
+            notificationSaveError: "알림 저장 오류",
+            passwordChangeError: "비밀번호 변경 오류",
+            leaveConfirm: "정말 탈퇴할까요?",
+            leaveError: "회원 탈퇴 오류",
+            acceptError: "요청 승인 오류",
+            rejectError: "요청 거절 오류",
+            removeFollowerConfirm: "팔로워에서 삭제할까요?",
+            removeFollowerError: "팔로워 삭제 오류",
+            unfollowConfirm: "팔로우 취소할까요?",
+            unfollowError: "팔로우 취소 오류",
+            unblockConfirm: "차단을 해제할까요?",
+            unblockError: "차단 해제 오류",
+
+            profileAlt: "프로필",
+            approve: "승인",
+            reject: "거절",
+            delete: "삭제",
+            cancel: "취소",
+            unblock: "해제",
+            on: "ON",
+            off: "OFF",
+
+            loading: "불러오는 중...",
+            noProfile: "프로필 정보가 없습니다.",
+
+            topTitle: "프로필 설정",
+            topSub: "계정, 공개 범위, 알림, 팔로우 관리를 한 곳에서 정리해요.",
+            homeTitle: "홈으로",
+            profileTitle: "프로필",
+
+            public: "공개",
+            private: "비공개",
+
+            menuProfile: "프로필",
+            menuStory: "스토리 관리",
+            menuPrivacy: "공개 범위",
+            menuRequests: "팔로우 요청",
+            menuFollowers: "팔로워",
+            menuFollowing: "팔로잉",
+            menuBlocked: "차단",
+            menuNotifications: "알림",
+            menuAccount: "계정",
+
+            sectionProfile: "프로필",
+            nickname: "닉네임",
+            userType: "유형",
+            email: "이메일",
+            bio: "소개",
+            save: "저장",
+
+            sectionPrivacy: "공개 범위",
+            account: "계정",
+            savedRoute: "저장한 루트",
+            change: "변경",
+
+            noRequest: "요청이 없습니다.",
+            noFollower: "팔로워가 없습니다.",
+            noFollowing: "팔로잉이 없습니다.",
+            noBlocked: "차단한 사용자가 없습니다.",
+
+            notiFollow: "팔로우 요청",
+            notiComment: "댓글",
+            notiLike: "좋아요",
+            notiChat: "채팅",
+
+            passwordChange: "비밀번호 변경",
+            currentPassword: "현재 비밀번호",
+            newPassword: "새 비밀번호",
+            newPasswordConfirm: "새 비밀번호 확인",
+            changePasswordBtn: "변경",
+
+            logout: "로그아웃",
+            leaveAccount: "회원 탈퇴",
+            passwordPlaceholder: "비밀번호",
+            leaveBtn: "탈퇴"
+        };
+
+        const en = {
+            profileFetchError: "Profile fetch error.",
+            requestFetchError: "Follow request fetch error.",
+            followerFetchError: "Follower fetch error.",
+            followingFetchError: "Following fetch error.",
+            blockFetchError: "Blocked user fetch error.",
+            nicknameRequired: "Please enter a nickname.",
+            bioLimit: "Bio can be up to 500 characters.",
+            profileUpdateError: "Profile update error.",
+            privacyUpdateError: "Privacy setting update error.",
+            bookmarkPrivacyError: "Saved route setting error.",
+            notificationSaveError: "Notification save error.",
+            passwordChangeError: "Password change error.",
+            leaveConfirm: "Do you really want to leave K-STEP?",
+            leaveError: "Account deletion error.",
+            acceptError: "Follow request accept error.",
+            rejectError: "Follow request reject error.",
+            removeFollowerConfirm: "Remove this user from your followers?",
+            removeFollowerError: "Follower removal error.",
+            unfollowConfirm: "Unfollow this user?",
+            unfollowError: "Unfollow error.",
+            unblockConfirm: "Unblock this user?",
+            unblockError: "Unblock error.",
+
+            profileAlt: "Profile",
+            approve: "Approve",
+            reject: "Reject",
+            delete: "Remove",
+            cancel: "Cancel",
+            unblock: "Unblock",
+            on: "ON",
+            off: "OFF",
+
+            loading: "Loading...",
+            noProfile: "No profile information.",
+
+            topTitle: "Profile Settings",
+            topSub: "Manage your account, privacy, notifications, and follows in one place.",
+            homeTitle: "Home",
+            profileTitle: "Profile",
+
+            public: "Public",
+            private: "Private",
+
+            menuProfile: "Profile",
+            menuStory: "Story Management",
+            menuPrivacy: "Privacy",
+            menuRequests: "Follow Requests",
+            menuFollowers: "Followers",
+            menuFollowing: "Following",
+            menuBlocked: "Blocked",
+            menuNotifications: "Notifications",
+            menuAccount: "Account",
+
+            sectionProfile: "Profile",
+            nickname: "Nickname",
+            userType: "User Type",
+            email: "Email",
+            bio: "Bio",
+            save: "Save",
+
+            sectionPrivacy: "Privacy",
+            account: "Account",
+            savedRoute: "Saved Routes",
+            change: "Change",
+
+            noRequest: "No requests.",
+            noFollower: "No followers.",
+            noFollowing: "No following users.",
+            noBlocked: "No blocked users.",
+
+            notiFollow: "Follow Requests",
+            notiComment: "Comments",
+            notiLike: "Likes",
+            notiChat: "Chats",
+
+            passwordChange: "Change Password",
+            currentPassword: "Current Password",
+            newPassword: "New Password",
+            newPasswordConfirm: "Confirm New Password",
+            changePasswordBtn: "Change",
+
+            logout: "Log out",
+            leaveAccount: "Delete Account",
+            passwordPlaceholder: "Password",
+            leaveBtn: "Delete Account"
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
 
     function getProfileImageUrl(value) {
         if (!value) {
@@ -112,7 +311,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("프로필 조회 오류");
+                alert(getPageText("profileFetchError"));
             })
             .finally(() => {
                 setLoading(false);
@@ -140,7 +339,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("요청 목록 조회 오류");
+                alert(getPageText("requestFetchError"));
             })
             .finally(() => {
                 setListLoading(false);
@@ -166,7 +365,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("팔로워 조회 오류");
+                alert(getPageText("followerFetchError"));
             });
     }
 
@@ -189,7 +388,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("팔로잉 조회 오류");
+                alert(getPageText("followingFetchError"));
             });
     }
 
@@ -212,7 +411,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("차단 목록 조회 오류");
+                alert(getPageText("blockFetchError"));
             });
     }
 
@@ -220,12 +419,12 @@ function ProfileSettings() {
         const token = localStorage.getItem("token");
 
         if (editNickname.trim() === "") {
-            alert("닉네임을 입력해주세요.");
+            alert(getPageText("nicknameRequired"));
             return;
         }
 
         if (editBio.length > 500) {
-            alert("소개글은 500자 이하로 입력해주세요.");
+            alert(getPageText("bioLimit"));
             return;
         }
 
@@ -255,7 +454,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("프로필 수정 오류");
+                alert(getPageText("profileUpdateError"));
             });
     }
 
@@ -283,7 +482,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("공개 설정 변경 오류");
+                alert(getPageText("privacyUpdateError"));
             });
     }
 
@@ -308,7 +507,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("저장 루트 설정 오류");
+                alert(getPageText("bookmarkPrivacyError"));
             });
     }
 
@@ -339,7 +538,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("알림 저장 오류");
+                alert(getPageText("notificationSaveError"));
             });
     }
 
@@ -369,7 +568,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("비밀번호 변경 오류");
+                alert(getPageText("passwordChangeError"));
             });
     }
 
@@ -385,7 +584,7 @@ function ProfileSettings() {
     function leaveAccount() {
         const token = localStorage.getItem("token");
 
-        if (!window.confirm("정말 탈퇴할까요?")) {
+        if (!window.confirm(getPageText("leaveConfirm"))) {
             return;
         }
 
@@ -410,7 +609,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("회원 탈퇴 오류");
+                alert(getPageText("leaveError"));
             });
     }
 
@@ -441,7 +640,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("요청 승인 오류");
+                alert(getPageText("acceptError"));
             });
     }
 
@@ -469,14 +668,14 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("요청 거절 오류");
+                alert(getPageText("rejectError"));
             });
     }
 
     function removeFollower(followerUserNo) {
         const token = localStorage.getItem("token");
 
-        if (!window.confirm("팔로워에서 삭제할까요?")) {
+        if (!window.confirm(getPageText("removeFollowerConfirm"))) {
             return;
         }
 
@@ -502,14 +701,14 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("팔로워 삭제 오류");
+                alert(getPageText("removeFollowerError"));
             });
     }
 
     function unfollowUser(targetUserNo) {
         const token = localStorage.getItem("token");
 
-        if (!window.confirm("팔로우 취소할까요?")) {
+        if (!window.confirm(getPageText("unfollowConfirm"))) {
             return;
         }
 
@@ -535,14 +734,14 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("팔로우 취소 오류");
+                alert(getPageText("unfollowError"));
             });
     }
 
     function unblockUser(targetUserNo) {
         const token = localStorage.getItem("token");
 
-        if (!window.confirm("차단을 해제할까요?")) {
+        if (!window.confirm(getPageText("unblockConfirm"))) {
             return;
         }
 
@@ -567,7 +766,7 @@ function ProfileSettings() {
             })
             .catch(err => {
                 console.error(err);
-                alert("차단 해제 오류");
+                alert(getPageText("unblockError"));
             });
     }
 
@@ -609,7 +808,7 @@ function ProfileSettings() {
                     {getProfileImageUrl(user.PROFILE_IMG) !== "" ? (
                         <img
                             src={getProfileImageUrl(user.PROFILE_IMG)}
-                            alt={user.NICKNAME || "프로필"}
+                            alt={user.NICKNAME || getPageText("profileAlt")}
                         />
                     ) : (
                         getFirstLetter(user.NICKNAME || user.USER_ID)
@@ -628,30 +827,30 @@ function ProfileSettings() {
                     {type === "request" && (
                         <>
                             <button className="settings-small-btn" onClick={() => acceptRequest(user.USER_NO)}>
-                                승인
+                                {getPageText("approve")}
                             </button>
 
                             <button className="settings-sub-btn" onClick={() => rejectRequest(user.USER_NO)}>
-                                거절
+                                {getPageText("reject")}
                             </button>
                         </>
                     )}
 
                     {type === "follower" && (
                         <button className="settings-sub-btn" onClick={() => removeFollower(user.USER_NO)}>
-                            삭제
+                            {getPageText("delete")}
                         </button>
                     )}
 
                     {type === "following" && (
                         <button className="settings-sub-btn" onClick={() => unfollowUser(user.USER_NO)}>
-                            취소
+                            {getPageText("cancel")}
                         </button>
                     )}
 
                     {type === "block" && (
                         <button className="settings-sub-btn" onClick={() => unblockUser(user.USER_NO)}>
-                            해제
+                            {getPageText("unblock")}
                         </button>
                     )}
                 </div>
@@ -668,7 +867,7 @@ function ProfileSettings() {
                     className={value === "Y" ? "toggle-btn on" : "toggle-btn"}
                     onClick={() => setter(value === "Y" ? "N" : "Y")}
                 >
-                    {value === "Y" ? "ON" : "OFF"}
+                    {value === "Y" ? getPageText("on") : getPageText("off")}
                 </button>
             </div>
         );
@@ -676,11 +875,11 @@ function ProfileSettings() {
 
     if (loading) {
         return (
-            <div className="settings-page">
+            <div className="settings-page" data-lang={language}>
                 <PageDecor />
 
                 <div className="settings-container">
-                    <div className="settings-empty-box">불러오는 중...</div>
+                    <div className="settings-empty-box">{getPageText("loading")}</div>
                 </div>
 
                 <ScrollTopButton />
@@ -690,11 +889,11 @@ function ProfileSettings() {
 
     if (!profile) {
         return (
-            <div className="settings-page">
+            <div className="settings-page" data-lang={language}>
                 <PageDecor />
 
                 <div className="settings-container">
-                    <div className="settings-empty-box">프로필 정보가 없습니다.</div>
+                    <div className="settings-empty-box">{getPageText("noProfile")}</div>
                 </div>
 
                 <ScrollTopButton />
@@ -703,7 +902,7 @@ function ProfileSettings() {
     }
 
     return (
-        <div className="settings-page">
+        <div className="settings-page" data-lang={language}>
             <PageDecor />
 
             <div className="settings-container">
@@ -714,8 +913,8 @@ function ProfileSettings() {
                         <div className="settings-brand-mark">K</div>
 
                         <div>
-                            <h1>프로필 설정</h1>
-                            <p>계정, 공개 범위, 알림, 팔로우 관리를 한 곳에서 정리해요.</p>
+                            <h1>{getPageText("topTitle")}</h1>
+                            <p>{getPageText("topSub")}</p>
                         </div>
                     </div>
 
@@ -723,7 +922,7 @@ function ProfileSettings() {
                         <button
                             type="button"
                             onClick={() => navigate("/home")}
-                            title="홈으로"
+                            title={getPageText("homeTitle")}
                         >
                             ⌂
                         </button>
@@ -732,7 +931,7 @@ function ProfileSettings() {
                             type="button"
                             className="profile"
                             onClick={() => navigate("/profile/" + loginUserNo)}
-                            title="프로필"
+                            title={getPageText("profileTitle")}
                         >
                             ↩
                         </button>
@@ -744,7 +943,7 @@ function ProfileSettings() {
                         {getProfileImageUrl(profile.PROFILE_IMG) !== "" ? (
                             <img
                                 src={getProfileImageUrl(profile.PROFILE_IMG)}
-                                alt={profile.NICKNAME || "프로필"}
+                                alt={profile.NICKNAME || getPageText("profileAlt")}
                             />
                         ) : (
                             getFirstLetter(profile.NICKNAME || profile.USER_ID)
@@ -757,58 +956,58 @@ function ProfileSettings() {
                     </div>
 
                     <div className="settings-summary-status">
-                        {profile.ACCOUNT_PRIVATE_YN === "Y" ? "비공개" : "공개"}
+                        {profile.ACCOUNT_PRIVATE_YN === "Y" ? getPageText("private") : getPageText("public")}
                     </div>
                 </section>
 
                 <section className="settings-layout">
                     <aside className="settings-menu-card">
                         <button className={activeSettingTab === "profile" ? "active" : ""} onClick={() => clickMenu("profile")}>
-                            프로필
+                            {getPageText("menuProfile")}
                         </button>
 
                         <button onClick={moveStoryManage}>
-                            스토리 관리
+                            {getPageText("menuStory")}
                         </button>
 
                         <button className={activeSettingTab === "privacy" ? "active" : ""} onClick={() => clickMenu("privacy")}>
-                            공개 범위
+                            {getPageText("menuPrivacy")}
                         </button>
 
                         <button className={activeSettingTab === "requests" ? "active" : ""} onClick={() => clickMenu("requests")}>
-                            팔로우 요청
+                            {getPageText("menuRequests")}
                             {requestList.length > 0 && <span>{requestList.length}</span>}
                         </button>
 
                         <button className={activeSettingTab === "followers" ? "active" : ""} onClick={() => clickMenu("followers")}>
-                            팔로워
+                            {getPageText("menuFollowers")}
                         </button>
 
                         <button className={activeSettingTab === "following" ? "active" : ""} onClick={() => clickMenu("following")}>
-                            팔로잉
+                            {getPageText("menuFollowing")}
                         </button>
 
                         <button className={activeSettingTab === "blocked" ? "active" : ""} onClick={() => clickMenu("blocked")}>
-                            차단
+                            {getPageText("menuBlocked")}
                         </button>
 
                         <button className={activeSettingTab === "notifications" ? "active" : ""} onClick={() => clickMenu("notifications")}>
-                            알림
+                            {getPageText("menuNotifications")}
                         </button>
 
                         <button className={activeSettingTab === "security" ? "active" : ""} onClick={() => clickMenu("security")}>
-                            계정
+                            {getPageText("menuAccount")}
                         </button>
                     </aside>
 
                     <main className="settings-content-card">
                         {activeSettingTab === "profile" && (
                             <div className="settings-section">
-                                <h2>프로필</h2>
+                                <h2>{getPageText("sectionProfile")}</h2>
 
                                 <div className="settings-form-grid">
                                     <div className="settings-input-box">
-                                        <label>닉네임</label>
+                                        <label>{getPageText("nickname")}</label>
                                         <input
                                             value={editNickname}
                                             onChange={(e) => setEditNickname(e.target.value)}
@@ -816,7 +1015,7 @@ function ProfileSettings() {
                                     </div>
 
                                     <div className="settings-input-box">
-                                        <label>유형</label>
+                                        <label>{getPageText("userType")}</label>
                                         <select
                                             value={editUserType}
                                             onChange={(e) => setEditUserType(e.target.value)}
@@ -829,7 +1028,7 @@ function ProfileSettings() {
                                     </div>
 
                                     <div className="settings-input-box wide">
-                                        <label>이메일</label>
+                                        <label>{getPageText("email")}</label>
                                         <input
                                             value={editEmail}
                                             onChange={(e) => setEditEmail(e.target.value)}
@@ -837,7 +1036,7 @@ function ProfileSettings() {
                                     </div>
 
                                     <div className="settings-input-box wide">
-                                        <label>소개</label>
+                                        <label>{getPageText("bio")}</label>
                                         <textarea
                                             value={editBio}
                                             maxLength={500}
@@ -848,30 +1047,30 @@ function ProfileSettings() {
                                 </div>
 
                                 <button className="settings-main-action-btn" onClick={updateProfile}>
-                                    저장
+                                    {getPageText("save")}
                                 </button>
                             </div>
                         )}
 
                         {activeSettingTab === "privacy" && (
                             <div className="settings-section">
-                                <h2>공개 범위</h2>
+                                <h2>{getPageText("sectionPrivacy")}</h2>
 
                                 <div className="settings-option-card">
-                                    <strong>계정</strong>
-                                    <span>{profile.ACCOUNT_PRIVATE_YN === "Y" ? "비공개" : "공개"}</span>
+                                    <strong>{getPageText("account")}</strong>
+                                    <span>{profile.ACCOUNT_PRIVATE_YN === "Y" ? getPageText("private") : getPageText("public")}</span>
 
                                     <button onClick={togglePrivacy}>
-                                        변경
+                                        {getPageText("change")}
                                     </button>
                                 </div>
 
                                 <div className="settings-option-card">
-                                    <strong>저장한 루트</strong>
-                                    <span>{profile.BOOKMARK_PUBLIC_YN === "Y" ? "공개" : "비공개"}</span>
+                                    <strong>{getPageText("savedRoute")}</strong>
+                                    <span>{profile.BOOKMARK_PUBLIC_YN === "Y" ? getPageText("public") : getPageText("private")}</span>
 
                                     <button onClick={toggleBookmarkPrivacy}>
-                                        변경
+                                        {getPageText("change")}
                                     </button>
                                 </div>
                             </div>
@@ -879,12 +1078,12 @@ function ProfileSettings() {
 
                         {activeSettingTab === "requests" && (
                             <div className="settings-section">
-                                <h2>팔로우 요청</h2>
+                                <h2>{getPageText("menuRequests")}</h2>
 
-                                {listLoading && <div className="settings-empty-box">불러오는 중...</div>}
+                                {listLoading && <div className="settings-empty-box">{getPageText("loading")}</div>}
 
                                 {!listLoading && requestList.length === 0 && (
-                                    <div className="settings-empty-box">요청이 없습니다.</div>
+                                    <div className="settings-empty-box">{getPageText("noRequest")}</div>
                                 )}
 
                                 {!listLoading && requestList.length > 0 && (
@@ -897,10 +1096,10 @@ function ProfileSettings() {
 
                         {activeSettingTab === "followers" && (
                             <div className="settings-section">
-                                <h2>팔로워</h2>
+                                <h2>{getPageText("menuFollowers")}</h2>
 
                                 {followerList.length === 0 ? (
-                                    <div className="settings-empty-box">팔로워가 없습니다.</div>
+                                    <div className="settings-empty-box">{getPageText("noFollower")}</div>
                                 ) : (
                                     <div className="settings-user-list">
                                         {followerList.map((user) => renderUserCard(user, "follower"))}
@@ -911,10 +1110,10 @@ function ProfileSettings() {
 
                         {activeSettingTab === "following" && (
                             <div className="settings-section">
-                                <h2>팔로잉</h2>
+                                <h2>{getPageText("menuFollowing")}</h2>
 
                                 {followingList.length === 0 ? (
-                                    <div className="settings-empty-box">팔로잉이 없습니다.</div>
+                                    <div className="settings-empty-box">{getPageText("noFollowing")}</div>
                                 ) : (
                                     <div className="settings-user-list">
                                         {followingList.map((user) => renderUserCard(user, "following"))}
@@ -925,10 +1124,10 @@ function ProfileSettings() {
 
                         {activeSettingTab === "blocked" && (
                             <div className="settings-section">
-                                <h2>차단</h2>
+                                <h2>{getPageText("menuBlocked")}</h2>
 
                                 {blockList.length === 0 ? (
-                                    <div className="settings-empty-box">차단한 사용자가 없습니다.</div>
+                                    <div className="settings-empty-box">{getPageText("noBlocked")}</div>
                                 ) : (
                                     <div className="settings-user-list">
                                         {blockList.map((user) => renderUserCard(user, "block"))}
@@ -939,29 +1138,29 @@ function ProfileSettings() {
 
                         {activeSettingTab === "notifications" && (
                             <div className="settings-section">
-                                <h2>알림</h2>
+                                <h2>{getPageText("menuNotifications")}</h2>
 
-                                {renderToggle("팔로우 요청", notiFollowYn, setNotiFollowYn)}
-                                {renderToggle("댓글", notiCommentYn, setNotiCommentYn)}
-                                {renderToggle("좋아요", notiLikeYn, setNotiLikeYn)}
-                                {renderToggle("채팅", notiChatYn, setNotiChatYn)}
+                                {renderToggle(getPageText("notiFollow"), notiFollowYn, setNotiFollowYn)}
+                                {renderToggle(getPageText("notiComment"), notiCommentYn, setNotiCommentYn)}
+                                {renderToggle(getPageText("notiLike"), notiLikeYn, setNotiLikeYn)}
+                                {renderToggle(getPageText("notiChat"), notiChatYn, setNotiChatYn)}
 
                                 <button className="settings-main-action-btn" onClick={updateNotifications}>
-                                    저장
+                                    {getPageText("save")}
                                 </button>
                             </div>
                         )}
 
                         {activeSettingTab === "security" && (
                             <div className="settings-section">
-                                <h2>계정</h2>
+                                <h2>{getPageText("menuAccount")}</h2>
 
                                 <div className="settings-security-box">
-                                    <h3>비밀번호 변경</h3>
+                                    <h3>{getPageText("passwordChange")}</h3>
 
                                     <div className="settings-form-grid">
                                         <div className="settings-input-box wide">
-                                            <label>현재 비밀번호</label>
+                                            <label>{getPageText("currentPassword")}</label>
                                             <input
                                                 type="password"
                                                 value={currentPassword}
@@ -970,7 +1169,7 @@ function ProfileSettings() {
                                         </div>
 
                                         <div className="settings-input-box">
-                                            <label>새 비밀번호</label>
+                                            <label>{getPageText("newPassword")}</label>
                                             <input
                                                 type="password"
                                                 value={newPassword}
@@ -979,7 +1178,7 @@ function ProfileSettings() {
                                         </div>
 
                                         <div className="settings-input-box">
-                                            <label>새 비밀번호 확인</label>
+                                            <label>{getPageText("newPasswordConfirm")}</label>
                                             <input
                                                 type="password"
                                                 value={newPasswordConfirm}
@@ -989,30 +1188,30 @@ function ProfileSettings() {
                                     </div>
 
                                     <button className="settings-main-action-btn" onClick={changePassword}>
-                                        변경
+                                        {getPageText("changePasswordBtn")}
                                     </button>
                                 </div>
 
                                 <div className="settings-security-box">
-                                    <h3>로그아웃</h3>
+                                    <h3>{getPageText("logout")}</h3>
 
                                     <button className="settings-sub-action-btn" onClick={logout}>
-                                        로그아웃
+                                        {getPageText("logout")}
                                     </button>
                                 </div>
 
                                 <div className="settings-security-box danger">
-                                    <h3>회원 탈퇴</h3>
+                                    <h3>{getPageText("leaveAccount")}</h3>
 
                                     <input
                                         type="password"
                                         value={leavePassword}
                                         onChange={(e) => setLeavePassword(e.target.value)}
-                                        placeholder="비밀번호"
+                                        placeholder={getPageText("passwordPlaceholder")}
                                     />
 
                                     <button className="settings-danger-btn" onClick={leaveAccount}>
-                                        탈퇴
+                                        {getPageText("leaveBtn")}
                                     </button>
                                 </div>
                             </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { getLang, t } from "../utils/language";
 import "./ProfileStoryCircle.css";
 
 function ProfileStoryCircle({ userNo, nickname, profileImg }) {
@@ -9,6 +10,8 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
     const storyTextBoxRef = useRef(null);
     const blockStoryOpenRef = useRef(false);
     const blockTimerRef = useRef(null);
+
+    const [language, setLanguage] = useState(getLang());
 
     const [hasStoryYn, setHasStoryYn] = useState("N");
     const [allViewYn, setAllViewYn] = useState("Y");
@@ -31,6 +34,18 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
     const [storyStickerListByIndex, setStoryStickerListByIndex] = useState([]);
     const [activeStickerId, setActiveStickerId] = useState(null);
     const [draggingStickerId, setDraggingStickerId] = useState(null);
+
+    useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
 
     useEffect(() => {
         if (userNo) {
@@ -80,6 +95,108 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
             document.body.classList.remove("profile-story-modal-open");
         };
     }, [uploadModalOpen, viewerOpen]);
+
+    function getPageText(key) {
+        const ko = {
+            loginRequired: "로그인이 필요합니다.",
+            imageOnly: "이미지 파일만 업로드할 수 있습니다.",
+            selectStoryImage: "스토리 이미지를 선택해주세요.",
+            storyUploadFail: "스토리 등록에 실패했습니다.",
+            storyUploadError: "스토리 등록 중 오류가 발생했습니다.",
+            storyUploaded: "개의 스토리가 등록되었습니다.",
+            storyLoadFail: "스토리를 불러오지 못했습니다.",
+            storyLoadError: "스토리를 불러오는 중 오류가 발생했습니다.",
+            viewerLoadFail: "본 사람 목록을 불러오지 못했습니다.",
+            deleteConfirm: "스토리를 삭제할까요?",
+            deleteDone: "스토리가 삭제되었습니다.",
+            deleteFail: "스토리 삭제에 실패했습니다.",
+            deleteError: "스토리 삭제 중 오류가 발생했습니다.",
+            userNotFound: "사용자를 찾을 수 없습니다.",
+            userSearchError: "사용자 검색 중 오류가 발생했습니다.",
+
+            justNow: "방금 전",
+            minuteAgo: "분 전",
+            hourAgo: "시간 전",
+            dayAgo: "일 전",
+
+            profileAlt: "프로필",
+            storyAlt: "스토리",
+            traveler: "traveler",
+
+            decorateTitle: "스토리 꾸미기",
+            decorateSub: "사진마다 글을 여러 개 올리고 위치를 바꿀 수 있어요.",
+            previewAlt: "스토리 미리보기",
+            selectImageAlt: "선택 이미지 ",
+            addText: "+ 글 추가",
+            deleteText: "선택 글 삭제",
+            textPlaceholder: "사진 위에 올릴 글을 입력하세요. 예) #경주여행 @traveler01",
+            inputText: "글 입력",
+            bg: "배경",
+            emptyGuide: "+ 글 추가를 눌러서 사진 위에 글을 올려주세요.",
+            cancel: "취소",
+            uploading: "올리는 중...",
+            uploadCountSuffix: "장 올리기",
+
+            viewer: "본 사람",
+            viewerCountSuffix: "명이 이 스토리를 봤어요.",
+            loadingViewer: "불러오는 중입니다...",
+            noViewer: "아직 본 사람이 없습니다.",
+            delete: "삭제"
+        };
+
+        const en = {
+            loginRequired: "Please log in first.",
+            imageOnly: "Only image files can be uploaded.",
+            selectStoryImage: "Please select story images.",
+            storyUploadFail: "Failed to upload story.",
+            storyUploadError: "An error occurred while uploading story.",
+            storyUploaded: " stories have been uploaded.",
+            storyLoadFail: "Failed to load story.",
+            storyLoadError: "An error occurred while loading story.",
+            viewerLoadFail: "Failed to load viewers.",
+            deleteConfirm: "Delete this story?",
+            deleteDone: "The story has been deleted.",
+            deleteFail: "Failed to delete story.",
+            deleteError: "An error occurred while deleting story.",
+            userNotFound: "User not found.",
+            userSearchError: "An error occurred while searching user.",
+
+            justNow: "Just now",
+            minuteAgo: " min ago",
+            hourAgo: " hr ago",
+            dayAgo: " days ago",
+
+            profileAlt: "Profile",
+            storyAlt: "Story",
+            traveler: "traveler",
+
+            decorateTitle: "Decorate Story",
+            decorateSub: "Add multiple texts to each photo and move them around.",
+            previewAlt: "Story preview",
+            selectImageAlt: "Selected image ",
+            addText: "+ Add Text",
+            deleteText: "Delete Text",
+            textPlaceholder: "Write text on the photo. Example: #GyeongjuTrip @traveler01",
+            inputText: "Text",
+            bg: "Background",
+            emptyGuide: "Press + Add Text to add text on the photo.",
+            cancel: "Cancel",
+            uploading: "Uploading...",
+            uploadCountSuffix: " photos upload",
+
+            viewer: "Viewers",
+            viewerCountSuffix: " people viewed this story.",
+            loadingViewer: "Loading...",
+            noViewer: "No viewers yet.",
+            delete: "Delete"
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
 
     function blockStoryOpenTemporarily() {
         blockStoryOpenRef.current = true;
@@ -293,18 +410,18 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         const day = hour * 24;
 
         if (diff < minute) {
-            return "방금 전";
+            return getPageText("justNow");
         }
 
         if (diff < hour) {
-            return Math.floor(diff / minute) + "분 전";
+            return Math.floor(diff / minute) + getPageText("minuteAgo");
         }
 
         if (diff < day) {
-            return Math.floor(diff / hour) + "시간 전";
+            return Math.floor(diff / hour) + getPageText("hourAgo");
         }
 
-        return Math.floor(diff / day) + "일 전";
+        return Math.floor(diff / day) + getPageText("dayAgo");
     }
 
     function getStartStoryIndex(list) {
@@ -382,7 +499,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         const imageFiles = files.filter(file => file.type.startsWith("image/"));
 
         if (imageFiles.length !== files.length) {
-            alert("이미지 파일만 업로드할 수 있습니다.");
+            alert(getPageText("imageOnly"));
             e.target.value = "";
             return;
         }
@@ -572,11 +689,104 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         setDraggingStickerId(null);
     }
 
+    function getPositionClass(posX, posY) {
+        const x = Math.round(Number(posX || 50) / 5) * 5;
+        const y = Math.round(Number(posY || 50) / 5) * 5;
+
+        return "profile-story-pos-x-" + x + " profile-story-pos-y-" + y;
+    }
+
+    function getFontSizeClass(fontSize) {
+        const size = Math.round(Number(fontSize || 26) / 2) * 2;
+
+        if (size < 18) {
+            return "profile-story-font-18";
+        }
+
+        if (size > 42) {
+            return "profile-story-font-42";
+        }
+
+        return "profile-story-font-" + size;
+    }
+
+    function getTextColorClass(color) {
+        if (color === "#FFD9E4") {
+            return "profile-story-text-pink";
+        }
+
+        if (color === "#F3C778") {
+            return "profile-story-text-gold";
+        }
+
+        if (color === "#CBB4FF") {
+            return "profile-story-text-lavender";
+        }
+
+        if (color === "#2B1D3D") {
+            return "profile-story-text-dark";
+        }
+
+        return "profile-story-text-white";
+    }
+
+    function getColorButtonClass(color) {
+        if (color === "#FFD9E4") {
+            return "profile-story-color-btn-pink";
+        }
+
+        if (color === "#F3C778") {
+            return "profile-story-color-btn-gold";
+        }
+
+        if (color === "#CBB4FF") {
+            return "profile-story-color-btn-lavender";
+        }
+
+        if (color === "#2B1D3D") {
+            return "profile-story-color-btn-dark";
+        }
+
+        return "profile-story-color-btn-white";
+    }
+
+    function getUploadStickerClass(sticker, isActive) {
+        let className = "profile-story-upload-sticker";
+
+        if (sticker.bgYn === "Y") {
+            className += " with-bg";
+        }
+
+        if (isActive) {
+            className += " active";
+        }
+
+        className += " " + getPositionClass(sticker.posX, sticker.posY);
+        className += " " + getFontSizeClass(sticker.fontSize);
+        className += " " + getTextColorClass(sticker.fontColor);
+
+        return className;
+    }
+
+    function getRenderTextClass(text) {
+        let className = "profile-story-render-text";
+
+        if ((text.BG_YN || text.bgYn) === "Y") {
+            className += " with-bg";
+        }
+
+        className += " " + getPositionClass(text.POS_X || text.posX, text.POS_Y || text.posY);
+        className += " " + getFontSizeClass(text.FONT_SIZE || text.fontSize);
+        className += " " + getTextColorClass(text.FONT_COLOR || text.fontColor);
+
+        return className;
+    }
+
     async function uploadStory(e) {
         stopAll(e);
 
         if (storyUploadFiles.length === 0) {
-            alert("스토리 이미지를 선택해주세요.");
+            alert(getPageText("selectStoryImage"));
             return;
         }
 
@@ -584,7 +794,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         const uploadCount = storyUploadFiles.length;
 
         if (!token) {
-            alert("로그인이 필요합니다.");
+            alert(t("loginRequired") || getPageText("loginRequired"));
             return;
         }
 
@@ -622,7 +832,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                 console.log("프로필 스토리 등록 결과", data);
 
                 if (data.result !== "success") {
-                    alert(data.message || "스토리 등록에 실패했습니다.");
+                    alert(data.message || getPageText("storyUploadFail"));
                     return;
                 }
             }
@@ -634,11 +844,11 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
 
             await getStoryStatus();
 
-            alert(uploadCount + "개의 스토리가 등록되었습니다.");
+            alert(uploadCount + getPageText("storyUploaded"));
 
         } catch (err) {
             console.error(err);
-            alert("스토리 등록 중 오류가 발생했습니다.");
+            alert(getPageText("storyUploadError"));
 
         } finally {
             setUploading(false);
@@ -691,12 +901,12 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                     setViewerList([]);
                     setCurrentViewCount(Number(list[startIndex].VIEW_COUNT || 0));
                 } else {
-                    alert(data.message || "스토리를 불러오지 못했습니다.");
+                    alert(data.message || getPageText("storyLoadFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("스토리를 불러오는 중 오류가 발생했습니다.");
+                alert(getPageText("storyLoadError"));
             });
     }
 
@@ -829,7 +1039,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                 } else {
                     setViewerList([]);
                     setCurrentViewCount(0);
-                    console.log(data.message || "본 사람 목록을 불러오지 못했습니다.");
+                    console.log(data.message || getPageText("viewerLoadFail"));
                 }
             })
             .catch(err => {
@@ -892,12 +1102,12 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                     closeStoryViewer();
                     navigate("/profile/" + data.user.USER_NO);
                 } else {
-                    alert(data.message || "사용자를 찾을 수 없습니다.");
+                    alert(data.message || getPageText("userNotFound"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("사용자 검색 중 오류가 발생했습니다.");
+                alert(getPageText("userSearchError"));
             });
     }
 
@@ -908,7 +1118,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
             return;
         }
 
-        if (!window.confirm("스토리를 삭제할까요?")) {
+        if (!window.confirm(getPageText("deleteConfirm"))) {
             return;
         }
 
@@ -929,16 +1139,16 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                 console.log("프로필 스토리 삭제 결과", data);
 
                 if (data.result === "success") {
-                    alert("스토리가 삭제되었습니다.");
+                    alert(getPageText("deleteDone"));
                     closeStoryViewer();
                     getStoryStatus();
                 } else {
-                    alert(data.message || "스토리 삭제에 실패했습니다.");
+                    alert(data.message || getPageText("deleteFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("스토리 삭제 중 오류가 발생했습니다.");
+                alert(getPageText("deleteError"));
             });
     }
 
@@ -1010,13 +1220,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
         return textList.map((text, index) => (
             <div
                 key={text.TEXT_NO || text.textNo || index}
-                className={(text.BG_YN || text.bgYn) === "Y" ? "profile-story-render-text with-bg" : "profile-story-render-text"}
-                style={{
-                    "--story-text-x": Number(text.POS_X || text.posX || 50) + "%",
-                    "--story-text-y": Number(text.POS_Y || text.posY || 50) + "%",
-                    "--story-text-color": text.FONT_COLOR || text.fontColor || "#ffffff",
-                    "--story-text-size": Number(text.FONT_SIZE || text.fontSize || 24) + "px"
-                }}
+                className={getRenderTextClass(text)}
             >
                 {renderTaggedText(text.TEXT_CONTENT || text.textContent)}
             </div>
@@ -1043,8 +1247,8 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                 onClick={stopOnly}
             >
                 <div className="profile-story-upload-head">
-                    <h3>스토리 꾸미기</h3>
-                    <p>사진마다 글을 여러 개 올리고 위치를 바꿀 수 있어요.</p>
+                    <h3>{getPageText("decorateTitle")}</h3>
+                    <p>{getPageText("decorateSub")}</p>
                 </div>
 
                 <div className="profile-story-upload-body">
@@ -1058,7 +1262,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                         {storyUploadPreviews[selectedPreviewIndex] && (
                             <img
                                 src={storyUploadPreviews[selectedPreviewIndex]}
-                                alt="스토리 미리보기"
+                                alt={getPageText("previewAlt")}
                                 className="profile-story-upload-preview-img"
                             />
                         )}
@@ -1066,24 +1270,10 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                         {currentStickerList.map(sticker => (
                             <div
                                 key={sticker.id}
-                                className={
-                                    activeStickerId === sticker.id
-                                        ? sticker.bgYn === "Y"
-                                            ? "profile-story-upload-sticker with-bg active"
-                                            : "profile-story-upload-sticker active"
-                                        : sticker.bgYn === "Y"
-                                            ? "profile-story-upload-sticker with-bg"
-                                            : "profile-story-upload-sticker"
-                                }
-                                style={{
-                                    "--upload-sticker-x": sticker.posX + "%",
-                                    "--upload-sticker-y": sticker.posY + "%",
-                                    "--upload-sticker-color": sticker.fontColor,
-                                    "--upload-sticker-size": sticker.fontSize + "px"
-                                }}
+                                className={getUploadStickerClass(sticker, activeStickerId === sticker.id)}
                                 onPointerDown={(e) => startStickerDrag(e, sticker.id)}
                             >
-                                {sticker.textContent || "글 입력"}
+                                {sticker.textContent || getPageText("inputText")}
                             </div>
                         ))}
                     </div>
@@ -1102,7 +1292,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                                 >
                                     <img
                                         src={previewUrl}
-                                        alt={"선택 이미지 " + (index + 1)}
+                                        alt={getPageText("selectImageAlt") + (index + 1)}
                                     />
                                 </button>
                             ))}
@@ -1115,7 +1305,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                             className="profile-story-upload-main-btn"
                             onClick={addSticker}
                         >
-                            + 글 추가
+                            {getPageText("addText")}
                         </button>
 
                         <button
@@ -1124,7 +1314,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                             onClick={deleteActiveSticker}
                             disabled={!activeSticker}
                         >
-                            선택 글 삭제
+                            {getPageText("deleteText")}
                         </button>
                     </div>
 
@@ -1134,7 +1324,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                                 value={activeSticker.textContent}
                                 onChange={(e) => updateActiveSticker("textContent", e.target.value)}
                                 maxLength={500}
-                                placeholder="사진 위에 올릴 글을 입력하세요. 예) #경주여행 @traveler01"
+                                placeholder={getPageText("textPlaceholder")}
                                 className="profile-story-upload-textarea"
                                 onClick={stopOnly}
                             />
@@ -1148,8 +1338,11 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                                             stopAll(e);
                                             updateActiveSticker("fontColor", color);
                                         }}
-                                        className={activeSticker.fontColor === color ? "profile-story-color-btn active" : "profile-story-color-btn"}
-                                        style={{ background: color }}
+                                        className={
+                                            activeSticker.fontColor === color
+                                                ? "profile-story-color-btn active " + getColorButtonClass(color)
+                                                : "profile-story-color-btn " + getColorButtonClass(color)
+                                        }
                                     ></button>
                                 ))}
 
@@ -1183,13 +1376,13 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                                         updateActiveSticker("bgYn", activeSticker.bgYn === "Y" ? "N" : "Y");
                                     }}
                                 >
-                                    배경 {activeSticker.bgYn === "Y" ? "ON" : "OFF"}
+                                    {getPageText("bg")} {activeSticker.bgYn === "Y" ? "ON" : "OFF"}
                                 </button>
                             </div>
                         </>
                     ) : (
                         <div className="profile-story-upload-empty-guide">
-                            + 글 추가를 눌러서 사진 위에 글을 올려주세요.
+                            {getPageText("emptyGuide")}
                         </div>
                     )}
                 </div>
@@ -1204,7 +1397,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                         }}
                         disabled={uploading}
                     >
-                        취소
+                        {getPageText("cancel")}
                     </button>
 
                     <button
@@ -1213,7 +1406,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                         onClick={uploadStory}
                         disabled={uploading}
                     >
-                        {uploading ? "올리는 중..." : storyUploadFiles.length + "장 올리기"}
+                        {uploading ? getPageText("uploading") : storyUploadFiles.length + getPageText("uploadCountSuffix")}
                     </button>
                 </div>
             </div>
@@ -1254,7 +1447,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                             {getImageUrl(currentStory.PROFILE_IMG) !== "" ? (
                                 <img
                                     src={getImageUrl(currentStory.PROFILE_IMG)}
-                                    alt={safeText(currentStory.NICKNAME, "프로필")}
+                                    alt={safeText(currentStory.NICKNAME, getPageText("profileAlt"))}
                                 />
                             ) : (
                                 <span>{getFirstLetter(currentStory.NICKNAME || currentStory.USER_ID)}</span>
@@ -1262,7 +1455,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                         </div>
 
                         <div className="profile-story-viewer-user-text">
-                            <strong>{safeText(currentStory.NICKNAME, "traveler")}</strong>
+                            <strong>{safeText(currentStory.NICKNAME, getPageText("traveler"))}</strong>
                             <p>{getStoryTimeText(currentStory)}</p>
                         </div>
                     </div>
@@ -1281,7 +1474,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
 
                     <img
                         src={getStoryImageUrl(currentStory)}
-                        alt="스토리"
+                        alt={getPageText("storyAlt")}
                     />
 
                     {renderStoryTextList(currentStory)}
@@ -1306,7 +1499,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                             className="profile-story-view-count-btn"
                             onClick={openViewerList}
                         >
-                            👁 본 사람 {currentViewCount}
+                            👁 {getPageText("viewer")} {currentViewCount}
                         </button>
 
                         <button
@@ -1314,7 +1507,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                             className="profile-story-delete-btn"
                             onClick={(e) => removeStory(e, currentStory.STORY_NO)}
                         >
-                            삭제
+                            {getPageText("delete")}
                         </button>
                     </>
                 )}
@@ -1326,8 +1519,8 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
 
                             <div className="profile-story-viewer-list-head">
                                 <div>
-                                    <h3>본 사람</h3>
-                                    <p>{currentViewCount}명이 이 스토리를 봤어요.</p>
+                                    <h3>{getPageText("viewer")}</h3>
+                                    <p>{currentViewCount}{getPageText("viewerCountSuffix")}</p>
                                 </div>
 
                                 <button type="button" onClick={closeViewerList}>
@@ -1338,13 +1531,13 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                             <div className="profile-story-viewer-user-list">
                                 {viewerListLoading && (
                                     <div className="profile-story-viewer-list-empty">
-                                        불러오는 중입니다...
+                                        {getPageText("loadingViewer")}
                                     </div>
                                 )}
 
                                 {!viewerListLoading && viewerList.length === 0 && (
                                     <div className="profile-story-viewer-list-empty">
-                                        아직 본 사람이 없습니다.
+                                        {getPageText("noViewer")}
                                     </div>
                                 )}
 
@@ -1359,7 +1552,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                                             {getImageUrl(user.PROFILE_IMG) !== "" ? (
                                                 <img
                                                     src={getImageUrl(user.PROFILE_IMG)}
-                                                    alt={safeText(user.NICKNAME, "프로필")}
+                                                    alt={safeText(user.NICKNAME, getPageText("profileAlt"))}
                                                 />
                                             ) : (
                                                 <span>{getFirstLetter(user.NICKNAME || user.USER_ID)}</span>
@@ -1367,7 +1560,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                                         </div>
 
                                         <div className="profile-story-viewer-user-info">
-                                            <strong>{safeText(user.NICKNAME, "traveler")}</strong>
+                                            <strong>{safeText(user.NICKNAME, getPageText("traveler"))}</strong>
                                             <p>@{safeText(user.USER_ID, "user")} · {safeText(user.VIEW_DATE_TEXT, "")}</p>
                                         </div>
                                     </button>
@@ -1382,7 +1575,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
 
     return (
         <>
-            <div className={getProfileStoryClass()}>
+            <div className={getProfileStoryClass()} data-lang={language}>
                 <div
                     className="profile-story-image"
                     onClick={openStory}
@@ -1390,7 +1583,7 @@ function ProfileStoryCircle({ userNo, nickname, profileImg }) {
                     {getImageUrl(profileImg) !== "" ? (
                         <img
                             src={getImageUrl(profileImg)}
-                            alt={safeText(nickname, "프로필")}
+                            alt={safeText(nickname, getPageText("profileAlt"))}
                         />
                     ) : (
                         <span>{getFirstLetter(nickname)}</span>

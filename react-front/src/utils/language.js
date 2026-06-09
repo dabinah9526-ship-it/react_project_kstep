@@ -1,0 +1,203 @@
+const LANGUAGE_STORAGE_KEY = "kstepLang";
+
+const ko = {
+    korean: "한국어",
+    english: "English",
+
+    home: "홈",
+    back: "뒤로가기",
+    create: "작성",
+    share: "공유",
+    save: "저장",
+    saved: "저장됨",
+    edit: "수정",
+    delete: "삭제",
+    cancel: "취소",
+    confirm: "확인",
+
+    loginRequired: "로그인이 필요합니다.",
+    goHome: "홈으로 돌아가기",
+
+    feedDetailTitle: "여행 루트 상세",
+    feedDetailSub: "사진, 장소, 댓글까지 한 번에 확인해요.",
+    travelRoute: "여행 루트 지도",
+    travelStory: "여행 이야기",
+    routeSummaryEmpty: "등록된 루트 설명이 없습니다.",
+    storyEmpty: "작성자가 남긴 여행 이야기가 없습니다.",
+    noRouteSpot: "등록된 여행 루트 장소가 없습니다.",
+    placeCount: "개의 장소",
+    comment: "댓글",
+    comments: "댓글",
+    commentSub: "여행자들의 반응을 바로 확인해요.",
+    noComment: "아직 댓글이 없습니다.\n첫 댓글을 남겨보세요.",
+    commentPlaceholder: "댓글 달기...",
+    post: "게시",
+    routeSave: "루트 저장",
+    editPost: "게시물 수정",
+    deletePost: "게시물 삭제",
+    viewCount: "조회",
+    bookmarkCount: "저장",
+    likeFailed: "좋아요 처리에 실패했습니다.",
+    bookmarkFailed: "루트 저장 처리에 실패했습니다.",
+    commentFailed: "댓글 등록에 실패했습니다.",
+    deleteCommentConfirm: "댓글을 삭제할까요?",
+    deleteFeedConfirm: "이 게시물을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.",
+    deleteFeedDone: "게시물이 삭제되었습니다.",
+
+    firstPlaceMemo: "여행을 시작하기 좋은 첫 번째 장소예요.",
+    lastPlaceMemo: "코스를 마무리하며 들르기 좋은 장소예요.",
+    memo1: "중간에 천천히 둘러보기 좋은 장소예요.",
+    memo2: "잠깐 쉬어가며 분위기를 느끼기 좋아요.",
+    memo3: "사진 남기기 좋은 포인트로 넣어두면 좋아요.",
+    memo4: "가볍게 산책하면서 들르기 좋은 곳이에요.",
+    memo5: "다음 장소로 이동하기 전에 여유를 갖기 좋아요.",
+    coursePlace: "코스에 포함된 장소예요.",
+
+    adDetailTitle: "가게 상세",
+    adDetailSub: "여행 중 들러보기 좋은 로컬 스폰서 정보를 확인해요.",
+    localSponsor: "K-STEP 로컬 스폰서",
+    sponsorLabel: "K-STEP Local Sponsor",
+    sponsored: "Sponsored",
+    storeDetail: "가게 상세",
+    storeView: "가게보기",
+    saveStore: "가게 저장",
+    unsaveStore: "저장 취소",
+    shareStore: "공유하기",
+    information: "가게 정보",
+    informationSub: "광고주가 등록한 기본 정보입니다.",
+    businessName: "상호명",
+    category: "분류",
+    area: "지역",
+    address: "주소",
+    phone: "연락처",
+    openHours: "운영시간",
+    mainMenu: "대표메뉴 / 상품",
+    priceInfo: "가격 정보",
+    parkingInfo: "주차 정보",
+    externalLink: "외부 링크",
+    openExternalLink: "외부 링크 열기",
+    mapView: "지도 보기",
+    instagram: "인스타그램",
+    map: "위치 확인",
+    mapSub: "주소가 있으면 지도에서 바로 확인할 수 있어요.",
+    openInMap: "지도에서 보기",
+    copyAddress: "주소 복사",
+    menuTitle: "대표 메뉴 / 추천 상품",
+    noticeTitle: "방문 전 확인",
+    noticeText: "운영시간, 예약 가능 여부, 가격 정보는 가게 사정에 따라 달라질 수 있어요. 방문 전 외부 링크나 연락처로 한 번 더 확인하는 걸 추천해요.",
+    adLoading: "광고 정보를 불러오는 중입니다...",
+    waitText: "잠시만 기다려주세요.",
+    adNotFound: "광고 정보를 찾을 수 없습니다.",
+    adNotFoundSub: "광고가 종료되었거나 존재하지 않는 광고일 수 있어요."
+};
+
+const en = {
+    korean: "Korean",
+    english: "English",
+
+    home: "Home",
+    back: "Back",
+    create: "Create",
+    share: "Share",
+    save: "Save",
+    saved: "Saved",
+    edit: "Edit",
+    delete: "Delete",
+    cancel: "Cancel",
+    confirm: "Confirm",
+
+    loginRequired: "Please log in first.",
+    goHome: "Back to Home",
+
+    feedDetailTitle: "Travel Route Detail",
+    feedDetailSub: "View photos, places, and comments all in one place.",
+    travelRoute: "Travel Route Map",
+    travelStory: "Travel Story",
+    routeSummaryEmpty: "No route summary has been added.",
+    storyEmpty: "No travel story has been added yet.",
+    noRouteSpot: "No route places have been added.",
+    placeCount: " places",
+    comment: "Comment",
+    comments: "Comments",
+    commentSub: "See what other travelers are saying.",
+    noComment: "No comments yet.\nBe the first to leave one.",
+    commentPlaceholder: "Write a comment...",
+    post: "Post",
+    routeSave: "Save Route",
+    editPost: "Edit Post",
+    deletePost: "Delete Post",
+    viewCount: "Views",
+    bookmarkCount: "Saved",
+    likeFailed: "Failed to process like.",
+    bookmarkFailed: "Failed to save this route.",
+    commentFailed: "Failed to post comment.",
+    deleteCommentConfirm: "Delete this comment?",
+    deleteFeedConfirm: "Delete this post? This cannot be undone.",
+    deleteFeedDone: "The post has been deleted.",
+
+    firstPlaceMemo: "A nice place to start the trip.",
+    lastPlaceMemo: "A good stop to wrap up the route.",
+    memo1: "A good place to slow down and look around.",
+    memo2: "A nice spot to take a short break.",
+    memo3: "A good photo spot for your trip.",
+    memo4: "A pleasant place for a light walk.",
+    memo5: "A nice stop before moving to the next place.",
+    coursePlace: "This place is included in the route.",
+
+    adDetailTitle: "Store Detail",
+    adDetailSub: "Discover local sponsor spots worth visiting during your trip.",
+    localSponsor: "K-STEP Local Sponsor",
+    sponsorLabel: "K-STEP Local Sponsor",
+    sponsored: "Sponsored",
+    storeDetail: "Store Detail",
+    storeView: "View Store",
+    saveStore: "Save Store",
+    unsaveStore: "Unsave Store",
+    shareStore: "Share",
+    information: "Store Information",
+    informationSub: "Basic information provided by the sponsor.",
+    businessName: "Store Name",
+    category: "Category",
+    area: "Area",
+    address: "Address",
+    phone: "Phone",
+    openHours: "Opening Hours",
+    mainMenu: "Main Menu / Product",
+    priceInfo: "Price Info",
+    parkingInfo: "Parking",
+    externalLink: "External Link",
+    openExternalLink: "Open External Link",
+    mapView: "View Map",
+    instagram: "Instagram",
+    map: "Location",
+    mapSub: "Check the store location on the map.",
+    openInMap: "Open in Map",
+    copyAddress: "Copy Address",
+    menuTitle: "Main Menu / Recommended Items",
+    noticeTitle: "Before You Visit",
+    noticeText: "Opening hours, reservations, and prices may change depending on the store. Please check the official link or contact number before visiting.",
+    adLoading: "Loading sponsor information...",
+    waitText: "Please wait a moment.",
+    adNotFound: "Sponsor information not found.",
+    adNotFoundSub: "This sponsor post may have ended or no longer exists."
+};
+
+export function getLang() {
+    return localStorage.getItem(LANGUAGE_STORAGE_KEY) || "ko";
+}
+
+export function setLang(lang) {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    window.dispatchEvent(new Event("kstepLanguageChange"));
+}
+
+export function t(key) {
+    const lang = getLang();
+    const dictionary = lang === "en" ? en : ko;
+
+    return dictionary[key] || ko[key] || key;
+}
+
+export function getLanguageLabel() {
+    return getLang() === "en" ? "English" : "한국어";
+}

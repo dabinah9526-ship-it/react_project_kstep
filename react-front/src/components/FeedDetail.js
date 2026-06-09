@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import PageDecor from "./PageDecor";
 import ScrollTopButton from "./ScrollTopButton";
+import { getLang, t } from "../utils/language";
 import "./FeedDetail.css";
 
 function FeedDetail() {
@@ -10,6 +11,8 @@ function FeedDetail() {
     const [searchParams] = useSearchParams();
 
     const mapRef = useRef(null);
+
+    const [language, setLanguage] = useState(getLang());
 
     const [feed, setFeed] = useState(null);
     const [imageList, setImageList] = useState([]);
@@ -25,10 +28,22 @@ function FeedDetail() {
     const [mapMessage, setMapMessage] = useState("");
 
     useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
+
+    useEffect(() => {
         const token = getToken();
 
         if (!token) {
-            alert("로그인이 필요합니다.");
+            alert(t("loginRequired"));
             navigate("/");
             return;
         }
@@ -36,7 +51,7 @@ function FeedDetail() {
         const feedNo = getFeedNo();
 
         if (!feedNo) {
-            alert("피드 번호가 없습니다.");
+            alert(language === "en" ? "Feed number is missing." : "피드 번호가 없습니다.");
             navigate("/home");
             return;
         }
@@ -53,7 +68,7 @@ function FeedDetail() {
         } else {
             setMapMessage("");
         }
-    }, [feed, spotList, selectedSpotIndex]);
+    }, [feed, spotList, selectedSpotIndex, language]);
 
     function getToken() {
         return localStorage.getItem("token");
@@ -129,6 +144,10 @@ function FeedDetail() {
             return "";
         }
 
+        if (language === "en") {
+            return date.toLocaleDateString("en-US");
+        }
+
         return date.toLocaleDateString("ko-KR");
     }
 
@@ -166,16 +185,16 @@ function FeedDetail() {
                     setFeed(data.feed);
                     sessionStorage.setItem("selectedFeedNo", feedNo);
                 } else if (data.result === "private") {
-                    alert(data.message || "비공개 피드입니다.");
+                    alert(data.message || (language === "en" ? "This is a private feed." : "비공개 피드입니다."));
                     navigate("/home");
                 } else {
-                    alert(data.message || "피드를 불러오지 못했습니다.");
+                    alert(data.message || (language === "en" ? "Failed to load feed." : "피드를 불러오지 못했습니다."));
                     navigate("/home");
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("피드 상세 조회 중 오류가 발생했습니다.");
+                alert(language === "en" ? "An error occurred while loading feed detail." : "피드 상세 조회 중 오류가 발생했습니다.");
             })
             .finally(() => {
                 setLoading(false);
@@ -324,11 +343,11 @@ function FeedDetail() {
         }
 
         const naturalMemoList = [
-            "중간에 천천히 둘러보기 좋은 장소예요.",
-            "잠깐 쉬어가며 분위기를 느끼기 좋아요.",
-            "사진 남기기 좋은 포인트로 넣어두면 좋아요.",
-            "가볍게 산책하면서 들르기 좋은 곳이에요.",
-            "다음 장소로 이동하기 전에 여유를 갖기 좋아요."
+            t("memo1"),
+            t("memo2"),
+            t("memo3"),
+            t("memo4"),
+            t("memo5")
         ];
 
         return String(feed.ROUTE_SUMMARY)
@@ -339,11 +358,11 @@ function FeedDetail() {
                 let memo = naturalMemoList[index % naturalMemoList.length];
 
                 if (index === 0) {
-                    memo = "여행을 시작하기 좋은 첫 번째 장소예요.";
+                    memo = t("firstPlaceMemo");
                 }
 
                 if (index === list.length - 1 && list.length > 1) {
-                    memo = "코스를 마무리하며 들르기 좋은 장소예요.";
+                    memo = t("lastPlaceMemo");
                 }
 
                 return {
@@ -431,12 +450,12 @@ function FeedDetail() {
 
         if (keyword.trim() === "" && feed) {
             keyword =
-                safeText(feed.AREA, "한국") + " " +
-                safeText(feed.TITLE, "여행지");
+                safeText(feed.AREA, "Korea") + " " +
+                safeText(feed.TITLE, "travel");
         }
 
         if (keyword.trim() === "") {
-            keyword = "한국 여행";
+            keyword = "Korea travel";
         }
 
         return "https://maps.google.com/maps?q=" + encodeURIComponent(keyword.trim()) + "&output=embed";
@@ -502,7 +521,7 @@ function FeedDetail() {
             return;
         }
 
-        if (!window.confirm("이 게시물을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.")) {
+        if (!window.confirm(t("deleteFeedConfirm"))) {
             return;
         }
 
@@ -523,15 +542,15 @@ function FeedDetail() {
                 console.log("피드 삭제", data);
 
                 if (data.result === "success") {
-                    alert("게시물이 삭제되었습니다.");
+                    alert(t("deleteFeedDone"));
                     navigate("/home");
                 } else {
-                    alert(data.message || "게시물 삭제에 실패했습니다.");
+                    alert(data.message || (language === "en" ? "Failed to delete post." : "게시물 삭제에 실패했습니다."));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("게시물 삭제 중 오류가 발생했습니다.");
+                alert(language === "en" ? "An error occurred while deleting post." : "게시물 삭제 중 오류가 발생했습니다.");
             });
     }
 
@@ -563,12 +582,12 @@ function FeedDetail() {
                         LIKE_COUNT: data.likeCount
                     });
                 } else {
-                    alert(data.message || "좋아요 처리에 실패했습니다.");
+                    alert(data.message || t("likeFailed"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("좋아요 처리 중 오류가 발생했습니다.");
+                alert(t("likeFailed"));
             });
     }
 
@@ -602,12 +621,12 @@ function FeedDetail() {
 
                     alert(data.message);
                 } else {
-                    alert(data.message || "루트 저장 처리에 실패했습니다.");
+                    alert(data.message || t("bookmarkFailed"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("루트 저장 처리 중 오류가 발생했습니다.");
+                alert(t("bookmarkFailed"));
             });
     }
 
@@ -619,12 +638,12 @@ function FeedDetail() {
         const content = commentContent.trim();
 
         if (content === "") {
-            alert("댓글 내용을 입력해주세요.");
+            alert(language === "en" ? "Please write a comment." : "댓글 내용을 입력해주세요.");
             return;
         }
 
         if (content.length > 500) {
-            alert("댓글은 500자 이하로 입력해주세요.");
+            alert(language === "en" ? "Comments can be up to 500 characters." : "댓글은 500자 이하로 입력해주세요.");
             return;
         }
 
@@ -654,12 +673,12 @@ function FeedDetail() {
                         COMMENT_COUNT: data.commentCount
                     });
                 } else {
-                    alert(data.message || "댓글 등록에 실패했습니다.");
+                    alert(data.message || t("commentFailed"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("댓글 등록 중 오류가 발생했습니다.");
+                alert(t("commentFailed"));
             });
     }
 
@@ -668,7 +687,7 @@ function FeedDetail() {
             return;
         }
 
-        if (!window.confirm("댓글을 삭제할까요?")) {
+        if (!window.confirm(t("deleteCommentConfirm"))) {
             return;
         }
 
@@ -696,12 +715,12 @@ function FeedDetail() {
                         COMMENT_COUNT: data.commentCount
                     });
                 } else {
-                    alert(data.message || "댓글 삭제에 실패했습니다.");
+                    alert(data.message || (language === "en" ? "Failed to delete comment." : "댓글 삭제에 실패했습니다."));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("댓글 삭제 중 오류가 발생했습니다.");
+                alert(language === "en" ? "An error occurred while deleting comment." : "댓글 삭제 중 오류가 발생했습니다.");
             });
     }
 
@@ -718,12 +737,12 @@ function FeedDetail() {
         }
 
         const shareUrl = window.location.origin + "/feed/detail?feedNo=" + feed.FEED_NO;
-        const title = safeText(feed.TITLE, "K-STEP 여행 루트");
+        const title = safeText(feed.TITLE, "K-STEP Travel Route");
 
         if (navigator.share) {
             navigator.share({
                 title: title,
-                text: title + " 루트를 확인해보세요.",
+                text: title,
                 url: shareUrl
             })
                 .catch(err => {
@@ -735,11 +754,11 @@ function FeedDetail() {
 
         navigator.clipboard.writeText(shareUrl)
             .then(() => {
-                alert("피드 링크가 복사되었습니다.");
+                alert(language === "en" ? "The feed link has been copied." : "피드 링크가 복사되었습니다.");
             })
             .catch(err => {
                 console.error(err);
-                alert("링크 복사에 실패했습니다.");
+                alert(language === "en" ? "Failed to copy link." : "링크 복사에 실패했습니다.");
             });
     }
 
@@ -805,7 +824,7 @@ function FeedDetail() {
         };
 
         script.onerror = function () {
-            setMapMessage("지도를 불러오지 못했습니다. 카카오 지도 설정을 확인해주세요.");
+            setMapMessage(language === "en" ? "Failed to load the map." : "지도를 불러오지 못했습니다. 카카오 지도 설정을 확인해주세요.");
         };
 
         document.head.appendChild(script);
@@ -849,7 +868,7 @@ function FeedDetail() {
                 content:
                     '<div class="detail-map-label">' +
                     '<span>' + (i + 1) + '</span>' +
-                    '<strong>' + safeText(spot.SPOT_NAME, "장소") + '</strong>' +
+                    '<strong>' + safeText(spot.SPOT_NAME, "Place") + '</strong>' +
                     '</div>'
             });
 
@@ -879,12 +898,12 @@ function FeedDetail() {
 
     if (loading && !feed) {
         return (
-            <div className="detail-page">
+            <div className="detail-page" data-lang={language}>
                 <PageDecor />
 
                 <div className="detail-layout">
                     <div className="detail-empty-box">
-                        피드 상세를 불러오는 중입니다...
+                        {language === "en" ? "Loading feed detail..." : "피드 상세를 불러오는 중입니다..."}
                     </div>
                 </div>
 
@@ -895,18 +914,18 @@ function FeedDetail() {
 
     if (!feed) {
         return (
-            <div className="detail-page">
+            <div className="detail-page" data-lang={language}>
                 <PageDecor />
 
                 <div className="detail-layout">
                     <div className="detail-empty-box">
-                        피드를 찾을 수 없습니다.
+                        {language === "en" ? "Feed not found." : "피드를 찾을 수 없습니다."}
 
                         <button
                             type="button"
                             onClick={() => navigate("/home")}
                         >
-                            홈으로 돌아가기
+                            {t("goHome")}
                         </button>
                     </div>
                 </div>
@@ -923,7 +942,7 @@ function FeedDetail() {
     const fallbackMapUrl = getFallbackMapUrl();
 
     return (
-        <div className="detail-page">
+        <div className="detail-page" data-lang={language}>
             <PageDecor />
 
             <div className="detail-layout">
@@ -934,8 +953,8 @@ function FeedDetail() {
                         <div className="detail-brand-mark">K</div>
 
                         <div>
-                            <h1>여행 루트 상세</h1>
-                            <p>사진, 장소, 댓글까지 한 번에 확인해요.</p>
+                            <h1>{t("feedDetailTitle")}</h1>
+                            <p>{t("feedDetailSub")}</p>
                         </div>
                     </div>
 
@@ -943,8 +962,8 @@ function FeedDetail() {
                         <button
                             type="button"
                             onClick={() => navigate(-1)}
-                            title="뒤로가기"
-                            aria-label="뒤로가기"
+                            title={t("back")}
+                            aria-label={t("back")}
                         >
                             ↩
                         </button>
@@ -952,8 +971,8 @@ function FeedDetail() {
                         <button
                             type="button"
                             onClick={() => navigate("/home")}
-                            title="홈으로"
-                            aria-label="홈으로"
+                            title={t("home")}
+                            aria-label={t("home")}
                         >
                             ⌂
                         </button>
@@ -962,8 +981,8 @@ function FeedDetail() {
                             type="button"
                             className="write"
                             onClick={() => navigate("/feed/new")}
-                            title="작성"
-                            aria-label="작성"
+                            title={t("create")}
+                            aria-label={t("create")}
                         >
                             +
                         </button>
@@ -977,7 +996,7 @@ function FeedDetail() {
                                 {selectedImageUrl !== "" ? (
                                     <img
                                         src={selectedImageUrl}
-                                        alt={safeText(feed.TITLE, "피드 이미지")}
+                                        alt={safeText(feed.TITLE, "feed image")}
                                     />
                                 ) : (
                                     <div className="detail-no-image">
@@ -1029,7 +1048,7 @@ function FeedDetail() {
                                     {getImageUrl(feed.PROFILE_IMG) !== "" ? (
                                         <img
                                             src={getImageUrl(feed.PROFILE_IMG)}
-                                            alt={safeText(feed.NICKNAME, "프로필")}
+                                            alt={safeText(feed.NICKNAME, "profile")}
                                         />
                                     ) : (
                                         <span>{getFirstLetter(feed.NICKNAME || feed.USER_ID)}</span>
@@ -1050,10 +1069,10 @@ function FeedDetail() {
                             <div className="detail-section-title">
                                 <div>
                                     <span>Travel Route</span>
-                                    <h2>여행 루트 지도</h2>
+                                    <h2>{t("travelRoute")}</h2>
                                 </div>
 
-                                <p>{routeDisplayList.length}개의 장소</p>
+                                <p>{routeDisplayList.length}{t("placeCount")}</p>
                             </div>
 
                             <div className="detail-map-box">
@@ -1061,11 +1080,10 @@ function FeedDetail() {
                                     <div ref={mapRef} className="detail-map"></div>
                                 ) : (
                                     <iframe
-                                        className="detail-map"
+                                        className="detail-map detail-map-frame"
                                         src={fallbackMapUrl}
-                                        title="여행 루트 지도"
+                                        title={t("travelRoute")}
                                         loading="lazy"
-                                        style={{ border: 0 }}
                                         allowFullScreen
                                     ></iframe>
                                 )}
@@ -1079,23 +1097,22 @@ function FeedDetail() {
 
                             {routeDisplayList.length === 0 ? (
                                 <div className="detail-route-empty">
-                                    등록된 여행 루트 장소가 없습니다.
+                                    {t("noRouteSpot")}
                                 </div>
                             ) : (
                                 <div className="detail-spot-list">
                                     {routeDisplayList.map((spot, index) => (
                                         <div
-                                            className="detail-spot-item"
+                                            className="detail-spot-item detail-spot-clickable"
                                             key={spot.SPOT_NO || index}
                                             onClick={() => setSelectedSpotIndex(index)}
-                                            style={{ cursor: "pointer" }}
                                         >
                                             <div className="detail-spot-number">
                                                 {index + 1}
                                             </div>
 
                                             <div className="detail-spot-content">
-                                                <strong>{safeText(spot.SPOT_NAME, "장소명 없음")}</strong>
+                                                <strong>{safeText(spot.SPOT_NAME, language === "en" ? "Unnamed place" : "장소명 없음")}</strong>
 
                                                 {spot.ADDRESS && (
                                                     <p>{spot.ADDRESS}</p>
@@ -1106,7 +1123,7 @@ function FeedDetail() {
                                                 )}
 
                                                 {!spot.ADDRESS && !spot.SPOT_MEMO && (
-                                                    <p>코스에 포함된 장소예요.</p>
+                                                    <p>{t("coursePlace")}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -1120,21 +1137,21 @@ function FeedDetail() {
                         <div className="detail-info-panel">
                             <div className="detail-title-area">
                                 <div className="detail-chip-row">
-                                    <span>{safeText(feed.CATEGORY, "여행")}</span>
+                                    <span>{safeText(feed.CATEGORY, "Travel")}</span>
                                     <span>{safeText(feed.AREA, "Korea")}</span>
                                 </div>
 
-                                <h1>{safeText(feed.TITLE, "제목 없음")}</h1>
+                                <h1>{safeText(feed.TITLE, language === "en" ? "Untitled" : "제목 없음")}</h1>
 
                                 <p className="detail-route-summary-text">
-                                    {safeText(feed.ROUTE_SUMMARY, "등록된 루트 설명이 없습니다.")}
+                                    {safeText(feed.ROUTE_SUMMARY, t("routeSummaryEmpty"))}
                                 </p>
 
                                 <div className="detail-story-box">
-                                    <strong>여행 이야기</strong>
+                                    <strong>{t("travelStory")}</strong>
 
                                     <p>
-                                        {safeText(feed.CONTENT, "작성자가 남긴 여행 이야기가 없습니다.")}
+                                        {safeText(feed.CONTENT, t("storyEmpty"))}
                                     </p>
                                 </div>
 
@@ -1167,14 +1184,14 @@ function FeedDetail() {
                                     className={feed.BOOKMARK_YN === "Y" ? "active" : ""}
                                     onClick={toggleBookmark}
                                 >
-                                    {feed.BOOKMARK_YN === "Y" ? "저장됨" : "루트 저장"}
+                                    {feed.BOOKMARK_YN === "Y" ? t("saved") : t("routeSave")}
                                 </button>
 
                                 <button
                                     type="button"
                                     onClick={shareFeed}
                                 >
-                                    공유
+                                    {t("share")}
                                 </button>
                             </div>
 
@@ -1185,7 +1202,7 @@ function FeedDetail() {
                                         className="edit"
                                         onClick={moveEditFeed}
                                     >
-                                        게시물 수정
+                                        {t("editPost")}
                                     </button>
 
                                     <button
@@ -1193,23 +1210,23 @@ function FeedDetail() {
                                         className="delete"
                                         onClick={removeFeed}
                                     >
-                                        게시물 삭제
+                                        {t("deletePost")}
                                     </button>
                                 </div>
                             )}
 
                             <div className="detail-count-row">
-                                <span>댓글 {feed.COMMENT_COUNT || 0}</span>
-                                <span>저장 {feed.BOOKMARK_COUNT || 0}</span>
-                                <span>조회 {feed.VIEW_COUNT || 0}</span>
+                                <span>{t("comments")} {feed.COMMENT_COUNT || 0}</span>
+                                <span>{t("bookmarkCount")} {feed.BOOKMARK_COUNT || 0}</span>
+                                <span>{t("viewCount")} {feed.VIEW_COUNT || 0}</span>
                             </div>
                         </div>
 
                         <div className="detail-comment-panel">
                             <div className="detail-comment-head">
                                 <div>
-                                    <strong>댓글</strong>
-                                    <p>여행자들의 반응을 바로 확인해요.</p>
+                                    <strong>{t("comments")}</strong>
+                                    <p>{t("commentSub")}</p>
                                 </div>
 
                                 <span>{commentList.length}</span>
@@ -1218,15 +1235,18 @@ function FeedDetail() {
                             <div className="detail-comment-list">
                                 {commentLoading && (
                                     <div className="detail-comment-empty">
-                                        댓글을 불러오는 중입니다...
+                                        {language === "en" ? "Loading comments..." : "댓글을 불러오는 중입니다..."}
                                     </div>
                                 )}
 
                                 {!commentLoading && commentList.length === 0 && (
                                     <div className="detail-comment-empty">
-                                        아직 댓글이 없습니다.
-                                        <br />
-                                        첫 댓글을 남겨보세요.
+                                        {t("noComment").split("\n").map((line, index) => (
+                                            <span key={index}>
+                                                {line}
+                                                {index === 0 && <br />}
+                                            </span>
+                                        ))}
                                     </div>
                                 )}
 
@@ -1239,7 +1259,7 @@ function FeedDetail() {
                                             {getImageUrl(comment.PROFILE_IMG) !== "" ? (
                                                 <img
                                                     src={getImageUrl(comment.PROFILE_IMG)}
-                                                    alt={safeText(comment.NICKNAME, "프로필")}
+                                                    alt={safeText(comment.NICKNAME, "profile")}
                                                 />
                                             ) : (
                                                 <span>{getFirstLetter(comment.NICKNAME || comment.USER_ID)}</span>
@@ -1264,7 +1284,7 @@ function FeedDetail() {
                                                 className="detail-comment-delete-btn"
                                                 onClick={() => removeComment(comment.COMMENT_NO)}
                                             >
-                                                삭제
+                                                {t("delete")}
                                             </button>
                                         )}
                                     </div>
@@ -1277,7 +1297,7 @@ function FeedDetail() {
                                     maxLength={500}
                                     onChange={(e) => setCommentContent(e.target.value)}
                                     onKeyDown={enterComment}
-                                    placeholder="댓글 달기..."
+                                    placeholder={t("commentPlaceholder")}
                                 ></textarea>
 
                                 <span>{commentContent.length}/500</span>
@@ -1287,7 +1307,7 @@ function FeedDetail() {
                                     className={commentContent.trim() === "" ? "disabled" : ""}
                                     onClick={addComment}
                                 >
-                                    게시
+                                    {t("post")}
                                 </button>
                             </div>
                         </div>

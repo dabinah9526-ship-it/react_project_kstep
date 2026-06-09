@@ -380,6 +380,10 @@
     color: #ffffff;
 }
 
+/* ================================
+   Viewer Modal
+================================ */
+
 .story-viewer-modal-bg {
     position: fixed;
     inset: 0;
@@ -520,6 +524,344 @@
     min-width: 0;
 }
 
+/* ================================
+   Story Upload Decorate Modal
+================================ */
+
+.story-upload-modal-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(31, 27, 38, 0.62);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    box-sizing: border-box;
+}
+
+.story-upload-modal {
+    width: min(575px, 100%);
+    max-height: 92vh;
+    overflow: hidden;
+    border-radius: 34px;
+    background:
+        radial-gradient(circle at 88% 8%, rgba(255, 226, 236, 0.9), transparent 30%),
+        linear-gradient(180deg, rgba(255, 253, 252, 0.98), rgba(255, 246, 250, 0.98));
+    border: 1px solid rgba(236, 205, 216, 0.9);
+    box-shadow: 0 28px 80px rgba(55, 43, 62, 0.32);
+    display: flex;
+    flex-direction: column;
+}
+
+.story-upload-modal-head {
+    padding: 27px 26px 21px;
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    border-bottom: 1px solid rgba(234, 212, 219, 0.75);
+}
+
+.story-upload-modal-head h2 {
+    margin: 0;
+    color: #2c2345;
+    font-size: 25px;
+    font-weight: 950;
+    letter-spacing: -0.7px;
+}
+
+.story-upload-modal-head p {
+    margin: 9px 0 0;
+    color: #938696;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.55;
+}
+
+.story-upload-modal-head button {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 18px;
+    background: rgba(255, 239, 246, 0.95);
+    color: #d4779b;
+    font-size: 30px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.story-upload-modal-body {
+    padding: 20px 25px 18px;
+    overflow-y: auto;
+}
+
+.story-upload-file-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.story-upload-file-row span {
+    color: #8c7c94;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.story-upload-file-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #9f6aa0, #d883a2);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 950;
+    cursor: pointer;
+    box-shadow: 0 12px 28px rgba(161, 103, 149, 0.24);
+}
+
+.story-upload-file-btn input {
+    display: none;
+}
+
+.story-upload-preview-card {
+    border-radius: 25px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(235, 209, 218, 0.9);
+    overflow: hidden;
+    box-shadow: 0 18px 42px rgba(93, 74, 102, 0.12);
+}
+
+.story-upload-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 18% 18%, rgba(255, 236, 243, 0.9), transparent 28%),
+        linear-gradient(145deg, rgba(255, 250, 252, 0.95), rgba(246, 239, 255, 0.8));
+    touch-action: none;
+}
+
+.story-upload-preview img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    user-select: none;
+    pointer-events: none;
+}
+
+.story-upload-text {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    max-width: 78%;
+    padding: 8px 13px;
+    border-radius: 999px;
+    background: rgba(44, 35, 69, 0.52);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+    font-size: 22px;
+    font-weight: 950;
+    line-height: 1.25;
+    text-align: center;
+    word-break: break-word;
+    cursor: grab;
+    user-select: none;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 12px 28px rgba(32, 25, 45, 0.22);
+}
+
+.story-upload-text.active {
+    background: rgba(159, 106, 160, 0.78);
+    outline: 3px solid rgba(255, 222, 235, 0.9);
+}
+
+.story-upload-text:active {
+    cursor: grabbing;
+}
+
+.story-upload-no-photo {
+    min-height: 320px;
+    border-radius: 25px;
+    border: 1px dashed rgba(216, 168, 189, 0.8);
+    background:
+        radial-gradient(circle at 50% 25%, rgba(255, 238, 246, 0.95), transparent 35%),
+        rgba(255, 252, 253, 0.88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #9b899c;
+    text-align: center;
+}
+
+.story-upload-no-photo span {
+    font-size: 38px;
+    color: #d786a5;
+    margin-bottom: 8px;
+}
+
+.story-upload-no-photo p {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.story-upload-photo-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin-top: 13px;
+    padding-bottom: 3px;
+}
+
+.story-upload-photo-tabs button {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 13px;
+    border-radius: 999px;
+    border: 1px solid rgba(222, 187, 202, 0.9);
+    background: rgba(255, 255, 255, 0.75);
+    color: #8a7a91;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.story-upload-photo-tabs button.active {
+    background: #9f6aa0;
+    color: #fff;
+    border-color: #9f6aa0;
+}
+
+.story-upload-tool-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.story-upload-tool-row button {
+    height: 50px;
+    border-radius: 19px;
+    font-size: 15px;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.story-upload-tool-row button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.story-upload-main-tool {
+    flex: 0 0 auto;
+    padding: 0 20px;
+    border: 0;
+    background: linear-gradient(135deg, #9f6aa0, #d883a2);
+    color: #fff;
+}
+
+.story-upload-sub-tool {
+    flex: 0 0 auto;
+    padding: 0 19px;
+    border: 1px solid rgba(232, 199, 211, 0.95);
+    background: rgba(255, 250, 252, 0.9);
+    color: #c87b9b;
+}
+
+.story-upload-guide {
+    margin-top: 14px;
+    padding: 19px 16px;
+    border-radius: 21px;
+    border: 1px dashed rgba(226, 189, 203, 0.9);
+    background: rgba(255, 253, 254, 0.74);
+    color: #9b899c;
+    font-size: 14px;
+    font-weight: 900;
+    text-align: center;
+}
+
+.story-upload-text-editor {
+    margin-top: 14px;
+    padding: 15px;
+    border-radius: 22px;
+    background: rgba(255, 252, 253, 0.9);
+    border: 1px solid rgba(235, 209, 218, 0.9);
+}
+
+.story-upload-text-editor label {
+    display: block;
+    margin-bottom: 9px;
+    color: #6f5f78;
+    font-size: 13px;
+    font-weight: 950;
+}
+
+.story-upload-text-editor textarea {
+    width: 100%;
+    min-height: 72px;
+    resize: none;
+    border: 1px solid rgba(218, 177, 195, 0.85);
+    border-radius: 17px;
+    outline: none;
+    padding: 12px 13px;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.9);
+    color: #332943;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 750;
+    line-height: 1.45;
+}
+
+.story-upload-text-editor textarea:focus {
+    border-color: rgba(159, 106, 160, 0.85);
+    box-shadow: 0 0 0 4px rgba(255, 220, 235, 0.5);
+}
+
+.story-upload-modal-bottom {
+    padding: 17px 25px 24px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid rgba(234, 212, 219, 0.68);
+}
+
+.story-upload-modal-bottom button {
+    min-width: 72px;
+    height: 48px;
+    border-radius: 18px;
+    font-size: 15px;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.story-upload-modal-bottom button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.story-upload-cancel-btn {
+    border: 1px solid rgba(232, 199, 211, 0.95);
+    background: rgba(255, 252, 253, 0.9);
+    color: #b77a95;
+}
+
+.story-upload-submit-btn {
+    border: 0;
+    background: linear-gradient(135deg, #9f6aa0, #d883a2);
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(161, 103, 149, 0.22);
+}
+
 @media (max-width: 880px) {
     .story-manage-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -568,5 +910,34 @@
 
     .story-manage-grid {
         grid-template-columns: 1fr;
+    }
+
+    .story-upload-modal-bg {
+        padding: 14px;
+    }
+
+    .story-upload-modal {
+        border-radius: 28px;
+    }
+
+    .story-upload-modal-head {
+        padding: 23px 20px 18px;
+    }
+
+    .story-upload-modal-body {
+        padding: 17px 18px;
+    }
+
+    .story-upload-tool-row {
+        flex-direction: column;
+    }
+
+    .story-upload-main-tool,
+    .story-upload-sub-tool {
+        width: 100%;
+    }
+
+    .story-upload-modal-bottom {
+        padding: 15px 18px 20px;
     }
 }

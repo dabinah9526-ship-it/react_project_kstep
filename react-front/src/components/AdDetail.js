@@ -2,15 +2,30 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import PageDecor from "./PageDecor";
 import ScrollTopButton from "./ScrollTopButton";
+import { getLang, t } from "../utils/language";
 import "./AdDetail.css";
 
 function AdDetail() {
     const navigate = useNavigate();
     const { adNo } = useParams();
 
+    const [language, setLanguage] = useState(getLang());
+
     const [ad, setAd] = useState(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
 
     useEffect(() => {
         getAdDetail();
@@ -35,7 +50,7 @@ function AdDetail() {
 
         refreshMenuCount();
 
-        alert(message || "로그인이 필요합니다.");
+        alert(message || t("loginRequired"));
         navigate("/", { replace: true });
     }
 
@@ -57,7 +72,7 @@ function AdDetail() {
 
     function handleLoginRequired(data) {
         if (isLoginRequired(data)) {
-            moveLoginPage(data.message || "로그인이 필요합니다.");
+            moveLoginPage(data.message || t("loginRequired"));
             return true;
         }
 
@@ -158,7 +173,12 @@ function AdDetail() {
             return "";
         }
 
-        return ad.OPEN_HOURS || ad.BUSINESS_HOURS || ad.OPERATING_HOURS || "";
+        return (
+            ad.OPEN_HOURS ||
+            ad.BUSINESS_HOURS ||
+            ad.OPERATING_HOURS ||
+            ""
+        );
     }
 
     function getMainMenuText() {
@@ -166,7 +186,12 @@ function AdDetail() {
             return "";
         }
 
-        return ad.MAIN_MENU || ad.MENU_INFO || ad.MAIN_PRODUCT || "";
+        return (
+            ad.MAIN_MENU ||
+            ad.MENU_INFO ||
+            ad.MAIN_PRODUCT ||
+            ""
+        );
     }
 
     function getPriceInfoText() {
@@ -174,7 +199,12 @@ function AdDetail() {
             return "";
         }
 
-        return ad.PRICE_INFO || ad.PRICE_RANGE || ad.PRICE || "";
+        return (
+            ad.PRICE_INFO ||
+            ad.PRICE_RANGE ||
+            ad.PRICE ||
+            ""
+        );
     }
 
     function getParkingInfoText() {
@@ -182,7 +212,11 @@ function AdDetail() {
             return "";
         }
 
-        return ad.PARKING_INFO || ad.PARKING || "";
+        return (
+            ad.PARKING_INFO ||
+            ad.PARKING ||
+            ""
+        );
     }
 
     function getMapUrl() {
@@ -261,12 +295,12 @@ function AdDetail() {
         const token = getToken();
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
         if (!adNo) {
-            alert("광고 번호가 없습니다.");
+            alert(language === "en" ? "Sponsor number is missing." : "광고 번호가 없습니다.");
             navigate("/home");
             return;
         }
@@ -322,7 +356,7 @@ function AdDetail() {
         const token = getToken();
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -365,7 +399,7 @@ function AdDetail() {
         const token = getToken();
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -406,7 +440,7 @@ function AdDetail() {
                 }
 
                 if (linkUrl === "") {
-                    alert("연결된 외부 링크가 없습니다.");
+                    alert(language === "en" ? "No external link has been added." : "연결된 외부 링크가 없습니다.");
                     return;
                 }
 
@@ -418,7 +452,7 @@ function AdDetail() {
                 const linkUrl = getAdLinkUrl() || getMapUrl() || getKakaoMapSearchUrl();
 
                 if (linkUrl === "") {
-                    alert("연결된 외부 링크가 없습니다.");
+                    alert(language === "en" ? "No external link has been added." : "연결된 외부 링크가 없습니다.");
                     return;
                 }
 
@@ -436,7 +470,7 @@ function AdDetail() {
         const token = getToken();
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -475,14 +509,14 @@ function AdDetail() {
                     setAd(savedAd);
                     sessionStorage.setItem("selectedAd", JSON.stringify(savedAd));
 
-                    alert(data.message || "가게 저장 처리가 완료되었습니다.");
+                    alert(data.message || (language === "en" ? "Store save status has been updated." : "가게 저장 처리가 완료되었습니다."));
                 } else {
-                    alert(data.message || "가게 저장 처리에 실패했습니다.");
+                    alert(data.message || (language === "en" ? "Failed to save store." : "가게 저장 처리에 실패했습니다."));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("가게 저장 처리 중 오류가 발생했습니다.");
+                alert(language === "en" ? "An error occurred while saving store." : "가게 저장 처리 중 오류가 발생했습니다.");
             })
             .finally(() => {
                 setSaving(false);
@@ -497,12 +531,12 @@ function AdDetail() {
         }
 
         const shareUrl = window.location.href;
-        const title = safeText(ad.BUSINESS_NAME, "K-STEP 추천 가게");
+        const title = safeText(ad.BUSINESS_NAME, "K-STEP Local Sponsor");
 
         if (navigator.share) {
             navigator.share({
                 title: title,
-                text: title + " 정보를 확인해보세요.",
+                text: title,
                 url: shareUrl
             })
                 .catch(err => {
@@ -512,7 +546,10 @@ function AdDetail() {
             return;
         }
 
-        copyText(shareUrl, "광고 링크가 복사되었습니다.");
+        copyText(
+            shareUrl,
+            language === "en" ? "Sponsor link has been copied." : "광고 링크가 복사되었습니다."
+        );
     }
 
     function copyText(text, successMessage) {
@@ -523,7 +560,7 @@ function AdDetail() {
                 })
                 .catch(err => {
                     console.error(err);
-                    alert("복사에 실패했습니다.");
+                    alert(language === "en" ? "Failed to copy." : "복사에 실패했습니다.");
                 });
 
             return;
@@ -538,11 +575,14 @@ function AdDetail() {
         const addressText = getAddressText();
 
         if (!addressText) {
-            alert("복사할 주소가 없습니다.");
+            alert(language === "en" ? "No address to copy." : "복사할 주소가 없습니다.");
             return;
         }
 
-        copyText(addressText, "주소가 복사되었습니다.");
+        copyText(
+            addressText,
+            language === "en" ? "Address has been copied." : "주소가 복사되었습니다."
+        );
     }
 
     function openMapSearch(e) {
@@ -551,7 +591,7 @@ function AdDetail() {
         const mapUrl = getMapUrl() || getKakaoMapSearchUrl();
 
         if (!mapUrl) {
-            alert("지도에서 검색할 주소나 가게명이 없습니다.");
+            alert(language === "en" ? "No address or store name to search." : "지도에서 검색할 주소나 가게명이 없습니다.");
             return;
         }
 
@@ -564,7 +604,7 @@ function AdDetail() {
         const instagramUrl = getInstagramUrl();
 
         if (!instagramUrl) {
-            alert("등록된 인스타그램 링크가 없습니다.");
+            alert(language === "en" ? "No Instagram link has been added." : "등록된 인스타그램 링크가 없습니다.");
             return;
         }
 
@@ -573,13 +613,13 @@ function AdDetail() {
 
     if (loading && !ad) {
         return (
-            <div className="ad-detail-page">
+            <div className="ad-detail-page" data-lang={language}>
                 <PageDecor />
 
                 <div className="ad-detail-empty">
                     <div className="ad-detail-empty-icon">⌛</div>
-                    <strong>광고 정보를 불러오는 중입니다...</strong>
-                    <p>잠시만 기다려주세요.</p>
+                    <strong>{t("adLoading")}</strong>
+                    <p>{t("waitText")}</p>
                 </div>
 
                 <ScrollTopButton />
@@ -589,19 +629,19 @@ function AdDetail() {
 
     if (!ad) {
         return (
-            <div className="ad-detail-page">
+            <div className="ad-detail-page" data-lang={language}>
                 <PageDecor />
 
                 <div className="ad-detail-empty">
                     <div className="ad-detail-empty-icon">!</div>
-                    <strong>광고 정보를 찾을 수 없습니다.</strong>
-                    <p>광고가 종료되었거나 존재하지 않는 광고일 수 있어요.</p>
+                    <strong>{t("adNotFound")}</strong>
+                    <p>{t("adNotFoundSub")}</p>
 
                     <button
                         type="button"
                         onClick={() => navigate("/home")}
                     >
-                        홈으로 돌아가기
+                        {t("goHome")}
                     </button>
                 </div>
 
@@ -623,7 +663,7 @@ function AdDetail() {
     const saveYn = ad.SAVE_YN === "Y" || ad.SAVED_YN === "Y";
 
     return (
-        <div className="ad-detail-page">
+        <div className="ad-detail-page" data-lang={language}>
             <PageDecor />
 
             <div className="ad-detail-wrap">
@@ -634,11 +674,9 @@ function AdDetail() {
                         <div className="ad-detail-brand-mark">K</div>
 
                         <div>
-                            <p className="ad-detail-top-label">K-STEP Local Sponsor</p>
-                            <h1>가게 상세</h1>
-                            <span>
-                                여행 중 들러보기 좋은 로컬 스폰서 정보를 확인해요.
-                            </span>
+                            <p className="ad-detail-top-label">{t("sponsorLabel")}</p>
+                            <h1>{t("adDetailTitle")}</h1>
+                            <span>{t("adDetailSub")}</span>
                         </div>
                     </div>
 
@@ -646,7 +684,7 @@ function AdDetail() {
                         <button
                             type="button"
                             onClick={() => navigate(-1)}
-                            title="뒤로가기"
+                            title={t("back")}
                         >
                             ↩
                         </button>
@@ -654,7 +692,7 @@ function AdDetail() {
                         <button
                             type="button"
                             onClick={() => navigate("/home")}
-                            title="홈으로"
+                            title={t("home")}
                         >
                             ⌂
                         </button>
@@ -663,7 +701,7 @@ function AdDetail() {
                             type="button"
                             className="write"
                             onClick={() => navigate("/feed/new")}
-                            title="작성"
+                            title={t("create")}
                         >
                             +
                         </button>
@@ -675,7 +713,7 @@ function AdDetail() {
                         {getAdImageUrl(ad.IMAGE_URL) !== "" ? (
                             <img
                                 src={getAdImageUrl(ad.IMAGE_URL)}
-                                alt={safeText(ad.AD_TITLE, "광고 이미지")}
+                                alt={safeText(ad.AD_TITLE, "sponsor image")}
                             />
                         ) : (
                             <div className="ad-detail-gradient">
@@ -683,7 +721,7 @@ function AdDetail() {
                             </div>
                         )}
 
-                        <div className="ad-detail-sponsored">Sponsored</div>
+                        <div className="ad-detail-sponsored">{t("sponsored")}</div>
 
                         <div className="ad-detail-image-bottom">
                             <span>{safeText(ad.BUSINESS_TYPE, "LOCAL")}</span>
@@ -693,35 +731,60 @@ function AdDetail() {
 
                     <div className="ad-detail-info">
                         <div className="ad-detail-chip-row">
-                            <span>Sponsored</span>
+                            <span>{t("sponsored")}</span>
                             <em>{safeText(ad.BUSINESS_TYPE, "LOCAL")}</em>
                             <em>{safeText(ad.AREA, "Korea")}</em>
                         </div>
 
-                        <p className="ad-detail-page-label">K-STEP 로컬 스폰서</p>
+                        <p className="ad-detail-page-label">{t("localSponsor")}</p>
 
-                        <h1>{safeText(ad.BUSINESS_NAME, "로컬 스폰서")}</h1>
+                        <h1>{safeText(ad.BUSINESS_NAME, language === "en" ? "Local Sponsor" : "로컬 스폰서")}</h1>
 
-                        <h2>{safeText(ad.AD_TITLE, "여행자에게 추천하는 장소")}</h2>
+                        <h2>
+                            {safeText(
+                                ad.AD_TITLE,
+                                language === "en" ? "Recommended place for travelers" : "여행자에게 추천하는 장소"
+                            )}
+                        </h2>
 
                         <p className="ad-detail-text">
-                            {safeText(ad.AD_TEXT, "K-STEP 여행자에게 추천하는 로컬 스폰서입니다.")}
+                            {safeText(
+                                ad.AD_TEXT,
+                                language === "en"
+                                    ? "A local sponsor recommended for K-STEP travelers."
+                                    : "K-STEP 여행자에게 추천하는 로컬 스폰서입니다."
+                            )}
                         </p>
 
                         <div className="ad-detail-feature-grid">
                             <div>
-                                <span>운영시간</span>
-                                <strong>{safeText(openHoursText, "매일 10:00 - 21:00")}</strong>
+                                <span>{t("openHours")}</span>
+                                <strong>
+                                    {safeText(
+                                        openHoursText,
+                                        language === "en" ? "Daily 10:00 - 21:00" : "매일 10:00 - 21:00"
+                                    )}
+                                </strong>
                             </div>
 
                             <div>
-                                <span>가격대</span>
-                                <strong>{safeText(priceInfoText, "1인 평균 10,000원 - 30,000원")}</strong>
+                                <span>{t("priceInfo")}</span>
+                                <strong>
+                                    {safeText(
+                                        priceInfoText,
+                                        language === "en" ? "Average 10,000 - 30,000 KRW per person" : "1인 평균 10,000원 - 30,000원"
+                                    )}
+                                </strong>
                             </div>
 
                             <div>
-                                <span>주차</span>
-                                <strong>{safeText(parkingInfoText, "인근 주차장 이용 가능")}</strong>
+                                <span>{t("parkingInfo")}</span>
+                                <strong>
+                                    {safeText(
+                                        parkingInfoText,
+                                        language === "en" ? "Nearby parking available" : "인근 주차장 이용 가능"
+                                    )}
+                                </strong>
                             </div>
                         </div>
 
@@ -731,7 +794,7 @@ function AdDetail() {
                                 className="primary"
                                 onClick={openExternalLink}
                             >
-                                가게보기
+                                {t("storeView")}
                             </button>
 
                             <button
@@ -740,14 +803,19 @@ function AdDetail() {
                                 onClick={toggleSaveAd}
                                 disabled={saving}
                             >
-                                {saving ? "처리중..." : saveYn ? "저장 취소" : "가게 저장"}
+                                {saving
+                                    ? (language === "en" ? "Saving..." : "처리중...")
+                                    : saveYn
+                                        ? t("unsaveStore")
+                                        : t("saveStore")
+                                }
                             </button>
 
                             <button
                                 type="button"
                                 onClick={shareAd}
                             >
-                                공유하기
+                                {t("shareStore")}
                             </button>
                         </div>
                     </div>
@@ -757,56 +825,56 @@ function AdDetail() {
                     <div className="ad-detail-section-title">
                         <div>
                             <span>Information</span>
-                            <h3>가게 정보</h3>
+                            <h3>{t("information")}</h3>
                         </div>
 
-                        <p>광고주가 등록한 기본 정보입니다.</p>
+                        <p>{t("informationSub")}</p>
                     </div>
 
                     <div className="ad-detail-info-list">
                         <div>
-                            <strong>상호명</strong>
-                            <p>{safeText(ad.BUSINESS_NAME, "정보 없음")}</p>
+                            <strong>{t("businessName")}</strong>
+                            <p>{safeText(ad.BUSINESS_NAME, language === "en" ? "No information" : "정보 없음")}</p>
                         </div>
 
                         <div>
-                            <strong>분류</strong>
-                            <p>{safeText(ad.BUSINESS_TYPE, "정보 없음")}</p>
+                            <strong>{t("category")}</strong>
+                            <p>{safeText(ad.BUSINESS_TYPE, language === "en" ? "No information" : "정보 없음")}</p>
                         </div>
 
                         <div>
-                            <strong>지역</strong>
-                            <p>{safeText(ad.AREA, "정보 없음")}</p>
+                            <strong>{t("area")}</strong>
+                            <p>{safeText(ad.AREA, language === "en" ? "No information" : "정보 없음")}</p>
                         </div>
 
                         <div>
-                            <strong>주소</strong>
-                            <p>{safeText(addressText, "등록된 주소가 없습니다.")}</p>
+                            <strong>{t("address")}</strong>
+                            <p>{safeText(addressText, language === "en" ? "No address has been added." : "등록된 주소가 없습니다.")}</p>
                         </div>
 
                         <div>
-                            <strong>연락처</strong>
-                            <p>{safeText(phoneText, "등록된 연락처가 없습니다.")}</p>
+                            <strong>{t("phone")}</strong>
+                            <p>{safeText(phoneText, language === "en" ? "No phone number has been added." : "등록된 연락처가 없습니다.")}</p>
                         </div>
 
                         <div>
-                            <strong>운영시간</strong>
-                            <p>{safeText(openHoursText, "등록된 운영시간이 없습니다.")}</p>
+                            <strong>{t("openHours")}</strong>
+                            <p>{safeText(openHoursText, language === "en" ? "No opening hours have been added." : "등록된 운영시간이 없습니다.")}</p>
                         </div>
 
                         <div>
-                            <strong>대표메뉴 / 상품</strong>
-                            <p>{safeText(mainMenuText, "등록된 대표 메뉴가 없습니다.")}</p>
+                            <strong>{t("mainMenu")}</strong>
+                            <p>{safeText(mainMenuText, language === "en" ? "No main menu has been added." : "등록된 대표 메뉴가 없습니다.")}</p>
                         </div>
 
                         <div>
-                            <strong>가격 정보</strong>
-                            <p>{safeText(priceInfoText, "등록된 가격 정보가 없습니다.")}</p>
+                            <strong>{t("priceInfo")}</strong>
+                            <p>{safeText(priceInfoText, language === "en" ? "No price information has been added." : "등록된 가격 정보가 없습니다.")}</p>
                         </div>
 
                         <div>
-                            <strong>주차 정보</strong>
-                            <p>{safeText(parkingInfoText, "등록된 주차 정보가 없습니다.")}</p>
+                            <strong>{t("parkingInfo")}</strong>
+                            <p>{safeText(parkingInfoText, language === "en" ? "No parking information has been added." : "등록된 주차 정보가 없습니다.")}</p>
                         </div>
                     </div>
 
@@ -815,38 +883,38 @@ function AdDetail() {
                             type="button"
                             onClick={openExternalLink}
                         >
-                            외부 링크 열기
+                            {t("openExternalLink")}
                         </button>
 
                         <button
                             type="button"
                             onClick={openMapSearch}
                         >
-                            지도 보기
+                            {t("mapView")}
                         </button>
 
                         <button
                             type="button"
                             onClick={openInstagram}
                         >
-                            인스타그램
+                            {t("instagram")}
                         </button>
                     </div>
 
                     <div className="ad-detail-url-list">
                         <p>
-                            <strong>외부 링크</strong>
-                            <span>{linkUrl || "등록된 외부 링크가 없습니다."}</span>
+                            <strong>{t("externalLink")}</strong>
+                            <span>{linkUrl || (language === "en" ? "No external link has been added." : "등록된 외부 링크가 없습니다.")}</span>
                         </p>
 
                         <p>
-                            <strong>지도 링크</strong>
-                            <span>{mapUrl || "등록된 지도 링크가 없습니다."}</span>
+                            <strong>{t("mapView")}</strong>
+                            <span>{mapUrl || (language === "en" ? "No map link has been added." : "등록된 지도 링크가 없습니다.")}</span>
                         </p>
 
                         <p>
-                            <strong>인스타그램</strong>
-                            <span>{instagramUrl || "등록된 인스타그램 링크가 없습니다."}</span>
+                            <strong>{t("instagram")}</strong>
+                            <span>{instagramUrl || (language === "en" ? "No Instagram link has been added." : "등록된 인스타그램 링크가 없습니다.")}</span>
                         </p>
                     </div>
                 </section>
@@ -855,17 +923,17 @@ function AdDetail() {
                     <div className="ad-detail-section-title">
                         <div>
                             <span>Map</span>
-                            <h3>위치 확인</h3>
+                            <h3>{t("map")}</h3>
                         </div>
 
-                        <p>주소가 있으면 지도에서 바로 확인할 수 있어요.</p>
+                        <p>{t("mapSub")}</p>
                     </div>
 
                     {mapEmbedUrl !== "" ? (
                         <>
                             <div className="ad-detail-map-box">
                                 <iframe
-                                    title="가게 위치 지도"
+                                    title={t("map")}
                                     src={mapEmbedUrl}
                                     loading="lazy"
                                     referrerPolicy="no-referrer-when-downgrade"
@@ -877,20 +945,23 @@ function AdDetail() {
                                     type="button"
                                     onClick={openMapSearch}
                                 >
-                                    지도에서 보기
+                                    {t("openInMap")}
                                 </button>
 
                                 <button
                                     type="button"
                                     onClick={copyAddress}
                                 >
-                                    주소 복사
+                                    {t("copyAddress")}
                                 </button>
                             </div>
                         </>
                     ) : (
                         <div className="ad-detail-map-empty">
-                            등록된 주소가 없어서 지도를 표시할 수 없습니다.
+                            {language === "en"
+                                ? "No address has been added, so the map cannot be displayed."
+                                : "등록된 주소가 없어서 지도를 표시할 수 없습니다."
+                            }
                         </div>
                     )}
                 </section>
@@ -900,12 +971,17 @@ function AdDetail() {
                         <div className="ad-detail-section-title">
                             <div>
                                 <span>Menu</span>
-                                <h3>대표 메뉴 / 추천 상품</h3>
+                                <h3>{t("menuTitle")}</h3>
                             </div>
                         </div>
 
                         <p className="ad-detail-menu-text">
-                            {safeText(mainMenuText, "대표 메뉴 또는 추천 상품 정보가 아직 등록되지 않았습니다.")}
+                            {safeText(
+                                mainMenuText,
+                                language === "en"
+                                    ? "No main menu or recommended item has been added yet."
+                                    : "대표 메뉴 또는 추천 상품 정보가 아직 등록되지 않았습니다."
+                            )}
                         </p>
                     </div>
 
@@ -913,13 +989,12 @@ function AdDetail() {
                         <div className="ad-detail-section-title">
                             <div>
                                 <span>Notice</span>
-                                <h3>방문 전 확인</h3>
+                                <h3>{t("noticeTitle")}</h3>
                             </div>
                         </div>
 
                         <p className="ad-detail-notice">
-                            운영시간, 예약 가능 여부, 가격 정보는 가게 사정에 따라 달라질 수 있어요.
-                            방문 전 외부 링크나 연락처로 한 번 더 확인하는 걸 추천해요.
+                            {t("noticeText")}
                         </p>
                     </div>
                 </section>

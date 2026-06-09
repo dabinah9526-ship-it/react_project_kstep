@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getLang, t } from "../utils/language";
 import "./StoryBar.css";
 
 function StoryBar() {
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
     const storyTextBoxRef = useRef(null);
+
+    const [language, setLanguage] = useState(getLang());
 
     const [storyUserList, setStoryUserList] = useState([]);
     const [storyList, setStoryList] = useState([]);
@@ -30,6 +33,18 @@ function StoryBar() {
     const [storyStickerListByIndex, setStoryStickerListByIndex] = useState([]);
     const [activeStickerId, setActiveStickerId] = useState(null);
     const [draggingStickerId, setDraggingStickerId] = useState(null);
+
+    useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
 
     useEffect(() => {
         getStoryUserList();
@@ -60,10 +75,161 @@ function StoryBar() {
         if (isMyStory(currentStory)) {
             getViewerList(currentStory.STORY_NO);
         }
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [viewerOpen, selectedStoryIndex, storyList.length]);
+
+    function getPageText(key) {
+        const ko = {
+            loginRequired: "로그인이 필요합니다.",
+            storyListFail: "스토리 목록을 불러오지 못했습니다.",
+            storyListError: "스토리 목록 조회 중 오류가 발생했습니다.",
+            imageOnly: "이미지 파일만 업로드할 수 있습니다.",
+            selectStoryImage: "스토리 이미지를 선택해주세요.",
+            storyUploadFail: "스토리 등록에 실패했습니다.",
+            storyUploadError: "스토리 등록 중 오류가 발생했습니다.",
+            storyUploaded: "개의 스토리가 등록되었습니다.",
+            noStory: "볼 수 있는 스토리가 없습니다.",
+            storyLoadFail: "스토리를 불러오지 못했습니다.",
+            storyLoadError: "스토리를 불러오는 중 오류가 발생했습니다.",
+            viewerLoadFail: "본 사람 목록을 불러오지 못했습니다.",
+            deleteConfirm: "스토리를 삭제할까요?",
+            deleteDone: "스토리가 삭제되었습니다.",
+            deleteFail: "스토리 삭제에 실패했습니다.",
+            deleteError: "스토리 삭제 중 오류가 발생했습니다.",
+            userNotFound: "사용자를 찾을 수 없습니다.",
+            userSearchError: "사용자 검색 중 오류가 발생했습니다.",
+
+            justNow: "방금 전",
+            minuteAgo: "분 전",
+            hourAgo: "시간 전",
+            dayAgo: "일 전",
+
+            sectionLabel: "K-STEP Stories",
+            sectionTitle: "여행 스토리",
+            uploading: "업로드 중...",
+            uploadStory: "+ 스토리 올리기",
+            myStory: "내 스토리",
+            profileAlt: "프로필",
+            traveler: "traveler",
+
+            decorateTitle: "스토리 꾸미기",
+            decorateSub: "사진마다 글을 여러 개 올리고 위치를 바꿀 수 있어요.",
+            previewAlt: "스토리 미리보기",
+            selectImageAlt: "선택 이미지 ",
+            addText: "+ 글 추가",
+            deleteText: "선택 글 삭제",
+            textPlaceholder: "사진 위에 올릴 글을 입력하세요. 예) #경주여행 @traveler01",
+            bg: "배경",
+            emptyTextHelp: "+ 글 추가를 눌러서 사진 위에 글을 올려주세요.",
+            cancel: "취소",
+            upload: "업로드",
+
+            viewer: "본 사람",
+            viewerCountSuffix: "명이 이 스토리를 봤어요.",
+            loadingViewer: "불러오는 중입니다.",
+            noViewer: "아직 본 사람이 없습니다.",
+            delete: "삭제",
+            inputText: "글 입력",
+            storyAlt: "스토리"
+        };
+
+        const en = {
+            loginRequired: "Please log in first.",
+            storyListFail: "Failed to load stories.",
+            storyListError: "An error occurred while loading stories.",
+            imageOnly: "Only image files can be uploaded.",
+            selectStoryImage: "Please select story images.",
+            storyUploadFail: "Failed to upload story.",
+            storyUploadError: "An error occurred while uploading story.",
+            storyUploaded: " stories have been uploaded.",
+            noStory: "There are no stories to view.",
+            storyLoadFail: "Failed to load story.",
+            storyLoadError: "An error occurred while loading story.",
+            viewerLoadFail: "Failed to load viewers.",
+            deleteConfirm: "Delete this story?",
+            deleteDone: "The story has been deleted.",
+            deleteFail: "Failed to delete story.",
+            deleteError: "An error occurred while deleting story.",
+            userNotFound: "User not found.",
+            userSearchError: "An error occurred while searching user.",
+
+            justNow: "Just now",
+            minuteAgo: " min ago",
+            hourAgo: " hr ago",
+            dayAgo: " days ago",
+
+            sectionLabel: "K-STEP Stories",
+            sectionTitle: "Travel Stories",
+            uploading: "Uploading...",
+            uploadStory: "+ Add Story",
+            myStory: "My Story",
+            profileAlt: "Profile",
+            traveler: "traveler",
+
+            decorateTitle: "Decorate Story",
+            decorateSub: "Add multiple texts to each photo and move them around.",
+            previewAlt: "Story preview",
+            selectImageAlt: "Selected image ",
+            addText: "+ Add Text",
+            deleteText: "Delete Text",
+            textPlaceholder: "Write text on the photo. Example: #GyeongjuTrip @traveler01",
+            bg: "Background",
+            emptyTextHelp: "Press + Add Text to add text on the photo.",
+            cancel: "Cancel",
+            upload: "Upload",
+
+            viewer: "Viewers",
+            viewerCountSuffix: " people viewed this story.",
+            loadingViewer: "Loading...",
+            noViewer: "No viewers yet.",
+            delete: "Delete",
+            inputText: "Text",
+            storyAlt: "Story"
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
 
     function getToken() {
         return localStorage.getItem("token");
+    }
+
+    function getLoginUserNo() {
+        const savedUserNo =
+            localStorage.getItem("userNo") ||
+            localStorage.getItem("USER_NO") ||
+            localStorage.getItem("loginUserNo");
+
+        if (savedUserNo) {
+            return savedUserNo;
+        }
+
+        const token = getToken();
+
+        if (!token) {
+            return "";
+        }
+
+        try {
+            const payload = token.split(".")[1];
+
+            if (!payload) {
+                return "";
+            }
+
+            const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+            const decoded = JSON.parse(window.atob(base64));
+
+            return decoded.userNo || decoded.USER_NO || decoded.user_no || "";
+        } catch (err) {
+            console.error("토큰에서 userNo 읽기 실패", err);
+            return "";
+        }
     }
 
     function isMyStory(story) {
@@ -71,11 +237,21 @@ function StoryBar() {
             return false;
         }
 
+        const loginUserNo = getLoginUserNo();
+
         if (story.MINE_YN === "Y") {
             return true;
         }
 
         if (selectedUser && selectedUser.MINE_YN === "Y") {
+            return true;
+        }
+
+        if (loginUserNo && story.USER_NO && String(loginUserNo) === String(story.USER_NO)) {
+            return true;
+        }
+
+        if (loginUserNo && selectedUser && selectedUser.USER_NO && String(loginUserNo) === String(selectedUser.USER_NO)) {
             return true;
         }
 
@@ -116,6 +292,21 @@ function StoryBar() {
         return "/images/" + value;
     }
 
+    function getStoryImageUrl(story) {
+        if (!story) {
+            return "";
+        }
+
+        return getImageUrl(
+            story.STORY_IMG ||
+            story.STORY_IMAGE ||
+            story.IMG_URL ||
+            story.IMAGE_URL ||
+            story.FILE_URL ||
+            ""
+        );
+    }
+
     function getFirstLetter(value) {
         if (!value) {
             return "K";
@@ -130,6 +321,30 @@ function StoryBar() {
         }
 
         return value;
+    }
+
+    function getStoryTextList(story) {
+        if (!story) {
+            return [];
+        }
+
+        if (Array.isArray(story.TEXT_LIST)) {
+            return story.TEXT_LIST;
+        }
+
+        if (typeof story.TEXT_LIST === "string") {
+            try {
+                const parsedList = JSON.parse(story.TEXT_LIST);
+
+                if (Array.isArray(parsedList)) {
+                    return parsedList;
+                }
+            } catch (err) {
+                return [];
+            }
+        }
+
+        return [];
     }
 
     function getStoryTimeText(story) {
@@ -167,22 +382,26 @@ function StoryBar() {
         const day = hour * 24;
 
         if (diff < minute) {
-            return "방금 전";
+            return getPageText("justNow");
         }
 
         if (diff < hour) {
-            return Math.floor(diff / minute) + "분 전";
+            return Math.floor(diff / minute) + getPageText("minuteAgo");
         }
 
         if (diff < day) {
-            return Math.floor(diff / hour) + "시간 전";
+            return Math.floor(diff / hour) + getPageText("hourAgo");
         }
 
-        return Math.floor(diff / day) + "일 전";
+        return Math.floor(diff / day) + getPageText("dayAgo");
     }
 
     function getStoryUserList() {
         const token = getToken();
+
+        if (!token) {
+            return;
+        }
 
         return fetch("http://localhost:3010/story/list", {
             method: "GET",
@@ -197,12 +416,12 @@ function StoryBar() {
                 if (data.result === "success") {
                     setStoryUserList(data.list || []);
                 } else {
-                    alert(data.message || "스토리 목록을 불러오지 못했습니다.");
+                    alert(data.message || getPageText("storyListFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("스토리 목록 조회 중 오류가 발생했습니다.");
+                alert(getPageText("storyListError"));
             });
     }
 
@@ -244,7 +463,7 @@ function StoryBar() {
         const imageFiles = files.filter(file => file.type.startsWith("image/"));
 
         if (imageFiles.length !== files.length) {
-            alert("이미지 파일만 업로드할 수 있습니다.");
+            alert(getPageText("imageOnly"));
             e.target.value = "";
             return;
         }
@@ -427,15 +646,93 @@ function StoryBar() {
         setDraggingStickerId(null);
     }
 
+    function getPositionClass(posX, posY) {
+        const x = Math.round(Number(posX || 50) / 5) * 5;
+        const y = Math.round(Number(posY || 50) / 5) * 5;
+
+        return "story-pos-x-" + x + " story-pos-y-" + y;
+    }
+
+    function getFontSizeClass(fontSize) {
+        const size = Math.round(Number(fontSize || 26) / 2) * 2;
+
+        if (size < 18) {
+            return "story-font-18";
+        }
+
+        if (size > 42) {
+            return "story-font-42";
+        }
+
+        return "story-font-" + size;
+    }
+
+    function getColorClass(color) {
+        if (color === "#FFD9E4") {
+            return "story-color-pink";
+        }
+
+        if (color === "#F3C778") {
+            return "story-color-gold";
+        }
+
+        if (color === "#CBB4FF") {
+            return "story-color-lavender";
+        }
+
+        if (color === "#2B1D3D") {
+            return "story-color-dark";
+        }
+
+        return "story-color-white";
+    }
+
+    function getStickerClass(sticker, isActive) {
+        let className = "story-upload-sticker";
+
+        if (sticker.bgYn === "Y") {
+            className += " with-bg";
+        }
+
+        if (isActive) {
+            className += " active";
+        }
+
+        className += " " + getPositionClass(sticker.posX, sticker.posY);
+        className += " " + getFontSizeClass(sticker.fontSize);
+        className += " " + getColorClass(sticker.fontColor);
+
+        return className;
+    }
+
+    function getRenderTextClass(text) {
+        let className = "story-render-text";
+
+        if (text.BG_YN === "Y" || text.bgYn === "Y") {
+            className += " with-bg";
+        }
+
+        className += " " + getPositionClass(text.POS_X || text.posX, text.POS_Y || text.posY);
+        className += " " + getFontSizeClass(text.FONT_SIZE || text.fontSize);
+        className += " " + getColorClass(text.FONT_COLOR || text.fontColor);
+
+        return className;
+    }
+
     async function uploadStory() {
         if (storyUploadFiles.length === 0) {
-            alert("스토리 이미지를 선택해주세요.");
+            alert(getPageText("selectStoryImage"));
             return;
         }
 
         const token = getToken();
         const uploadCount = storyUploadFiles.length;
-        const loginUserNo = localStorage.getItem("userNo");
+        const loginUserNo = getLoginUserNo();
+
+        if (!token) {
+            alert(t("loginRequired") || getPageText("loginRequired"));
+            return;
+        }
 
         setUploading(true);
 
@@ -471,7 +768,7 @@ function StoryBar() {
                 console.log("스토리 등록 결과", data);
 
                 if (data.result !== "success") {
-                    alert(data.message || "스토리 등록에 실패했습니다.");
+                    alert(data.message || getPageText("storyUploadFail"));
                     return;
                 }
             }
@@ -485,11 +782,11 @@ function StoryBar() {
             resetUploadModal();
             await getStoryUserList();
 
-            alert(uploadCount + "개의 스토리가 등록되었습니다.");
+            alert(uploadCount + getPageText("storyUploaded"));
 
         } catch (err) {
             console.error(err);
-            alert("스토리 등록 중 오류가 발생했습니다.");
+            alert(getPageText("storyUploadError"));
 
         } finally {
             setUploading(false);
@@ -525,7 +822,7 @@ function StoryBar() {
                     const list = data.list || [];
 
                     if (list.length === 0) {
-                        alert("볼 수 있는 스토리가 없습니다.");
+                        alert(getPageText("noStory"));
                         getStoryUserList();
                         return;
                     }
@@ -540,12 +837,12 @@ function StoryBar() {
                     setViewerList([]);
                     setCurrentViewCount(Number(list[startIndex].VIEW_COUNT || 0));
                 } else {
-                    alert(data.message || "스토리를 불러오지 못했습니다.");
+                    alert(data.message || getPageText("storyLoadFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("스토리를 불러오는 중 오류가 발생했습니다.");
+                alert(getPageText("storyLoadError"));
             });
     }
 
@@ -560,7 +857,11 @@ function StoryBar() {
         getStoryUserList();
     }
 
-    function nextStory() {
+    function nextStory(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+
         if (storyList.length === 0) {
             closeStoryViewer();
             return;
@@ -574,7 +875,11 @@ function StoryBar() {
         setSelectedStoryIndex(selectedStoryIndex + 1);
     }
 
-    function prevStory() {
+    function prevStory(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+
         if (storyList.length === 0) {
             return;
         }
@@ -588,6 +893,10 @@ function StoryBar() {
 
     function markStoryView(storyNo) {
         const token = getToken();
+
+        if (!token || !storyNo) {
+            return;
+        }
 
         fetch("http://localhost:3010/story/view", {
             method: "POST",
@@ -683,7 +992,7 @@ function StoryBar() {
                 } else {
                     setViewerList([]);
                     setCurrentViewCount(0);
-                    console.log(data.message || "본 사람 목록을 불러오지 못했습니다.");
+                    console.log(data.message || getPageText("viewerLoadFail"));
                 }
             })
             .catch(err => {
@@ -728,7 +1037,7 @@ function StoryBar() {
             return;
         }
 
-        if (!window.confirm("스토리를 삭제할까요?")) {
+        if (!window.confirm(getPageText("deleteConfirm"))) {
             return;
         }
 
@@ -749,16 +1058,16 @@ function StoryBar() {
                 console.log("스토리 삭제 결과", data);
 
                 if (data.result === "success") {
-                    alert("스토리가 삭제되었습니다.");
+                    alert(getPageText("deleteDone"));
                     closeStoryViewer();
                     getStoryUserList();
                 } else {
-                    alert(data.message || "스토리 삭제에 실패했습니다.");
+                    alert(data.message || getPageText("deleteFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("스토리 삭제 중 오류가 발생했습니다.");
+                alert(getPageText("deleteError"));
             });
     }
 
@@ -807,12 +1116,12 @@ function StoryBar() {
                     closeStoryViewer();
                     navigate("/profile/" + data.user.USER_NO);
                 } else {
-                    alert(data.message || "사용자를 찾을 수 없습니다.");
+                    alert(data.message || getPageText("userNotFound"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("사용자 검색 중 오류가 발생했습니다.");
+                alert(getPageText("userSearchError"));
             });
     }
 
@@ -829,17 +1138,7 @@ function StoryBar() {
                         type="button"
                         key={index}
                         onClick={(e) => moveMentionProfile(e, keyword)}
-                        style={{
-                            border: "none",
-                            background: "transparent",
-                            padding: 0,
-                            margin: 0,
-                            color: "#cbb4ff",
-                            font: "inherit",
-                            fontWeight: 950,
-                            cursor: "pointer",
-                            textShadow: "inherit"
-                        }}
+                        className="story-tag-mention"
                     >
                         {part}
                     </button>
@@ -850,10 +1149,7 @@ function StoryBar() {
                 return (
                     <span
                         key={index}
-                        style={{
-                            color: "#f3c778",
-                            fontWeight: 950
-                        }}
+                        className="story-tag-hashtag"
                     >
                         {part}
                     </span>
@@ -869,54 +1165,35 @@ function StoryBar() {
     }
 
     function renderStoryTextList(story) {
-        const textList = story.TEXT_LIST || [];
+        const textList = getStoryTextList(story);
 
         if (textList.length === 0) {
             return null;
         }
 
-        return textList.map(text => (
+        return textList.map((text, index) => (
             <div
-                key={text.TEXT_NO}
-                style={{
-                    position: "absolute",
-                    left: Number(text.POS_X || 50) + "%",
-                    top: Number(text.POS_Y || 50) + "%",
-                    transform: "translate(-50%, -50%)",
-                    zIndex: 18,
-                    maxWidth: "82%",
-                    padding: text.BG_YN === "Y" ? "7px 12px" : "0",
-                    borderRadius: "999px",
-                    background: text.BG_YN === "Y" ? "rgba(0, 0, 0, 0.42)" : "transparent",
-                    color: text.FONT_COLOR || "#ffffff",
-                    fontSize: Number(text.FONT_SIZE || 24) + "px",
-                    fontWeight: 950,
-                    lineHeight: 1.25,
-                    textAlign: "center",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    textShadow: "0 2px 10px rgba(0,0,0,0.55)",
-                    pointerEvents: "auto"
-                }}
+                key={text.TEXT_NO || text.textNo || index}
+                className={getRenderTextClass(text)}
             >
-                {renderTaggedText(text.TEXT_CONTENT)}
+                {renderTaggedText(text.TEXT_CONTENT || text.textContent)}
             </div>
         ));
     }
 
     const currentStory = storyList.length > 0 ? storyList[selectedStoryIndex] : null;
     const currentStoryIsMine = currentStory ? isMyStory(currentStory) : false;
-    const currentStoryTextList = currentStory ? (currentStory.TEXT_LIST || []) : [];
+    const currentStoryTextList = currentStory ? getStoryTextList(currentStory) : [];
     const currentStickerList = getCurrentStickerList();
     const activeSticker = getActiveSticker();
 
     return (
         <>
-            <section className="story-section">
+            <section className="story-section" data-lang={language}>
                 <div className="story-section-head">
                     <div>
-                        <p>K-STEP Stories</p>
-                        <h2>여행 스토리</h2>
+                        <p>{getPageText("sectionLabel")}</p>
+                        <h2>{getPageText("sectionTitle")}</h2>
                     </div>
 
                     <button
@@ -924,7 +1201,7 @@ function StoryBar() {
                         onClick={openFilePicker}
                         disabled={uploading}
                     >
-                        {uploading ? "업로드 중..." : "+ 스토리 올리기"}
+                        {uploading ? getPageText("uploading") : getPageText("uploadStory")}
                     </button>
                 </div>
 
@@ -946,13 +1223,13 @@ function StoryBar() {
                         >
                             <div className="story-avatar-wrap">
                                 <div className="story-avatar">
-                                    <span>내</span>
+                                    <span>+</span>
                                 </div>
 
                                 <span className="story-add-badge">+</span>
                             </div>
 
-                            <strong>내 스토리</strong>
+                            <strong>{getPageText("myStory")}</strong>
                         </button>
                     )}
 
@@ -968,7 +1245,7 @@ function StoryBar() {
                                     {getImageUrl(user.PROFILE_IMG) !== "" ? (
                                         <img
                                             src={getImageUrl(user.PROFILE_IMG)}
-                                            alt={safeText(user.NICKNAME, "프로필")}
+                                            alt={safeText(user.NICKNAME, getPageText("profileAlt"))}
                                         />
                                     ) : (
                                         <span>{getFirstLetter(user.NICKNAME || user.USER_ID)}</span>
@@ -989,7 +1266,7 @@ function StoryBar() {
                             </div>
 
                             <strong>
-                                {user.MINE_YN === "Y" ? "내 스토리" : safeText(user.NICKNAME, "traveler")}
+                                {user.MINE_YN === "Y" ? getPageText("myStory") : safeText(user.NICKNAME, getPageText("traveler"))}
                             </strong>
                         </button>
                     ))}
@@ -998,69 +1275,31 @@ function StoryBar() {
 
             {uploadModalOpen && (
                 <div
+                    className="story-upload-bg"
                     onClick={closeUploadModal}
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        zIndex: 10000,
-                        background: "rgba(25, 22, 30, 0.62)",
-                        backdropFilter: "blur(12px)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: "18px",
-                        boxSizing: "border-box"
-                    }}
                 >
                     <div
+                        className="story-upload-modal"
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                            width: "min(460px, 100%)",
-                            maxHeight: "94vh",
-                            borderRadius: "30px",
-                            background: "linear-gradient(180deg, #fffafd, #fff5f8)",
-                            boxShadow: "0 28px 80px rgba(0,0,0,0.28)",
-                            overflow: "hidden",
-                            display: "flex",
-                            flexDirection: "column"
-                        }}
                     >
-                        <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid #f2dce5" }}>
-                            <h3 style={{ margin: 0, color: "#2b1d3d", fontSize: "20px", fontWeight: 950 }}>
-                                스토리 꾸미기
-                            </h3>
-                            <p style={{ margin: "6px 0 0", color: "#947d89", fontSize: "13px", fontWeight: 700 }}>
-                                사진마다 글을 여러 개 올리고 위치를 바꿀 수 있어요.
-                            </p>
+                        <div className="story-upload-head">
+                            <h3>{getPageText("decorateTitle")}</h3>
+                            <p>{getPageText("decorateSub")}</p>
                         </div>
 
-                        <div style={{ padding: "16px 20px", overflowY: "auto" }}>
+                        <div className="story-upload-body">
                             <div
                                 ref={storyTextBoxRef}
+                                className="story-upload-preview-box"
                                 onPointerMove={moveSticker}
                                 onPointerUp={stopStickerDrag}
                                 onPointerLeave={stopStickerDrag}
-                                style={{
-                                    width: "100%",
-                                    height: "360px",
-                                    borderRadius: "24px",
-                                    overflow: "hidden",
-                                    background: "#111",
-                                    marginBottom: "12px",
-                                    position: "relative",
-                                    touchAction: "none"
-                                }}
                             >
                                 {storyUploadPreviews[selectedPreviewIndex] && (
                                     <img
                                         src={storyUploadPreviews[selectedPreviewIndex]}
-                                        alt="스토리 미리보기"
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "cover",
-                                            display: "block"
-                                        }}
+                                        alt={getPageText("previewAlt")}
+                                        className="story-upload-preview-img"
                                     />
                                 )}
 
@@ -1068,113 +1307,47 @@ function StoryBar() {
                                     <div
                                         key={sticker.id}
                                         onPointerDown={(e) => startStickerDrag(e, sticker.id)}
-                                        style={{
-                                            position: "absolute",
-                                            left: sticker.posX + "%",
-                                            top: sticker.posY + "%",
-                                            transform: "translate(-50%, -50%)",
-                                            zIndex: 3,
-                                            maxWidth: "84%",
-                                            padding: sticker.bgYn === "Y" ? "7px 12px" : "0",
-                                            borderRadius: "999px",
-                                            background: sticker.bgYn === "Y" ? "rgba(0,0,0,0.42)" : "transparent",
-                                            color: sticker.fontColor,
-                                            fontSize: sticker.fontSize + "px",
-                                            fontWeight: 950,
-                                            lineHeight: 1.25,
-                                            textAlign: "center",
-                                            whiteSpace: "pre-wrap",
-                                            wordBreak: "break-word",
-                                            textShadow: "0 2px 10px rgba(0,0,0,0.55)",
-                                            cursor: "grab",
-                                            userSelect: "none",
-                                            outline: activeStickerId === sticker.id ? "2px dashed rgba(255,255,255,0.85)" : "none",
-                                            outlineOffset: "4px"
-                                        }}
+                                        className={getStickerClass(sticker, activeStickerId === sticker.id)}
                                     >
-                                        {sticker.textContent || "글 입력"}
+                                        {sticker.textContent || getPageText("inputText")}
                                     </div>
                                 ))}
                             </div>
 
                             {storyUploadPreviews.length > 1 && (
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "8px",
-                                        overflowX: "auto",
-                                        marginBottom: "12px",
-                                        paddingBottom: "4px"
-                                    }}
-                                >
+                                <div className="story-upload-thumb-row">
                                     {storyUploadPreviews.map((previewUrl, index) => (
                                         <button
                                             type="button"
                                             key={previewUrl}
                                             onClick={() => selectPreview(index)}
-                                            style={{
-                                                width: "54px",
-                                                height: "54px",
-                                                minWidth: "54px",
-                                                borderRadius: "15px",
-                                                overflow: "hidden",
-                                                padding: 0,
-                                                border: selectedPreviewIndex === index ? "3px solid #e9839b" : "2px solid #ead6de",
-                                                background: "#111",
-                                                cursor: "pointer"
-                                            }}
+                                            className={selectedPreviewIndex === index ? "story-upload-thumb active" : "story-upload-thumb"}
                                         >
                                             <img
                                                 src={previewUrl}
-                                                alt={"선택 이미지 " + (index + 1)}
-                                                style={{
-                                                    width: "100%",
-                                                    height: "100%",
-                                                    objectFit: "cover",
-                                                    display: "block"
-                                                }}
+                                                alt={getPageText("selectImageAlt") + (index + 1)}
                                             />
                                         </button>
                                     ))}
                                 </div>
                             )}
 
-                            <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
+                            <div className="story-upload-tool-row">
                                 <button
                                     type="button"
+                                    className="story-upload-main-btn"
                                     onClick={addSticker}
-                                    style={{
-                                        height: "36px",
-                                        padding: "0 13px",
-                                        border: "none",
-                                        borderRadius: "14px",
-                                        background: "linear-gradient(135deg, #5b4a8d, #e9839b)",
-                                        color: "#fff",
-                                        fontWeight: 950,
-                                        cursor: "pointer",
-                                        fontFamily: "inherit"
-                                    }}
                                 >
-                                    + 글 추가
+                                    {getPageText("addText")}
                                 </button>
 
                                 <button
                                     type="button"
+                                    className="story-upload-sub-btn"
                                     onClick={deleteActiveSticker}
                                     disabled={!activeSticker}
-                                    style={{
-                                        height: "36px",
-                                        padding: "0 13px",
-                                        border: "1px solid #ead6de",
-                                        borderRadius: "14px",
-                                        background: "#fff",
-                                        color: activeSticker ? "#a45f76" : "#c6b7bf",
-                                        fontWeight: 900,
-                                        cursor: activeSticker ? "pointer" : "default",
-                                        fontFamily: "inherit"
-                                    }}
                                 >
-                                    선택 글 삭제
+                                    {getPageText("deleteText")}
                                 </button>
                             </div>
 
@@ -1184,156 +1357,73 @@ function StoryBar() {
                                         value={activeSticker.textContent}
                                         onChange={(e) => updateActiveSticker("textContent", e.target.value)}
                                         maxLength={500}
-                                        placeholder="사진 위에 올릴 글을 입력하세요. 예) #경주여행 @traveler01"
-                                        style={{
-                                            width: "100%",
-                                            height: "82px",
-                                            resize: "none",
-                                            border: "1px solid #efd6df",
-                                            borderRadius: "18px",
-                                            outline: "none",
-                                            padding: "13px 14px",
-                                            boxSizing: "border-box",
-                                            fontFamily: "inherit",
-                                            fontSize: "14px",
-                                            lineHeight: 1.5,
-                                            color: "#3b3042",
-                                            background: "#ffffff"
-                                        }}
+                                        placeholder={getPageText("textPlaceholder")}
+                                        className="story-upload-textarea"
                                     />
 
-                                    <div style={{ marginTop: "10px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                                    <div className="story-upload-option-row">
                                         {["#FFFFFF", "#FFD9E4", "#F3C778", "#CBB4FF", "#2B1D3D"].map(color => (
                                             <button
                                                 key={color}
                                                 type="button"
                                                 onClick={() => updateActiveSticker("fontColor", color)}
-                                                style={{
-                                                    width: "30px",
-                                                    height: "30px",
-                                                    borderRadius: "50%",
-                                                    border: activeSticker.fontColor === color ? "3px solid #e9839b" : "2px solid #ffffff",
-                                                    background: color,
-                                                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                                                    cursor: "pointer"
-                                                }}
+                                                className={
+                                                    activeSticker.fontColor === color
+                                                        ? "story-color-btn active " + getColorClass(color)
+                                                        : "story-color-btn " + getColorClass(color)
+                                                }
                                             ></button>
                                         ))}
 
                                         <button
                                             type="button"
+                                            className="story-upload-size-btn"
                                             onClick={() => updateActiveSticker("fontSize", Math.max(18, activeSticker.fontSize - 2))}
-                                            style={{
-                                                height: "32px",
-                                                padding: "0 11px",
-                                                borderRadius: "12px",
-                                                border: "1px solid #ead6de",
-                                                background: "#fff",
-                                                color: "#7b6572",
-                                                fontWeight: 900,
-                                                cursor: "pointer"
-                                            }}
                                         >
                                             A-
                                         </button>
 
                                         <button
                                             type="button"
+                                            className="story-upload-size-btn"
                                             onClick={() => updateActiveSticker("fontSize", Math.min(42, activeSticker.fontSize + 2))}
-                                            style={{
-                                                height: "32px",
-                                                padding: "0 11px",
-                                                borderRadius: "12px",
-                                                border: "1px solid #ead6de",
-                                                background: "#fff",
-                                                color: "#7b6572",
-                                                fontWeight: 900,
-                                                cursor: "pointer"
-                                            }}
                                         >
                                             A+
                                         </button>
 
                                         <button
                                             type="button"
+                                            className={activeSticker.bgYn === "Y" ? "story-upload-bg-btn active" : "story-upload-bg-btn"}
                                             onClick={() => updateActiveSticker("bgYn", activeSticker.bgYn === "Y" ? "N" : "Y")}
-                                            style={{
-                                                height: "32px",
-                                                padding: "0 12px",
-                                                borderRadius: "12px",
-                                                border: "1px solid #ead6de",
-                                                background: activeSticker.bgYn === "Y" ? "#fff0f4" : "#fff",
-                                                color: "#7b6572",
-                                                fontWeight: 900,
-                                                cursor: "pointer"
-                                            }}
                                         >
-                                            배경 {activeSticker.bgYn === "Y" ? "ON" : "OFF"}
+                                            {getPageText("bg")} {activeSticker.bgYn === "Y" ? "ON" : "OFF"}
                                         </button>
                                     </div>
                                 </>
                             ) : (
-                                <div
-                                    style={{
-                                        padding: "18px",
-                                        borderRadius: "18px",
-                                        background: "#fff",
-                                        border: "1px dashed #ead6de",
-                                        color: "#9b8390",
-                                        fontSize: "13px",
-                                        fontWeight: 800,
-                                        textAlign: "center"
-                                    }}
-                                >
-                                    `+ 글 추가`를 눌러서 사진 위에 글을 올려주세요.
+                                <div className="story-upload-empty-help">
+                                    {getPageText("emptyTextHelp")}
                                 </div>
                             )}
                         </div>
 
-                        <div
-                            style={{
-                                padding: "0 20px 20px",
-                                display: "flex",
-                                gap: "10px",
-                                justifyContent: "flex-end"
-                            }}
-                        >
+                        <div className="story-upload-footer">
                             <button
                                 type="button"
+                                className="story-upload-cancel-btn"
                                 onClick={closeUploadModal}
                                 disabled={uploading}
-                                style={{
-                                    height: "40px",
-                                    padding: "0 15px",
-                                    borderRadius: "15px",
-                                    border: "1px solid #ead6de",
-                                    background: "#fff",
-                                    color: "#8b6f7c",
-                                    fontWeight: 900,
-                                    cursor: uploading ? "default" : "pointer",
-                                    fontFamily: "inherit"
-                                }}
                             >
-                                취소
+                                {getPageText("cancel")}
                             </button>
 
                             <button
                                 type="button"
+                                className="story-upload-submit-btn"
                                 onClick={uploadStory}
                                 disabled={uploading}
-                                style={{
-                                    height: "40px",
-                                    padding: "0 18px",
-                                    borderRadius: "15px",
-                                    border: "none",
-                                    background: "linear-gradient(135deg, #5b4a8d 0%, #e9839b 58%, #f3c778 100%)",
-                                    color: "#ffffff",
-                                    fontWeight: 950,
-                                    cursor: uploading ? "default" : "pointer",
-                                    fontFamily: "inherit"
-                                }}
                             >
-                                {uploading ? "올리는 중..." : storyUploadFiles.length + "장 올리기"}
+                                {uploading ? getPageText("uploading") : getPageText("upload")}
                             </button>
                         </div>
                     </div>
@@ -1341,9 +1431,9 @@ function StoryBar() {
             )}
 
             {viewerOpen && currentStory && (
-                <div className="story-viewer-bg" onClick={closeStoryViewer}>
-                    <div className="story-viewer" onClick={(e) => e.stopPropagation()}>
-                        <div className="story-progress-row">
+                <div className="story-viewer-bg">
+                    <div className="story-viewer">
+                        <div className="story-progress-row" key={progressKey}>
                             {storyList.map((story, index) => (
                                 <div className="story-progress-track" key={story.STORY_NO || index}>
                                     {index < selectedStoryIndex && (
@@ -1367,7 +1457,7 @@ function StoryBar() {
                                     {getImageUrl(currentStory.PROFILE_IMG) !== "" ? (
                                         <img
                                             src={getImageUrl(currentStory.PROFILE_IMG)}
-                                            alt={safeText(currentStory.NICKNAME, "프로필")}
+                                            alt={safeText(currentStory.NICKNAME, getPageText("profileAlt"))}
                                         />
                                     ) : (
                                         <span>{getFirstLetter(currentStory.NICKNAME || currentStory.USER_ID)}</span>
@@ -1375,7 +1465,7 @@ function StoryBar() {
                                 </div>
 
                                 <div className="story-viewer-user-text">
-                                    <strong>{safeText(currentStory.NICKNAME, "traveler")}</strong>
+                                    <strong>{safeText(currentStory.NICKNAME, getPageText("traveler"))}</strong>
                                     <p>{getStoryTimeText(currentStory)}</p>
                                 </div>
                             </div>
@@ -1392,10 +1482,16 @@ function StoryBar() {
                                 onClick={prevStory}
                             ></button>
 
-                            <img
-                                src={getImageUrl(currentStory.STORY_IMG)}
-                                alt="스토리"
-                            />
+                            {getStoryImageUrl(currentStory) !== "" ? (
+                                <img
+                                    src={getStoryImageUrl(currentStory)}
+                                    alt={getPageText("storyAlt")}
+                                />
+                            ) : (
+                                <div className="story-viewer-empty-image">
+                                    K-STEP
+                                </div>
+                            )}
 
                             {renderStoryTextList(currentStory)}
 
@@ -1419,7 +1515,7 @@ function StoryBar() {
                                     className="story-view-count-btn"
                                     onClick={openViewerList}
                                 >
-                                    👁 본 사람 {currentViewCount}
+                                    👁 {getPageText("viewer")} {currentViewCount}
                                 </button>
 
                                 <button
@@ -1427,7 +1523,7 @@ function StoryBar() {
                                     className="story-delete-btn"
                                     onClick={() => removeStory(currentStory.STORY_NO)}
                                 >
-                                    삭제
+                                    {getPageText("delete")}
                                 </button>
                             </>
                         )}
@@ -1439,8 +1535,8 @@ function StoryBar() {
 
                                     <div className="story-viewer-list-head">
                                         <div>
-                                            <h3>본 사람</h3>
-                                            <p>{currentViewCount}명이 이 스토리를 봤어요.</p>
+                                            <h3>{getPageText("viewer")}</h3>
+                                            <p>{currentViewCount}{getPageText("viewerCountSuffix")}</p>
                                         </div>
 
                                         <button type="button" onClick={closeViewerList}>
@@ -1451,13 +1547,13 @@ function StoryBar() {
                                     <div className="story-viewer-user-list">
                                         {viewerListLoading && (
                                             <div className="story-viewer-list-empty">
-                                                불러오는 중입니다...
+                                                {getPageText("loadingViewer")}
                                             </div>
                                         )}
 
                                         {!viewerListLoading && viewerList.length === 0 && (
                                             <div className="story-viewer-list-empty">
-                                                아직 본 사람이 없습니다.
+                                                {getPageText("noViewer")}
                                             </div>
                                         )}
 
@@ -1472,7 +1568,7 @@ function StoryBar() {
                                                     {getImageUrl(user.PROFILE_IMG) !== "" ? (
                                                         <img
                                                             src={getImageUrl(user.PROFILE_IMG)}
-                                                            alt={safeText(user.NICKNAME, "프로필")}
+                                                            alt={safeText(user.NICKNAME, getPageText("profileAlt"))}
                                                         />
                                                     ) : (
                                                         <span>{getFirstLetter(user.NICKNAME || user.USER_ID)}</span>
@@ -1480,7 +1576,7 @@ function StoryBar() {
                                                 </div>
 
                                                 <div className="story-viewer-user-info">
-                                                    <strong>{safeText(user.NICKNAME, "traveler")}</strong>
+                                                    <strong>{safeText(user.NICKNAME, getPageText("traveler"))}</strong>
                                                     <p>@{safeText(user.USER_ID, "user")} · {safeText(user.VIEW_DATE_TEXT, "")}</p>
                                                 </div>
                                             </button>

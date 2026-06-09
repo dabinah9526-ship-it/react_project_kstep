@@ -4,9 +4,12 @@ import StoryBar from "./StoryBar";
 import PageDecor from "./PageDecor";
 import "./HomeFeed.css";
 import ScrollTopButton from "./ScrollTopButton";
+import { getLang, t } from "../utils/language";
 
 function HomeFeed() {
     const navigate = useNavigate();
+
+    const [language, setLanguage] = useState(getLang());
 
     const [feedList, setFeedList] = useState([]);
     const [sponsoredAdList, setSponsoredAdList] = useState([]);
@@ -32,13 +35,25 @@ function HomeFeed() {
     const [feedImageMap, setFeedImageMap] = useState({});
     const [imageIndexMap, setImageIndexMap] = useState({});
 
-    const nickname = localStorage.getItem("nickname") || "여행자";
+    const nickname = localStorage.getItem("nickname") || getPageText("defaultTraveler");
+
+    useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -70,6 +85,144 @@ function HomeFeed() {
         }
     }, [sponsoredAdList, hiddenAdNoList, adSlideIndex]);
 
+    function getPageText(key) {
+        const ko = {
+            defaultTraveler: "여행자",
+            homeTitle: "여행자 홈",
+            homeSub: "루트, 스토리, 추천 콘텐츠를 한눈에 확인해요.",
+            searchPlaceholder: "지역, 카테고리, 해시태그 검색",
+            search: "검색",
+            reset: "초기화",
+            loadingFeed: "홈 피드를 불러오는 중입니다...",
+            emptyFeed: "아직 홈 피드가 없습니다. 관심 있는 여행자를 팔로우해보세요.",
+            localSponsor: "로컬 스폰서",
+            adImage: "광고 이미지",
+            adTitleDefault: "추천 광고",
+            adTextDefault: "여행자에게 추천하는 로컬 장소입니다.",
+            storeView: "가게보기",
+            notInterested: "관심없음",
+            report: "신고",
+            edit: "수정",
+            delete: "삭제",
+            deletePostConfirm: "게시물을 삭제할까요?",
+            deletePostDone: "게시물이 삭제되었습니다.",
+            deletePostFail: "게시물 삭제에 실패했습니다.",
+            deletePostError: "게시물 삭제 중 오류가 발생했습니다.",
+            reportFeedDone: "신고가 접수되었습니다.",
+            reportAdDone: "광고 신고가 접수되었습니다.",
+            copyFail: "링크 복사에 실패했습니다.",
+            feedLinkCopied: "피드 링크가 복사되었습니다.",
+            storeLinkCopied: "가게 링크가 복사되었습니다.",
+            feedShareText: " 루트를 확인해보세요.",
+            adShareText: " 정보를 확인해보세요.",
+            saveStoreDone: "가게 저장 처리가 완료되었습니다.",
+            saveStoreFail: "가게 저장 처리에 실패했습니다.",
+            saveStoreError: "가게 저장 처리 중 오류가 발생했습니다.",
+            likeError: "좋아요 처리 중 오류가 발생했습니다.",
+            saveError: "저장 처리 중 오류가 발생했습니다.",
+            commentListError: "댓글 목록을 불러오는 중 오류가 발생했습니다.",
+            commentWriteEmpty: "댓글 내용을 입력해주세요.",
+            commentLimit: "댓글은 500자 이하로 입력해주세요.",
+            commentWriteError: "댓글 등록 중 오류가 발생했습니다.",
+            commentDeleteConfirm: "댓글을 삭제할까요?",
+            commentDeleteError: "댓글 삭제 중 오류가 발생했습니다.",
+            feedImageAlt: "피드 이미지",
+            profileAlt: "프로필",
+            categoryDefault: "여행",
+            likeCount: "좋아요",
+            commentCount: "댓글",
+            saveCount: "저장",
+            countUnit: "개",
+            titleEmpty: "제목 없음",
+            routeEmpty: "등록된 루트 설명이 없습니다.",
+            viewAllComments: "댓글 모두 보기",
+            sponsoredTitle: "추천 로컬 스폰서",
+            sponsoredCountSuffix: "개의 추천 광고",
+            localAdDefault: "여행자에게 추천하는 로컬 광고",
+            view: "보기",
+            recommendUser: "추천 여행자",
+            seeMore: "더보기",
+            noRecommendUser: "추천할 여행자가 아직 없습니다.",
+            noIntro: "소개가 없습니다.",
+            commentLoading: "댓글을 불러오는 중입니다...",
+            noComment: "아직 댓글이 없습니다. 첫 댓글을 남겨보세요.",
+            commentPlaceholder: "댓글 달기...",
+            post: "게시",
+            processing: "처리중..."
+        };
+
+        const en = {
+            defaultTraveler: "traveler",
+            homeTitle: "Traveler Home",
+            homeSub: "Discover routes, stories, and recommended content in one place.",
+            searchPlaceholder: "Search area, category, or hashtag",
+            search: "Search",
+            reset: "Reset",
+            loadingFeed: "Loading your home feed...",
+            emptyFeed: "No home feed yet. Try following travelers you are interested in.",
+            localSponsor: "Local Sponsor",
+            adImage: "Sponsor image",
+            adTitleDefault: "Recommended sponsor",
+            adTextDefault: "A local spot recommended for travelers.",
+            storeView: "View Store",
+            notInterested: "Not interested",
+            report: "Report",
+            edit: "Edit",
+            delete: "Delete",
+            deletePostConfirm: "Delete this post?",
+            deletePostDone: "The post has been deleted.",
+            deletePostFail: "Failed to delete post.",
+            deletePostError: "An error occurred while deleting post.",
+            reportFeedDone: "Your report has been submitted.",
+            reportAdDone: "Your ad report has been submitted.",
+            copyFail: "Failed to copy link.",
+            feedLinkCopied: "Feed link has been copied.",
+            storeLinkCopied: "Store link has been copied.",
+            feedShareText: "Check out this travel route.",
+            adShareText: "Check out this store information.",
+            saveStoreDone: "Store save status has been updated.",
+            saveStoreFail: "Failed to save store.",
+            saveStoreError: "An error occurred while saving store.",
+            likeError: "An error occurred while processing like.",
+            saveError: "An error occurred while saving.",
+            commentListError: "An error occurred while loading comments.",
+            commentWriteEmpty: "Please write a comment.",
+            commentLimit: "Comments can be up to 500 characters.",
+            commentWriteError: "An error occurred while posting comment.",
+            commentDeleteConfirm: "Delete this comment?",
+            commentDeleteError: "An error occurred while deleting comment.",
+            feedImageAlt: "Feed image",
+            profileAlt: "Profile",
+            categoryDefault: "Travel",
+            likeCount: "Likes",
+            commentCount: "Comments",
+            saveCount: "Saved",
+            countUnit: "",
+            titleEmpty: "Untitled",
+            routeEmpty: "No route summary has been added.",
+            viewAllComments: "View all comments",
+            sponsoredTitle: "Recommended Local Sponsors",
+            sponsoredCountSuffix: " recommended ads",
+            localAdDefault: "A local sponsor recommended for travelers.",
+            view: "View",
+            recommendUser: "Recommended Travelers",
+            seeMore: "See more",
+            noRecommendUser: "No recommended travelers yet.",
+            noIntro: "No introduction yet.",
+            commentLoading: "Loading comments...",
+            noComment: "No comments yet. Be the first to leave one.",
+            commentPlaceholder: "Write a comment...",
+            post: "Post",
+            processing: "Processing..."
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
+
     function getToken() {
         return localStorage.getItem("token");
     }
@@ -81,7 +234,7 @@ function HomeFeed() {
         localStorage.removeItem("nickname");
         localStorage.removeItem("userType");
 
-        alert(message || "로그인이 필요합니다.");
+        alert(message || t("loginRequired"));
         navigate("/", { replace: true });
     }
 
@@ -103,7 +256,7 @@ function HomeFeed() {
 
     function handleLoginRequired(data) {
         if (isLoginRequired(data)) {
-            moveLoginPage(data.message || "로그인이 필요합니다.");
+            moveLoginPage(data.message || t("loginRequired"));
             return true;
         }
 
@@ -222,12 +375,12 @@ function HomeFeed() {
                 if (data.result === "success") {
                     setFeedList(data.list || []);
                 } else {
-                    alert(data.message || "홈 피드를 불러오지 못했습니다.");
+                    alert(data.message || (language === "en" ? "Failed to load home feed." : "홈 피드를 불러오지 못했습니다."));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("홈 피드를 불러오는 중 오류가 발생했습니다.");
+                alert(language === "en" ? "An error occurred while loading home feed." : "홈 피드를 불러오는 중 오류가 발생했습니다.");
             })
             .finally(() => {
                 setLoading(false);
@@ -268,7 +421,7 @@ function HomeFeed() {
         const token = getToken();
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -673,6 +826,10 @@ function HomeFeed() {
             return "";
         }
 
+        if (language === "en") {
+            return date.toLocaleDateString("en-US");
+        }
+
         return date.toLocaleDateString("ko-KR");
     }
 
@@ -753,7 +910,7 @@ function HomeFeed() {
         }
 
         if (!ad.AD_NO) {
-            alert("광고 번호가 없습니다.");
+            alert(language === "en" ? "Sponsor number is missing." : "광고 번호가 없습니다.");
             return;
         }
 
@@ -849,7 +1006,7 @@ function HomeFeed() {
             return;
         }
 
-        if (!window.confirm("게시물을 삭제할까요?")) {
+        if (!window.confirm(getPageText("deletePostConfirm"))) {
             return;
         }
 
@@ -877,14 +1034,14 @@ function HomeFeed() {
                     setFeedList(prevList =>
                         prevList.filter(item => String(item.FEED_NO) !== String(feed.FEED_NO))
                     );
-                    alert("게시물이 삭제되었습니다.");
+                    alert(getPageText("deletePostDone"));
                 } else {
-                    alert(data.message || "게시물 삭제에 실패했습니다.");
+                    alert(data.message || getPageText("deletePostFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("게시물 삭제 중 오류가 발생했습니다.");
+                alert(getPageText("deletePostError"));
             });
     }
 
@@ -896,7 +1053,7 @@ function HomeFeed() {
             return;
         }
 
-        alert("신고가 접수되었습니다.");
+        alert(getPageText("reportFeedDone"));
     }
 
     function reportAd(e, ad) {
@@ -907,7 +1064,7 @@ function HomeFeed() {
             return;
         }
 
-        alert("광고 신고가 접수되었습니다.");
+        alert(getPageText("reportAdDone"));
     }
 
     function copyText(text, successMessage) {
@@ -918,7 +1075,7 @@ function HomeFeed() {
                 })
                 .catch(err => {
                     console.error(err);
-                    alert("링크 복사에 실패했습니다.");
+                    alert(getPageText("copyFail"));
                 });
 
             return;
@@ -935,12 +1092,12 @@ function HomeFeed() {
         }
 
         const shareUrl = window.location.origin + "/feed/detail?feedNo=" + feed.FEED_NO;
-        const title = safeText(feed.TITLE, "K-STEP 여행 루트");
+        const title = safeText(feed.TITLE, "K-STEP Travel Route");
 
         if (navigator.share) {
             navigator.share({
                 title: title,
-                text: title + " 루트를 확인해보세요.",
+                text: language === "en" ? getPageText("feedShareText") : title + getPageText("feedShareText"),
                 url: shareUrl
             })
                 .catch(err => {
@@ -950,7 +1107,7 @@ function HomeFeed() {
             return;
         }
 
-        copyText(shareUrl, "피드 링크가 복사되었습니다.");
+        copyText(shareUrl, getPageText("feedLinkCopied"));
     }
 
     function shareAd(e, ad) {
@@ -961,12 +1118,12 @@ function HomeFeed() {
         }
 
         const shareUrl = window.location.origin + "/ad/detail/" + ad.AD_NO;
-        const title = safeText(ad.BUSINESS_NAME, "K-STEP 로컬 스폰서");
+        const title = safeText(ad.BUSINESS_NAME, "K-STEP Local Sponsor");
 
         if (navigator.share) {
             navigator.share({
                 title: title,
-                text: title + " 정보를 확인해보세요.",
+                text: language === "en" ? getPageText("adShareText") : title + getPageText("adShareText"),
                 url: shareUrl
             })
                 .catch(err => {
@@ -976,7 +1133,7 @@ function HomeFeed() {
             return;
         }
 
-        copyText(shareUrl, "가게 링크가 복사되었습니다.");
+        copyText(shareUrl, getPageText("storeLinkCopied"));
     }
 
     function toggleSponsoredAdSave(e, ad) {
@@ -989,7 +1146,7 @@ function HomeFeed() {
         const token = getToken();
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -1026,14 +1183,14 @@ function HomeFeed() {
                         return prevList.filter(item => item !== adNoText);
                     });
 
-                    alert(data.message || "가게 저장 처리가 완료되었습니다.");
+                    alert(data.message || getPageText("saveStoreDone"));
                 } else {
-                    alert(data.message || "가게 저장 처리에 실패했습니다.");
+                    alert(data.message || getPageText("saveStoreFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("가게 저장 처리 중 오류가 발생했습니다.");
+                alert(getPageText("saveStoreError"));
             });
     }
 
@@ -1047,13 +1204,6 @@ function HomeFeed() {
         }
 
         return savedAdNoList.includes(String(ad.AD_NO));
-    }
-
-    function scrollToTop() {
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
     }
 
     function toggleLike(e, feed) {
@@ -1097,7 +1247,7 @@ function HomeFeed() {
             })
             .catch(err => {
                 console.error(err);
-                alert("좋아요 처리 중 오류가 발생했습니다.");
+                alert(getPageText("likeError"));
             });
     }
 
@@ -1174,7 +1324,7 @@ function HomeFeed() {
             })
             .catch(err => {
                 console.error(err);
-                alert("저장 처리 중 오류가 발생했습니다.");
+                alert(getPageText("saveError"));
             });
     }
 
@@ -1229,7 +1379,7 @@ function HomeFeed() {
             })
             .catch(err => {
                 console.error(err);
-                alert("댓글 목록을 불러오는 중 오류가 발생했습니다.");
+                alert(getPageText("commentListError"));
             })
             .finally(() => {
                 setCommentLoading(false);
@@ -1244,12 +1394,12 @@ function HomeFeed() {
         const content = commentContent.trim();
 
         if (content === "") {
-            alert("댓글 내용을 입력해주세요.");
+            alert(getPageText("commentWriteEmpty"));
             return;
         }
 
         if (content.length > 500) {
-            alert("댓글은 500자 이하로 입력해주세요.");
+            alert(getPageText("commentLimit"));
             return;
         }
 
@@ -1295,7 +1445,7 @@ function HomeFeed() {
             })
             .catch(err => {
                 console.error(err);
-                alert("댓글 등록 중 오류가 발생했습니다.");
+                alert(getPageText("commentWriteError"));
             });
     }
 
@@ -1304,7 +1454,7 @@ function HomeFeed() {
             return;
         }
 
-        if (!window.confirm("댓글을 삭제할까요?")) {
+        if (!window.confirm(getPageText("commentDeleteConfirm"))) {
             return;
         }
 
@@ -1348,7 +1498,7 @@ function HomeFeed() {
             })
             .catch(err => {
                 console.error(err);
-                alert("댓글 삭제 중 오류가 발생했습니다.");
+                alert(getPageText("commentDeleteError"));
             });
     }
 
@@ -1406,21 +1556,21 @@ function HomeFeed() {
                             type="button"
                             onClick={(e) => clickSponsoredAd(e, ad)}
                         >
-                            가게보기
+                            {getPageText("storeView")}
                         </button>
 
                         <button
                             type="button"
                             onClick={(e) => hideSponsoredAd(e, ad)}
                         >
-                            관심없음
+                            {getPageText("notInterested")}
                         </button>
 
                         <button
                             type="button"
                             onClick={(e) => reportAd(e, ad)}
                         >
-                            신고
+                            {getPageText("report")}
                         </button>
                     </div>
                 )}
@@ -1454,7 +1604,7 @@ function HomeFeed() {
                                     type="button"
                                     onClick={(e) => editFeed(e, feed)}
                                 >
-                                    수정
+                                    {getPageText("edit")}
                                 </button>
 
                                 <button
@@ -1462,7 +1612,7 @@ function HomeFeed() {
                                     className="danger"
                                     onClick={(e) => removeFeed(e, feed)}
                                 >
-                                    삭제
+                                    {getPageText("delete")}
                                 </button>
                             </>
                         ) : (
@@ -1470,7 +1620,7 @@ function HomeFeed() {
                                 type="button"
                                 onClick={(e) => reportFeed(e, feed)}
                             >
-                                신고
+                                {getPageText("report")}
                             </button>
                         )}
                     </div>
@@ -1495,8 +1645,8 @@ function HomeFeed() {
                     </div>
 
                     <div className="home-card-user">
-                        <strong>{safeText(ad.BUSINESS_NAME, "로컬 스폰서")}</strong>
-                        <p>Sponsored · {safeText(ad.AREA, "Korea")}</p>
+                        <strong>{safeText(ad.BUSINESS_NAME, getPageText("localSponsor"))}</strong>
+                        <p>{t("sponsored")} · {safeText(ad.AREA, "Korea")}</p>
                     </div>
 
                     {renderAdMenu(ad)}
@@ -1504,7 +1654,7 @@ function HomeFeed() {
 
                 <div className="home-ad-visual">
                     {getAdImageUrl(ad) !== "" ? (
-                        <img src={getAdImageUrl(ad)} alt={safeText(ad.AD_TITLE, "광고 이미지")} />
+                        <img src={getAdImageUrl(ad)} alt={safeText(ad.AD_TITLE, getPageText("adImage"))} />
                     ) : (
                         <div className="home-ad-gradient">
                             <span>{safeText(ad.BUSINESS_TYPE, "LOCAL")}</span>
@@ -1513,7 +1663,7 @@ function HomeFeed() {
                         </div>
                     )}
 
-                    <div className="home-sponsored-badge">Sponsored</div>
+                    <div className="home-sponsored-badge">{t("sponsored")}</div>
                 </div>
 
                 <div className="home-card-body">
@@ -1557,16 +1707,16 @@ function HomeFeed() {
                     </div>
 
                     <div className="home-ad-label-line">
-                        <span>Sponsored</span>
+                        <span>{t("sponsored")}</span>
                         <em>{safeText(ad.BUSINESS_TYPE, "LOCAL")}</em>
                     </div>
 
-                    <h2>{safeText(ad.AD_TITLE, "추천 광고")}</h2>
+                    <h2>{safeText(ad.AD_TITLE, getPageText("adTitleDefault"))}</h2>
 
                     <p className="home-caption">
-                        <strong>{safeText(ad.BUSINESS_NAME, "로컬 스폰서")}</strong>
+                        <strong>{safeText(ad.BUSINESS_NAME, getPageText("localSponsor"))}</strong>
                         {" "}
-                        {safeText(ad.AD_TEXT, "여행자에게 추천하는 로컬 장소입니다.")}
+                        {safeText(ad.AD_TEXT, getPageText("adTextDefault"))}
                     </p>
 
                     <button
@@ -1574,7 +1724,7 @@ function HomeFeed() {
                         className="home-ad-cta"
                         onClick={(e) => clickSponsoredAd(e, ad)}
                     >
-                        가게보기
+                        {getPageText("storeView")}
                     </button>
                 </div>
             </article>
@@ -1597,7 +1747,7 @@ function HomeFeed() {
                         {feedProfileImageUrl !== "" ? (
                             <img
                                 src={feedProfileImageUrl}
-                                alt={safeText(feed.NICKNAME, "프로필")}
+                                alt={safeText(feed.NICKNAME, getPageText("profileAlt"))}
                             />
                         ) : (
                             <span>{getFirstLetter(feed.NICKNAME || feed.USER_ID)}</span>
@@ -1624,7 +1774,7 @@ function HomeFeed() {
                     {getSelectedImageUrl(feed) !== "" ? (
                         <img
                             src={getSelectedImageUrl(feed)}
-                            alt={safeText(feed.TITLE, "피드 이미지")}
+                            alt={safeText(feed.TITLE, getPageText("feedImageAlt"))}
                         />
                     ) : (
                         <div className="home-no-image">
@@ -1674,7 +1824,7 @@ function HomeFeed() {
                     )}
 
                     <div className="home-image-chip-row">
-                        <span>{safeText(feed.CATEGORY, "여행")}</span>
+                        <span>{safeText(feed.CATEGORY, getPageText("categoryDefault"))}</span>
                         <span>{safeText(feed.AREA, "Korea")}</span>
                     </div>
                 </div>
@@ -1715,17 +1865,17 @@ function HomeFeed() {
                     </div>
 
                     <div className="home-count-line">
-                        <strong>좋아요 {feed.LIKE_COUNT || 0}개</strong>
-                        <span>댓글 {feed.COMMENT_COUNT || 0}개</span>
-                        <span>저장 {feed.BOOKMARK_COUNT || 0}개</span>
+                        <strong>{getPageText("likeCount")} {feed.LIKE_COUNT || 0}{getPageText("countUnit")}</strong>
+                        <span>{getPageText("commentCount")} {feed.COMMENT_COUNT || 0}{getPageText("countUnit")}</span>
+                        <span>{getPageText("saveCount")} {feed.BOOKMARK_COUNT || 0}{getPageText("countUnit")}</span>
                     </div>
 
-                    <h2>{safeText(feed.TITLE, "제목 없음")}</h2>
+                    <h2>{safeText(feed.TITLE, getPageText("titleEmpty"))}</h2>
 
                     <p className="home-caption">
                         <strong>{safeText(feed.NICKNAME, "traveler")}</strong>
                         {" "}
-                        {safeText(feed.ROUTE_SUMMARY || feed.CONTENT, "등록된 루트 설명이 없습니다.")}
+                        {safeText(feed.ROUTE_SUMMARY || feed.CONTENT, getPageText("routeEmpty"))}
                     </p>
 
                     {getTags(feed.HASHTAGS).length > 0 && (
@@ -1751,7 +1901,7 @@ function HomeFeed() {
                         className="home-open-comment-btn"
                         onClick={(e) => openCommentModal(e, feed)}
                     >
-                        댓글 모두 보기
+                        {getPageText("viewAllComments")}
                     </button>
                 </div>
             </article>
@@ -1769,11 +1919,11 @@ function HomeFeed() {
             <section className="home-ad-carousel-section">
                 <div className="home-ad-carousel-head">
                     <div>
-                        <span>Sponsored</span>
-                        <h2>추천 로컬 스폰서</h2>
+                        <span>{t("sponsored")}</span>
+                        <h2>{getPageText("sponsoredTitle")}</h2>
                     </div>
 
-                    <p>{visibleAdList.length}개의 추천 광고</p>
+                    <p>{visibleAdList.length}{getPageText("sponsoredCountSuffix")}</p>
                 </div>
 
                 <div className="home-ad-carousel-list">
@@ -1787,7 +1937,7 @@ function HomeFeed() {
                                 {getAdImageUrl(ad) !== "" ? (
                                     <img
                                         src={getAdImageUrl(ad)}
-                                        alt={safeText(ad.AD_TITLE, "광고 이미지")}
+                                        alt={safeText(ad.AD_TITLE, getPageText("adImage"))}
                                     />
                                 ) : (
                                     <div className="home-ad-carousel-gradient">
@@ -1799,14 +1949,14 @@ function HomeFeed() {
                             </div>
 
                             <div className="home-ad-carousel-info">
-                                <strong>{safeText(ad.BUSINESS_NAME, "로컬 스폰서")}</strong>
-                                <p>{safeText(ad.AD_TITLE, "여행자에게 추천하는 장소")}</p>
+                                <strong>{safeText(ad.BUSINESS_NAME, getPageText("localSponsor"))}</strong>
+                                <p>{safeText(ad.AD_TITLE, getPageText("localAdDefault"))}</p>
 
                                 <button
                                     type="button"
                                     onClick={(e) => clickSponsoredAd(e, ad)}
                                 >
-                                    가게보기
+                                    {getPageText("storeView")}
                                 </button>
                             </div>
                         </article>
@@ -1827,6 +1977,7 @@ function HomeFeed() {
     return (
         <div
             className="home-page"
+            data-lang={language}
             onClick={() => {
                 if (openMenuKey !== "") {
                     setOpenMenuKey("");
@@ -1847,8 +1998,8 @@ function HomeFeed() {
                             <div className="home-brand-mark">K</div>
 
                             <div>
-                                <h1>여행자 홈</h1>
-                                <p>루트, 스토리, 추천 콘텐츠를 한눈에 확인해요.</p>
+                                <h1>{getPageText("homeTitle")}</h1>
+                                <p>{getPageText("homeSub")}</p>
                             </div>
                         </div>
 
@@ -1856,6 +2007,7 @@ function HomeFeed() {
                             <button
                                 type="button"
                                 onClick={() => navigate("/chat")}
+                                title={language === "en" ? "Chat" : "채팅"}
                             >
                                 💬
                             </button>
@@ -1864,6 +2016,7 @@ function HomeFeed() {
                                 type="button"
                                 className="write"
                                 onClick={() => navigate("/feed/new")}
+                                title={t("create")}
                             >
                                 +
                             </button>
@@ -1878,16 +2031,16 @@ function HomeFeed() {
                                 value={searchText}
                                 onChange={(e) => setSearchText(e.target.value)}
                                 onKeyDown={enterSearch}
-                                placeholder="지역, 카테고리, 해시태그 검색"
+                                placeholder={getPageText("searchPlaceholder")}
                             />
                         </div>
 
                         <button type="button" onClick={searchFeed}>
-                            검색
+                            {getPageText("search")}
                         </button>
 
                         <button type="button" className="reset" onClick={resetSearch}>
-                            초기화
+                            {getPageText("reset")}
                         </button>
                     </section>
 
@@ -1897,13 +2050,13 @@ function HomeFeed() {
 
                     {loading && (
                         <div className="home-empty-box">
-                            홈 피드를 불러오는 중입니다...
+                            {getPageText("loadingFeed")}
                         </div>
                     )}
 
                     {!loading && feedList.length === 0 && (
                         <div className="home-empty-box">
-                            아직 홈 피드가 없습니다. 관심 있는 여행자를 팔로우해보세요.
+                            {getPageText("emptyFeed")}
                         </div>
                     )}
 
@@ -1947,7 +2100,7 @@ function HomeFeed() {
                                 moveMyProfile();
                             }}
                         >
-                            보기
+                            {getPageText("view")}
                         </button>
                     </div>
 
@@ -1957,22 +2110,22 @@ function HomeFeed() {
                             onClick={(e) => clickSponsoredAd(e, currentSideAd)}
                         >
                             <div className="home-side-ad-top">
-                                <span>Sponsored</span>
+                                <span>{t("sponsored")}</span>
                                 <em>
                                     {adSlideIndex + 1}/{visibleSponsoredAdList.length}
                                 </em>
                             </div>
 
-                            <h3>{safeText(currentSideAd.BUSINESS_NAME, "로컬 스폰서")}</h3>
+                            <h3>{safeText(currentSideAd.BUSINESS_NAME, getPageText("localSponsor"))}</h3>
 
-                            <p>{safeText(currentSideAd.AD_TITLE, "여행자에게 추천하는 로컬 광고")}</p>
+                            <p>{safeText(currentSideAd.AD_TITLE, getPageText("localAdDefault"))}</p>
 
                             <div className="home-side-ad-actions">
                                 <button
                                     type="button"
                                     onClick={(e) => clickSponsoredAd(e, currentSideAd)}
                                 >
-                                    가게보기
+                                    {getPageText("storeView")}
                                 </button>
 
                                 {visibleSponsoredAdList.length > 1 && (
@@ -1998,19 +2151,19 @@ function HomeFeed() {
 
                     <div className="home-side-card">
                         <div className="home-side-title">
-                            <strong>추천 여행자</strong>
+                            <strong>{getPageText("recommendUser")}</strong>
 
                             <button
                                 type="button"
                                 onClick={() => navigate("/explore")}
                             >
-                                더보기
+                                {getPageText("seeMore")}
                             </button>
                         </div>
 
                         {recommendUserList.length === 0 && (
                             <div className="home-recommend-empty">
-                                추천할 여행자가 아직 없습니다.
+                                {getPageText("noRecommendUser")}
                             </div>
                         )}
 
@@ -2026,7 +2179,7 @@ function HomeFeed() {
                                         {recommendProfileImageUrl !== "" ? (
                                             <img
                                                 src={recommendProfileImageUrl}
-                                                alt={safeText(user.NICKNAME, "프로필")}
+                                                alt={safeText(user.NICKNAME, getPageText("profileAlt"))}
                                             />
                                         ) : (
                                             <span>{getFirstLetter(user.NICKNAME)}</span>
@@ -2039,7 +2192,7 @@ function HomeFeed() {
                                         </strong>
 
                                         <p>
-                                            {safeText(user.INTRO || user.BIO, "소개가 없습니다.")}
+                                            {safeText(user.INTRO || user.BIO, getPageText("noIntro"))}
                                         </p>
                                     </div>
 
@@ -2047,7 +2200,7 @@ function HomeFeed() {
                                         type="button"
                                         onClick={(e) => moveProfile(e, user.USER_NO)}
                                     >
-                                        보기
+                                        {getPageText("view")}
                                     </button>
                                 </div>
                             );
@@ -2065,7 +2218,7 @@ function HomeFeed() {
                             {getSelectedImageUrl(selectedFeed) !== "" ? (
                                 <img
                                     src={getSelectedImageUrl(selectedFeed)}
-                                    alt={safeText(selectedFeed.TITLE, "피드 이미지")}
+                                    alt={safeText(selectedFeed.TITLE, getPageText("feedImageAlt"))}
                                 />
                             ) : (
                                 <div className="home-no-image">
@@ -2080,7 +2233,7 @@ function HomeFeed() {
                                     {getProfileImageUrl(getProfileImageValue(selectedFeed)) !== "" ? (
                                         <img
                                             src={getProfileImageUrl(getProfileImageValue(selectedFeed))}
-                                            alt={safeText(selectedFeed.NICKNAME, "프로필")}
+                                            alt={safeText(selectedFeed.NICKNAME, getPageText("profileAlt"))}
                                         />
                                     ) : (
                                         <span>{getFirstLetter(selectedFeed.NICKNAME || selectedFeed.USER_ID)}</span>
@@ -2089,7 +2242,7 @@ function HomeFeed() {
 
                                 <div>
                                     <strong>{safeText(selectedFeed.NICKNAME, "traveler")}</strong>
-                                    <p>{safeText(selectedFeed.TITLE, "제목 없음")}</p>
+                                    <p>{safeText(selectedFeed.TITLE, getPageText("titleEmpty"))}</p>
                                 </div>
 
                                 <button
@@ -2103,13 +2256,13 @@ function HomeFeed() {
                             <div className="home-comment-list">
                                 {commentLoading && (
                                     <div className="home-comment-empty">
-                                        댓글을 불러오는 중입니다...
+                                        {getPageText("commentLoading")}
                                     </div>
                                 )}
 
                                 {!commentLoading && commentList.length === 0 && (
                                     <div className="home-comment-empty">
-                                        아직 댓글이 없습니다. 첫 댓글을 남겨보세요.
+                                        {getPageText("noComment")}
                                     </div>
                                 )}
 
@@ -2125,7 +2278,7 @@ function HomeFeed() {
                                                 {commentProfileImageUrl !== "" ? (
                                                     <img
                                                         src={commentProfileImageUrl}
-                                                        alt={safeText(comment.NICKNAME, "프로필")}
+                                                        alt={safeText(comment.NICKNAME, getPageText("profileAlt"))}
                                                     />
                                                 ) : (
                                                     <span>{getFirstLetter(comment.NICKNAME || comment.USER_ID)}</span>
@@ -2150,7 +2303,7 @@ function HomeFeed() {
                                                     className="home-comment-delete-btn"
                                                     onClick={() => removeComment(comment.COMMENT_NO)}
                                                 >
-                                                    삭제
+                                                    {getPageText("delete")}
                                                 </button>
                                             )}
                                         </div>
@@ -2164,7 +2317,7 @@ function HomeFeed() {
                                     maxLength={500}
                                     onChange={(e) => setCommentContent(e.target.value)}
                                     onKeyDown={enterComment}
-                                    placeholder="댓글 달기..."
+                                    placeholder={getPageText("commentPlaceholder")}
                                 ></textarea>
 
                                 <span>{commentContent.length}/500</span>
@@ -2174,7 +2327,7 @@ function HomeFeed() {
                                     className={commentContent.trim() === "" ? "disabled" : ""}
                                     onClick={addComment}
                                 >
-                                    게시
+                                    {getPageText("post")}
                                 </button>
                             </div>
                         </div>

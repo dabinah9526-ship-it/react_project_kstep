@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageDecor from "./PageDecor";
 import ScrollTopButton from "./ScrollTopButton";
+import { getLang, t } from "../utils/language";
 import "./Explore.css";
 
 function Explore() {
     const navigate = useNavigate();
+
+    const [language, setLanguage] = useState(getLang());
 
     const [feedList, setFeedList] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -15,10 +18,22 @@ function Explore() {
     const [imageIndexMap, setImageIndexMap] = useState({});
 
     useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
+
+    useEffect(() => {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            alert("로그인이 필요합니다.");
+            alert(t("loginRequired"));
             navigate("/");
             return;
         }
@@ -33,6 +48,62 @@ function Explore() {
 
         getFeedImageMap(feedList);
     }, [feedList]);
+
+    function getPageText(key) {
+        const ko = {
+            title: "여행 루트 탐색",
+            subtitle: "다른 여행자들이 남긴 한국 여행 코스를 둘러보세요.",
+            searchPlaceholder: "지역, 카테고리, 해시태그 검색",
+            search: "검색",
+            reset: "초기화",
+            allPublicRoute: "전체 공개 루트",
+            routeCount: "개의 여행 루트",
+            loading: "탐색 피드를 불러오는 중입니다.",
+            empty: "조건에 맞는 피드가 없습니다.",
+            loadError: "탐색 피드를 불러오는 중 오류가 발생했습니다.",
+            saveError: "저장 처리 중 오류가 발생했습니다.",
+            profileAlt: "프로필",
+            feedImageAlt: "피드 이미지",
+            categoryDefault: "여행",
+            likeCount: "좋아요",
+            commentCount: "댓글",
+            saveCount: "저장",
+            countUnit: "개",
+            titleEmpty: "제목 없음",
+            routeEmpty: "등록된 루트 설명이 없습니다.",
+            detail: "루트 자세히 보기"
+        };
+
+        const en = {
+            title: "Explore Travel Routes",
+            subtitle: "Browse Korea travel routes shared by other travelers.",
+            searchPlaceholder: "Search area, category, or hashtag",
+            search: "Search",
+            reset: "Reset",
+            allPublicRoute: "Public Routes",
+            routeCount: " travel routes",
+            loading: "Loading explore feed.",
+            empty: "No feeds match your search.",
+            loadError: "An error occurred while loading explore feed.",
+            saveError: "An error occurred while saving.",
+            profileAlt: "Profile",
+            feedImageAlt: "Feed image",
+            categoryDefault: "Travel",
+            likeCount: "Likes",
+            commentCount: "Comments",
+            saveCount: "Saved",
+            countUnit: "",
+            titleEmpty: "Untitled",
+            routeEmpty: "No route summary has been added.",
+            detail: "View Route Detail"
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
 
     function getExploreFeed(keyword) {
         const token = localStorage.getItem("token");
@@ -63,7 +134,7 @@ function Explore() {
             })
             .catch(err => {
                 console.error(err);
-                alert("탐색 피드를 불러오는 중 오류가 발생했습니다.");
+                alert(getPageText("loadError"));
             })
             .finally(() => {
                 setLoading(false);
@@ -146,7 +217,7 @@ function Explore() {
             })
             .catch(err => {
                 console.error(err);
-                alert("저장 처리 중 오류가 발생했습니다.");
+                alert(getPageText("saveError"));
             });
     }
 
@@ -386,6 +457,10 @@ function Explore() {
             return "";
         }
 
+        if (language === "en") {
+            return date.toLocaleDateString("en-US");
+        }
+
         return date.toLocaleDateString("ko-KR");
     }
 
@@ -401,7 +476,7 @@ function Explore() {
     }
 
     return (
-        <div className="explore-page">
+        <div className="explore-page" data-lang={language}>
             <PageDecor />
 
             <div className="explore-layout">
@@ -413,8 +488,8 @@ function Explore() {
                             <div className="explore-brand-mark">K</div>
 
                             <div>
-                                <h1>여행 루트 탐색</h1>
-                                <p>다른 여행자들이 남긴 한국 여행 코스를 둘러보세요.</p>
+                                <h1>{getPageText("title")}</h1>
+                                <p>{getPageText("subtitle")}</p>
                             </div>
                         </div>
 
@@ -422,6 +497,7 @@ function Explore() {
                             <button
                                 type="button"
                                 onClick={() => navigate("/home")}
+                                title={t("home")}
                             >
                                 ⌂
                             </button>
@@ -430,6 +506,7 @@ function Explore() {
                                 type="button"
                                 className="write"
                                 onClick={() => navigate("/feed/new")}
+                                title={t("create")}
                             >
                                 +
                             </button>
@@ -448,40 +525,40 @@ function Explore() {
                                         searchFeed();
                                     }
                                 }}
-                                placeholder="지역, 카테고리, 해시태그 검색"
+                                placeholder={getPageText("searchPlaceholder")}
                             />
                         </div>
 
                         <button type="button" onClick={searchFeed}>
-                            검색
+                            {getPageText("search")}
                         </button>
 
                         <button type="button" className="reset" onClick={resetSearch}>
-                            초기화
+                            {getPageText("reset")}
                         </button>
                     </section>
 
                     <section className="explore-count-card">
                         <div>
                             <span>Explore</span>
-                            <h2>전체 공개 루트</h2>
+                            <h2>{getPageText("allPublicRoute")}</h2>
                         </div>
 
                         <p>
                             <strong>{feedList.length}</strong>
-                            개의 여행 루트
+                            {getPageText("routeCount")}
                         </p>
                     </section>
 
                     {loading && (
                         <div className="explore-empty-box">
-                            탐색 피드를 불러오는 중입니다.
+                            {getPageText("loading")}
                         </div>
                     )}
 
                     {!loading && feedList.length === 0 && (
                         <div className="explore-empty-box">
-                            조건에 맞는 피드가 없습니다.
+                            {getPageText("empty")}
                         </div>
                     )}
 
@@ -501,7 +578,7 @@ function Explore() {
                                             {getProfileImageUrl(feed.PROFILE_IMG) !== "" ? (
                                                 <img
                                                     src={getProfileImageUrl(feed.PROFILE_IMG)}
-                                                    alt={safeText(feed.NICKNAME, "프로필")}
+                                                    alt={safeText(feed.NICKNAME, getPageText("profileAlt"))}
                                                 />
                                             ) : (
                                                 <span>{getFirstLetter(feed.NICKNAME || feed.USER_ID)}</span>
@@ -531,7 +608,7 @@ function Explore() {
                                         {getSelectedImageUrl(feed) !== "" ? (
                                             <img
                                                 src={getSelectedImageUrl(feed)}
-                                                alt={safeText(feed.TITLE, "피드 이미지")}
+                                                alt={safeText(feed.TITLE, getPageText("feedImageAlt"))}
                                             />
                                         ) : (
                                             <div className="explore-no-image">
@@ -575,24 +652,24 @@ function Explore() {
                                         )}
 
                                         <div className="explore-image-chip-row">
-                                            <span>{safeText(feed.CATEGORY, "여행")}</span>
+                                            <span>{safeText(feed.CATEGORY, getPageText("categoryDefault"))}</span>
                                             <span>{safeText(feed.AREA, "Korea")}</span>
                                         </div>
                                     </div>
 
                                     <div className="explore-card-body">
                                         <div className="explore-count-line">
-                                            <strong>좋아요 {feed.LIKE_COUNT || 0}개</strong>
-                                            <span>댓글 {feed.COMMENT_COUNT || 0}개</span>
-                                            <span>저장 {feed.BOOKMARK_COUNT || 0}개</span>
+                                            <strong>{getPageText("likeCount")} {feed.LIKE_COUNT || 0}{getPageText("countUnit")}</strong>
+                                            <span>{getPageText("commentCount")} {feed.COMMENT_COUNT || 0}{getPageText("countUnit")}</span>
+                                            <span>{getPageText("saveCount")} {feed.BOOKMARK_COUNT || 0}{getPageText("countUnit")}</span>
                                         </div>
 
-                                        <h2>{safeText(feed.TITLE, "제목 없음")}</h2>
+                                        <h2>{safeText(feed.TITLE, getPageText("titleEmpty"))}</h2>
 
                                         <p className="explore-caption">
                                             <strong>{safeText(feed.NICKNAME, "traveler")}</strong>
                                             {" "}
-                                            {safeText(feed.ROUTE_SUMMARY || feed.CONTENT, "등록된 루트 설명이 없습니다.")}
+                                            {safeText(feed.ROUTE_SUMMARY || feed.CONTENT, getPageText("routeEmpty"))}
                                         </p>
 
                                         {getTags(feed.HASHTAGS).length > 0 && (
@@ -621,7 +698,7 @@ function Explore() {
                                                 openFeedDetail(feed.FEED_NO);
                                             }}
                                         >
-                                            루트 자세히 보기
+                                            {getPageText("detail")}
                                         </button>
                                     </div>
                                 </article>

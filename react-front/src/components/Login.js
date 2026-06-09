@@ -1,22 +1,99 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getLang } from "../utils/language";
 import "./Login.css";
 
 function Login() {
     const navigate = useNavigate();
 
+    const [language, setLanguage] = useState(getLang());
+
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
+    useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
+
+    function getPageText(key) {
+        const ko = {
+            idRequired: "아이디를 입력해주세요.",
+            passwordRequired: "비밀번호를 입력해주세요.",
+            loginSuccess: "로그인되었습니다.",
+            serverError: "서버 연결 중 오류가 발생했습니다.",
+
+            logoAlt: "K-STEP 로고",
+            pageLabel: "로그인",
+            mainCopy1: "오늘의 한국 여행을",
+            mainCopy2: "다시 이어가볼까요?",
+            subCopy1: "저장한 루트와 로컬 피드를 확인하고",
+            subCopy2: "새로운 여행 이야기를 만나보세요.",
+
+            userId: "아이디",
+            userIdPlaceholder: "아이디를 입력하세요",
+            password: "비밀번호",
+            passwordPlaceholder: "비밀번호를 입력하세요",
+            hidePassword: "비밀번호 숨기기",
+            showPassword: "비밀번호 보기",
+
+            loginButton: "K-STEP 로그인",
+            findId: "아이디 찾기",
+            findPassword: "비밀번호 찾기",
+            noAccount: "아직 계정이 없나요?",
+            join: "회원가입"
+        };
+
+        const en = {
+            idRequired: "Please enter your ID.",
+            passwordRequired: "Please enter your password.",
+            loginSuccess: "You have logged in.",
+            serverError: "An error occurred while connecting to the server.",
+
+            logoAlt: "K-STEP logo",
+            pageLabel: "Log in",
+            mainCopy1: "Ready to continue",
+            mainCopy2: "your Korea trip today?",
+            subCopy1: "Check your saved routes and local feeds",
+            subCopy2: "and discover new travel stories.",
+
+            userId: "ID",
+            userIdPlaceholder: "Enter your ID",
+            password: "Password",
+            passwordPlaceholder: "Enter your password",
+            hidePassword: "Hide password",
+            showPassword: "Show password",
+
+            loginButton: "Log in to K-STEP",
+            findId: "Find ID",
+            findPassword: "Find Password",
+            noAccount: "Don’t have an account yet?",
+            join: "Sign up"
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
+
     function login() {
         if (userId === "") {
-            alert("아이디를 입력해주세요.");
+            alert(getPageText("idRequired"));
             return;
         }
 
         if (password === "") {
-            alert("비밀번호를 입력해주세요.");
+            alert(getPageText("passwordRequired"));
             return;
         }
 
@@ -35,7 +112,7 @@ function Login() {
                 console.log(data);
 
                 if (data.result === "success") {
-                    alert("로그인되었습니다.");
+                    alert(getPageText("loginSuccess"));
 
                     localStorage.setItem("token", data.token);
                     localStorage.setItem("userNo", data.user.USER_NO);
@@ -50,7 +127,7 @@ function Login() {
             })
             .catch(err => {
                 console.error(err);
-                alert("서버 연결 중 오류가 발생했습니다.");
+                alert(getPageText("serverError"));
             });
     }
 
@@ -63,7 +140,7 @@ function Login() {
     }
 
     return (
-        <div className="login-page">
+        <div className="login-page" data-lang={language}>
             <div className="soft-cloud login-cloud-one"></div>
             <div className="soft-cloud login-cloud-two"></div>
 
@@ -101,42 +178,42 @@ function Login() {
                         <img
                             className="login-logo-img"
                             src="/images/kstep_logo1.png"
-                            alt="K-STEP 로고"
+                            alt={getPageText("logoAlt")}
                         />
                     </div>
 
-                    <p className="login-page-label">로그인</p>
+                    <p className="login-page-label">{getPageText("pageLabel")}</p>
 
                     <p className="login-main-copy">
-                        오늘의 한국 여행을<br />
-                        다시 이어가볼까요?
+                        {getPageText("mainCopy1")}<br />
+                        {getPageText("mainCopy2")}
                     </p>
 
                     <p className="login-sub-copy">
-                        저장한 루트와 로컬 피드를 확인하고<br />
-                        새로운 여행 이야기를 만나보세요.
+                        {getPageText("subCopy1")}<br />
+                        {getPageText("subCopy2")}
                     </p>
                 </div>
 
                 <div className="login-form">
                     <div className="login-input-box">
-                        <label>아이디</label>
+                        <label>{getPageText("userId")}</label>
                         <input
                             value={userId}
                             onChange={(e) => setUserId(e.target.value)}
-                            placeholder="아이디를 입력하세요"
+                            placeholder={getPageText("userIdPlaceholder")}
                         />
                     </div>
 
                     <div className="login-input-box">
-                        <label>비밀번호</label>
+                        <label>{getPageText("password")}</label>
 
                         <div className="login-password-wrap">
                             <input
                                 type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="비밀번호를 입력하세요"
+                                placeholder={getPageText("passwordPlaceholder")}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
                                         login();
@@ -151,7 +228,7 @@ function Login() {
                                     e.preventDefault();
                                 }}
                                 onClick={() => setShowPassword(!showPassword)}
-                                aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                                aria-label={showPassword ? getPageText("hidePassword") : getPageText("showPassword")}
                             >
                                 {showPassword ? (
                                     <svg
@@ -178,25 +255,25 @@ function Login() {
                     </div>
 
                     <button className="login-button" onClick={login}>
-                        K-STEP 로그인
+                        {getPageText("loginButton")}
                     </button>
 
                     <div className="login-find-row">
                         <button type="button" onClick={moveFindId}>
-                            아이디 찾기
+                            {getPageText("findId")}
                         </button>
 
                         <span>|</span>
 
                         <button type="button" onClick={moveFindPassword}>
-                            비밀번호 찾기
+                            {getPageText("findPassword")}
                         </button>
                     </div>
                 </div>
 
                 <div className="login-bottom">
-                    <span>아직 계정이 없나요?</span>
-                    <button onClick={() => navigate("/join")}>회원가입</button>
+                    <span>{getPageText("noAccount")}</span>
+                    <button onClick={() => navigate("/join")}>{getPageText("join")}</button>
                 </div>
             </div>
         </div>

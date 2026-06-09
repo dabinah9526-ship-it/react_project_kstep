@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getLang } from "../utils/language";
 import "./Join.css";
 
 function Join() {
     const navigate = useNavigate();
+
+    const [language, setLanguage] = useState(getLang());
 
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
@@ -23,6 +26,146 @@ function Join() {
 
     const [showPassword, setShowPassword] = useState(false);
     const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+
+    useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
+
+    function getPageText(key) {
+        const ko = {
+            idRequired: "아이디를 입력해주세요.",
+            passwordFirst: "비밀번호를 먼저 입력해주세요.",
+            passwordRule: "비밀번호는 영문과 숫자를 포함해서 8~20자로 입력해주세요.",
+            passwordMatch: "비밀번호가 일치합니다.",
+            passwordNotMatch: "비밀번호가 일치하지 않습니다.",
+            idCheckError: "아이디 중복체크 중 오류가 발생했습니다.",
+            nicknameRequired: "닉네임을 입력해주세요.",
+            nicknameCheckError: "닉네임 중복체크 중 오류가 발생했습니다.",
+            passwordRequired: "비밀번호를 입력해주세요.",
+            passwordConfirmRequired: "비밀번호 확인을 입력해주세요.",
+            idCheckRequired: "아이디 중복체크를 해주세요.",
+            passwordRecheck: "비밀번호를 다시 확인해주세요.",
+            nicknameCheckRequired: "닉네임 중복체크를 해주세요.",
+            bioLimit: "자기소개는 500자 이하로 입력해주세요.",
+            joinSuccess: "회원가입이 완료되었습니다.",
+            serverError: "서버 연결 중 오류가 발생했습니다.",
+
+            logoAlt: "K-STEP 로고",
+            pageLabel: "회원가입",
+            mainCopy1: "한국의 예쁜 순간을",
+            mainCopy2: "나만의 루트로 담아봐요",
+            subCopy1: "골목길, 시장, 카페, 바다, 한옥까지",
+            subCopy2: "사진과 동선으로 공유하는 로컬 여행 공간",
+
+            userId: "아이디",
+            userIdPlaceholder: "아이디를 입력하세요",
+            done: "완료",
+            duplicateCheck: "중복확인",
+
+            password: "비밀번호",
+            passwordPlaceholder: "영문+숫자 포함 8~20자",
+            hidePassword: "비밀번호 숨기기",
+            showPassword: "비밀번호 보기",
+
+            passwordConfirm: "비밀번호 확인",
+            passwordConfirmPlaceholder: "비밀번호를 다시 입력하세요",
+            hidePasswordConfirm: "비밀번호 확인 숨기기",
+            showPasswordConfirm: "비밀번호 확인 보기",
+
+            nickname: "닉네임",
+            nicknamePlaceholder: "여행 피드에 보여질 닉네임",
+
+            userType: "사용자 유형",
+            traveler: "Traveler 여행자",
+            local: "Local 로컬",
+            guide: "Guide 가이드",
+            business: "Business 사업자",
+
+            email: "이메일",
+            emailPlaceholder: "이메일을 입력하세요",
+
+            bio: "간단 소개",
+            bioPlaceholder: "예: 한옥 골목과 작은 찻집을 좋아해요.",
+
+            joinButton: "나의 K-STEP 시작하기",
+            hasAccount: "이미 계정이 있나요?",
+            login: "로그인"
+        };
+
+        const en = {
+            idRequired: "Please enter your ID.",
+            passwordFirst: "Please enter your password first.",
+            passwordRule: "Password must be 8-20 characters and include letters and numbers.",
+            passwordMatch: "Passwords match.",
+            passwordNotMatch: "Passwords do not match.",
+            idCheckError: "An error occurred while checking ID duplication.",
+            nicknameRequired: "Please enter your nickname.",
+            nicknameCheckError: "An error occurred while checking nickname duplication.",
+            passwordRequired: "Please enter your password.",
+            passwordConfirmRequired: "Please confirm your password.",
+            idCheckRequired: "Please check ID duplication.",
+            passwordRecheck: "Please check your password again.",
+            nicknameCheckRequired: "Please check nickname duplication.",
+            bioLimit: "Bio can be up to 500 characters.",
+            joinSuccess: "Sign up has been completed.",
+            serverError: "An error occurred while connecting to the server.",
+
+            logoAlt: "K-STEP logo",
+            pageLabel: "Sign up",
+            mainCopy1: "Capture beautiful Korea moments",
+            mainCopy2: "as your own travel route",
+            subCopy1: "From alleys, markets, cafes, seas, to hanok",
+            subCopy2: "share local trips with photos and routes",
+
+            userId: "ID",
+            userIdPlaceholder: "Enter your ID",
+            done: "Done",
+            duplicateCheck: "Check",
+
+            password: "Password",
+            passwordPlaceholder: "8-20 characters with letters and numbers",
+            hidePassword: "Hide password",
+            showPassword: "Show password",
+
+            passwordConfirm: "Confirm Password",
+            passwordConfirmPlaceholder: "Enter your password again",
+            hidePasswordConfirm: "Hide password confirmation",
+            showPasswordConfirm: "Show password confirmation",
+
+            nickname: "Nickname",
+            nicknamePlaceholder: "Nickname shown on your travel feed",
+
+            userType: "User Type",
+            traveler: "Traveler",
+            local: "Local",
+            guide: "Guide",
+            business: "Business",
+
+            email: "Email",
+            emailPlaceholder: "Enter your email",
+
+            bio: "Short Bio",
+            bioPlaceholder: "Example: I love hanok alleys and small tea houses.",
+
+            joinButton: "Start My K-STEP",
+            hasAccount: "Already have an account?",
+            login: "Log in"
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
 
     function EyeIcon({ slash }) {
         return (
@@ -52,28 +195,28 @@ function Join() {
 
         if (nextPassword === "") {
             setPasswordCheck(false);
-            setPasswordCheckMessage("비밀번호를 먼저 입력해주세요.");
+            setPasswordCheckMessage(getPageText("passwordFirst"));
             return;
         }
 
         if (!passwordRegex.test(nextPassword)) {
             setPasswordCheck(false);
-            setPasswordCheckMessage("비밀번호는 영문과 숫자를 포함해서 8~20자로 입력해주세요.");
+            setPasswordCheckMessage(getPageText("passwordRule"));
             return;
         }
 
         if (nextPassword === nextPasswordConfirm) {
             setPasswordCheck(true);
-            setPasswordCheckMessage("비밀번호가 일치합니다.");
+            setPasswordCheckMessage(getPageText("passwordMatch"));
         } else {
             setPasswordCheck(false);
-            setPasswordCheckMessage("비밀번호가 일치하지 않습니다.");
+            setPasswordCheckMessage(getPageText("passwordNotMatch"));
         }
     }
 
     function checkUserId() {
         if (userId === "") {
-            alert("아이디를 입력해주세요.");
+            alert(getPageText("idRequired"));
             return;
         }
 
@@ -99,13 +242,13 @@ function Join() {
             })
             .catch(err => {
                 console.error(err);
-                alert("아이디 중복체크 중 오류가 발생했습니다.");
+                alert(getPageText("idCheckError"));
             });
     }
 
     function checkNickname() {
         if (nickname === "") {
-            alert("닉네임을 입력해주세요.");
+            alert(getPageText("nicknameRequired"));
             return;
         }
 
@@ -131,60 +274,60 @@ function Join() {
             })
             .catch(err => {
                 console.error(err);
-                alert("닉네임 중복체크 중 오류가 발생했습니다.");
+                alert(getPageText("nicknameCheckError"));
             });
     }
 
     function join() {
         if (userId === "") {
-            alert("아이디를 입력해주세요.");
+            alert(getPageText("idRequired"));
             return;
         }
 
         if (password === "") {
-            alert("비밀번호를 입력해주세요.");
+            alert(getPageText("passwordRequired"));
             return;
         }
 
         if (passwordConfirm === "") {
-            alert("비밀번호 확인을 입력해주세요.");
+            alert(getPageText("passwordConfirmRequired"));
             return;
         }
 
         if (nickname === "") {
-            alert("닉네임을 입력해주세요.");
+            alert(getPageText("nicknameRequired"));
             return;
         }
 
         if (!idCheck) {
-            alert("아이디 중복체크를 해주세요.");
+            alert(getPageText("idCheckRequired"));
             return;
         }
 
         const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,20}$/;
 
         if (!passwordRegex.test(password)) {
-            alert("비밀번호는 영문과 숫자를 포함해서 8~20자로 입력해주세요.");
+            alert(getPageText("passwordRule"));
             return;
         }
 
         if (password !== passwordConfirm) {
-            alert("비밀번호가 일치하지 않습니다.");
+            alert(getPageText("passwordNotMatch"));
             return;
         }
 
         if (!passwordCheck) {
-            alert("비밀번호를 다시 확인해주세요.");
+            alert(getPageText("passwordRecheck"));
             return;
         }
 
         if (!nicknameCheck) {
-            alert("닉네임 중복체크를 해주세요.");
+            alert(getPageText("nicknameCheckRequired"));
             return;
         }
 
         if (bio.length > 500) {
-            alert("자기소개는 500자 이하로 입력해주세요.");
+            alert(getPageText("bioLimit"));
             return;
         }
 
@@ -205,7 +348,7 @@ function Join() {
             .then(res => res.json())
             .then(data => {
                 if (data.result === "success") {
-                    alert("회원가입이 완료되었습니다.");
+                    alert(getPageText("joinSuccess"));
                     navigate("/");
                 } else {
                     alert(data.message);
@@ -213,12 +356,12 @@ function Join() {
             })
             .catch(err => {
                 console.error(err);
-                alert("서버 연결 중 오류가 발생했습니다.");
+                alert(getPageText("serverError"));
             });
     }
 
     return (
-        <div className="join-page">
+        <div className="join-page" data-lang={language}>
             <div className="soft-cloud cloud-one"></div>
             <div className="soft-cloud cloud-two"></div>
 
@@ -258,26 +401,26 @@ function Join() {
                         <img
                             className="join-logo-img"
                             src="/images/kstep_logo1.png"
-                            alt="K-STEP 로고"
+                            alt={getPageText("logoAlt")}
                         />
                     </div>
 
-                    <p className="join-page-label">회원가입</p>
+                    <p className="join-page-label">{getPageText("pageLabel")}</p>
 
                     <p className="join-main-copy">
-                        한국의 예쁜 순간을<br />
-                        나만의 루트로 담아봐요
+                        {getPageText("mainCopy1")}<br />
+                        {getPageText("mainCopy2")}
                     </p>
 
                     <p className="join-sub-copy">
-                        골목길, 시장, 카페, 바다, 한옥까지<br />
-                        사진과 동선으로 공유하는 로컬 여행 공간
+                        {getPageText("subCopy1")}<br />
+                        {getPageText("subCopy2")}
                     </p>
                 </div>
 
                 <div className="join-form">
                     <div className="join-input-box">
-                        <label>아이디</label>
+                        <label>{getPageText("userId")}</label>
 
                         <div className="join-check-row">
                             <input
@@ -287,7 +430,7 @@ function Join() {
                                     setIdCheck(false);
                                     setIdCheckMessage("");
                                 }}
-                                placeholder="아이디를 입력하세요"
+                                placeholder={getPageText("userIdPlaceholder")}
                             />
 
                             <button
@@ -295,7 +438,7 @@ function Join() {
                                 className={idCheck ? "join-check-btn checked" : "join-check-btn"}
                                 onClick={checkUserId}
                             >
-                                {idCheck ? "완료" : "중복확인"}
+                                {idCheck ? getPageText("done") : getPageText("duplicateCheck")}
                             </button>
                         </div>
 
@@ -307,7 +450,7 @@ function Join() {
                     </div>
 
                     <div className="join-input-box">
-                        <label>비밀번호</label>
+                        <label>{getPageText("password")}</label>
 
                         <div className="join-password-wrap">
                             <input
@@ -319,7 +462,7 @@ function Join() {
                                     setPassword(nextPassword);
                                     checkPasswordAuto(nextPassword, passwordConfirm);
                                 }}
-                                placeholder="영문+숫자 포함 8~20자"
+                                placeholder={getPageText("passwordPlaceholder")}
                             />
 
                             <button
@@ -329,7 +472,7 @@ function Join() {
                                     e.preventDefault();
                                 }}
                                 onClick={() => setShowPassword(!showPassword)}
-                                aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                                aria-label={showPassword ? getPageText("hidePassword") : getPageText("showPassword")}
                             >
                                 <EyeIcon slash={!showPassword} />
                             </button>
@@ -337,7 +480,7 @@ function Join() {
                     </div>
 
                     <div className="join-input-box">
-                        <label>비밀번호 확인</label>
+                        <label>{getPageText("passwordConfirm")}</label>
 
                         <div className="join-password-wrap">
                             <input
@@ -349,7 +492,7 @@ function Join() {
                                     setPasswordConfirm(nextPasswordConfirm);
                                     checkPasswordAuto(password, nextPasswordConfirm);
                                 }}
-                                placeholder="비밀번호를 다시 입력하세요"
+                                placeholder={getPageText("passwordConfirmPlaceholder")}
                             />
 
                             <button
@@ -359,7 +502,7 @@ function Join() {
                                     e.preventDefault();
                                 }}
                                 onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                                aria-label={showPasswordConfirm ? "비밀번호 확인 숨기기" : "비밀번호 확인 보기"}
+                                aria-label={showPasswordConfirm ? getPageText("hidePasswordConfirm") : getPageText("showPasswordConfirm")}
                             >
                                 <EyeIcon slash={!showPasswordConfirm} />
                             </button>
@@ -373,7 +516,7 @@ function Join() {
                     </div>
 
                     <div className="join-input-box">
-                        <label>닉네임</label>
+                        <label>{getPageText("nickname")}</label>
 
                         <div className="join-check-row">
                             <input
@@ -383,7 +526,7 @@ function Join() {
                                     setNicknameCheck(false);
                                     setNicknameCheckMessage("");
                                 }}
-                                placeholder="여행 피드에 보여질 닉네임"
+                                placeholder={getPageText("nicknamePlaceholder")}
                             />
 
                             <button
@@ -391,7 +534,7 @@ function Join() {
                                 className={nicknameCheck ? "join-check-btn checked" : "join-check-btn"}
                                 onClick={checkNickname}
                             >
-                                {nicknameCheck ? "완료" : "중복확인"}
+                                {nicknameCheck ? getPageText("done") : getPageText("duplicateCheck")}
                             </button>
                         </div>
 
@@ -403,38 +546,38 @@ function Join() {
                     </div>
 
                     <div className="join-input-box">
-                        <label>사용자 유형</label>
+                        <label>{getPageText("userType")}</label>
 
                         <select
                             value={userType}
                             onChange={(e) => setUserType(e.target.value)}
                         >
-                            <option value="TRAVELER">Traveler 여행자</option>
-                            <option value="LOCAL">Local 로컬</option>
-                            <option value="GUIDE">Guide 가이드</option>
-                            <option value="BUSINESS">Business 사업자</option>
+                            <option value="TRAVELER">{getPageText("traveler")}</option>
+                            <option value="LOCAL">{getPageText("local")}</option>
+                            <option value="GUIDE">{getPageText("guide")}</option>
+                            <option value="BUSINESS">{getPageText("business")}</option>
                         </select>
                     </div>
 
                     <div className="join-input-box">
-                        <label>이메일</label>
+                        <label>{getPageText("email")}</label>
 
                         <input
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="이메일을 입력하세요"
+                            placeholder={getPageText("emailPlaceholder")}
                         />
                     </div>
 
                     <div className="join-input-box">
-                        <label>간단 소개</label>
+                        <label>{getPageText("bio")}</label>
 
                         <div className="join-textarea-wrap">
                             <textarea
                                 value={bio}
                                 maxLength={500}
                                 onChange={(e) => setBio(e.target.value)}
-                                placeholder="예: 한옥 골목과 작은 찻집을 좋아해요."
+                                placeholder={getPageText("bioPlaceholder")}
                             />
 
                             <span className="join-text-count">
@@ -443,14 +586,16 @@ function Join() {
                         </div>
                     </div>
 
-                    <button className="join-button" onClick={join}>
-                        나의 K-STEP 시작하기
+                    <button type="button" className="join-button" onClick={join}>
+                        {getPageText("joinButton")}
                     </button>
                 </div>
 
                 <div className="join-bottom">
-                    <span>이미 계정이 있나요?</span>
-                    <button onClick={() => navigate("/")}>로그인</button>
+                    <span>{getPageText("hasAccount")}</span>
+                    <button type="button" onClick={() => navigate("/")}>
+                        {getPageText("login")}
+                    </button>
                 </div>
             </div>
         </div>

@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import { Box, CssBaseline } from '@mui/material';
 
 import Menu from './components/Menu';
+import LanguageToggle from './components/LanguageToggle';
 
 import Login from './components/Login';
 import Join from './components/Join';
@@ -30,6 +31,8 @@ function App() {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
+
+      <LanguageToggle />
 
       {!isAuthPage && <Menu />}
 

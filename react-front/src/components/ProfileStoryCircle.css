@@ -835,6 +835,127 @@
     object-fit: contain !important;
 }
 
+.profile-story-text-white {
+    color: #ffffff;
+}
+
+.profile-story-text-pink {
+    color: #ffd9e4;
+}
+
+.profile-story-text-gold {
+    color: #f3c778;
+}
+
+.profile-story-text-lavender {
+    color: #cbb4ff;
+}
+
+.profile-story-text-dark {
+    color: #2b1d3d;
+}
+
+.profile-story-color-btn-white {
+    background-color: #ffffff;
+}
+
+.profile-story-color-btn-pink {
+    background-color: #ffd9e4;
+}
+
+.profile-story-color-btn-gold {
+    background-color: #f3c778;
+}
+
+.profile-story-color-btn-lavender {
+    background-color: #cbb4ff;
+}
+
+.profile-story-color-btn-dark {
+    background-color: #2b1d3d;
+}
+
+.profile-story-upload-sticker,
+.profile-story-render-text {
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+
+.profile-story-upload-sticker {
+    cursor: grab;
+    user-select: none;
+}
+
+.profile-story-upload-sticker.with-bg,
+.profile-story-render-text.with-bg {
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.42);
+}
+
+.profile-story-upload-sticker.active {
+    outline: 2px dashed rgba(255, 255, 255, 0.86);
+    outline-offset: 4px;
+}
+
+.profile-story-font-18 { font-size: 18px; }
+.profile-story-font-20 { font-size: 20px; }
+.profile-story-font-22 { font-size: 22px; }
+.profile-story-font-24 { font-size: 24px; }
+.profile-story-font-26 { font-size: 26px; }
+.profile-story-font-28 { font-size: 28px; }
+.profile-story-font-30 { font-size: 30px; }
+.profile-story-font-32 { font-size: 32px; }
+.profile-story-font-34 { font-size: 34px; }
+.profile-story-font-36 { font-size: 36px; }
+.profile-story-font-38 { font-size: 38px; }
+.profile-story-font-40 { font-size: 40px; }
+.profile-story-font-42 { font-size: 42px; }
+
+.profile-story-pos-x-0 { left: 0%; }
+.profile-story-pos-x-5 { left: 5%; }
+.profile-story-pos-x-10 { left: 10%; }
+.profile-story-pos-x-15 { left: 15%; }
+.profile-story-pos-x-20 { left: 20%; }
+.profile-story-pos-x-25 { left: 25%; }
+.profile-story-pos-x-30 { left: 30%; }
+.profile-story-pos-x-35 { left: 35%; }
+.profile-story-pos-x-40 { left: 40%; }
+.profile-story-pos-x-45 { left: 45%; }
+.profile-story-pos-x-50 { left: 50%; }
+.profile-story-pos-x-55 { left: 55%; }
+.profile-story-pos-x-60 { left: 60%; }
+.profile-story-pos-x-65 { left: 65%; }
+.profile-story-pos-x-70 { left: 70%; }
+.profile-story-pos-x-75 { left: 75%; }
+.profile-story-pos-x-80 { left: 80%; }
+.profile-story-pos-x-85 { left: 85%; }
+.profile-story-pos-x-90 { left: 90%; }
+.profile-story-pos-x-95 { left: 95%; }
+.profile-story-pos-x-100 { left: 100%; }
+
+.profile-story-pos-y-0 { top: 0%; }
+.profile-story-pos-y-5 { top: 5%; }
+.profile-story-pos-y-10 { top: 10%; }
+.profile-story-pos-y-15 { top: 15%; }
+.profile-story-pos-y-20 { top: 20%; }
+.profile-story-pos-y-25 { top: 25%; }
+.profile-story-pos-y-30 { top: 30%; }
+.profile-story-pos-y-35 { top: 35%; }
+.profile-story-pos-y-40 { top: 40%; }
+.profile-story-pos-y-45 { top: 45%; }
+.profile-story-pos-y-50 { top: 50%; }
+.profile-story-pos-y-55 { top: 55%; }
+.profile-story-pos-y-60 { top: 60%; }
+.profile-story-pos-y-65 { top: 65%; }
+.profile-story-pos-y-70 { top: 70%; }
+.profile-story-pos-y-75 { top: 75%; }
+.profile-story-pos-y-80 { top: 80%; }
+.profile-story-pos-y-85 { top: 85%; }
+.profile-story-pos-y-90 { top: 90%; }
+.profile-story-pos-y-95 { top: 95%; }
+.profile-story-pos-y-100 { top: 100%; }
+
 @media (max-width: 520px) {
     .profile-story-viewer {
         border-radius: 26px;

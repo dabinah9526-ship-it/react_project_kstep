@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ProfileStoryCircle from "./ProfileStoryCircle";
 import PageDecor from "./PageDecor";
 import ScrollTopButton from "./ScrollTopButton";
+import { getLang, t } from "../utils/language";
 import "./Profile.css";
 
 function Profile() {
@@ -14,6 +15,8 @@ function Profile() {
 
     const loginUserNo = getLoginUserNo();
     const profileUserNo = searchParams.get("userNo") || userNo || loginUserNo;
+
+    const [language, setLanguage] = useState(getLang());
 
     const [profile, setProfile] = useState(null);
     const [feedList, setFeedList] = useState([]);
@@ -29,15 +32,27 @@ function Profile() {
     const [activeTab, setActiveTab] = useState("feed");
 
     useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
+
+    useEffect(() => {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
         if (!profileUserNo || profileUserNo === "null" || profileUserNo === "undefined") {
-            alert("프로필 번호가 없습니다. 다시 로그인해주세요.");
+            alert(getPageText("noProfileNo"));
             navigate("/home");
             return;
         }
@@ -54,6 +69,190 @@ function Profile() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [profileUserNo]);
 
+    function getPageText(key) {
+        const ko = {
+            noProfileNo: "프로필 번호가 없습니다. 다시 로그인해주세요.",
+            profileLoadFail: "프로필을 불러오지 못했습니다.",
+            profileLoadError: "프로필 정보를 불러오는 중 오류가 발생했습니다.",
+            feedLoadFail: "프로필 피드를 불러오지 못했습니다.",
+            feedLoadError: "프로필 피드를 불러오는 중 오류가 발생했습니다.",
+            bookmarkPrivate: "비공개 목록입니다.",
+            bookmarkLoadFail: "저장한 루트를 불러오지 못했습니다.",
+            bookmarkLoadError: "저장한 루트를 불러오는 중 오류가 발생했습니다.",
+            followerLoadFail: "팔로워 목록을 불러오지 못했습니다.",
+            followerLoadError: "팔로워 목록을 불러오는 중 오류가 발생했습니다.",
+            followingLoadFail: "팔로잉 목록을 불러오지 못했습니다.",
+            followingLoadError: "팔로잉 목록을 불러오는 중 오류가 발생했습니다.",
+            followFail: "팔로우 처리에 실패했습니다.",
+            followError: "팔로우 처리 중 오류가 발생했습니다.",
+            chatOpenFail: "채팅방을 여는 중 오류가 발생했습니다.",
+            chatOpenError: "채팅방을 여는 중 오류가 발생했습니다.",
+            blockConfirm: "이 사용자를 차단할까요? 차단하면 서로의 피드와 프로필 접근이 제한됩니다.",
+            blockFail: "차단 처리에 실패했습니다.",
+            blockError: "차단 처리 중 오류가 발생했습니다.",
+            imageOnly: "이미지 파일만 선택할 수 있습니다.",
+            imageSize: "프로필 사진은 5MB 이하만 가능합니다.",
+            imageChangeDone: "프로필 사진이 변경되었습니다.",
+            imageChangeFail: "프로필 사진 변경에 실패했습니다.",
+            imageChangeError: "프로필 사진 변경 중 오류가 발생했습니다.",
+            profileShareTitle: "K-STEP 여행자",
+            profileShareSuffix: "님의 프로필",
+            profileShareText: "을 확인해보세요.",
+            profileLinkCopied: "프로필 링크가 복사되었습니다.",
+            copyFail: "링크 복사에 실패했습니다.",
+            follow: "팔로우",
+            following: "팔로잉",
+            requested: "요청됨",
+            followRequest: "팔로우 요청",
+            tabFeedTitle: "작성한 여행 피드",
+            tabBookmarkTitle: "저장한 여행 루트",
+            tabFollowerTitle: "팔로워 목록",
+            tabFollowingTitle: "팔로잉 목록",
+            tabDefaultTitle: "목록",
+            tabFeedMyDesc: "내가 작성한 여행 루트 피드입니다.",
+            tabFeedOtherDesc: "이 사용자가 작성한 여행 루트 피드입니다.",
+            tabBookmarkMyDesc: "나중에 다시 보고 싶은 저장한 여행 루트입니다.",
+            tabBookmarkOtherDesc: "이 사용자가 저장한 여행 루트입니다.",
+            tabFollowerMyDesc: "나를 팔로우하는 사용자 목록입니다.",
+            tabFollowerOtherDesc: "이 사용자를 팔로우하는 사용자 목록입니다.",
+            tabFollowingMyDesc: "내가 팔로우하는 사용자 목록입니다.",
+            tabFollowingOtherDesc: "이 사용자가 팔로우하는 사용자 목록입니다.",
+            privateTitle: "비공개 계정입니다.",
+            privateDesc: "승인된 팔로워만 이 사용자의 피드와 목록을 볼 수 있습니다.",
+            connecting: "연결 중...",
+            message: "메시지",
+            listLoading: "목록을 불러오는 중입니다...",
+            feedImageAlt: "피드 이미지",
+            categoryDefault: "여행",
+            routeView: "루트 보기",
+            titleEmpty: "제목 없음",
+            contentEmpty: "내용이 없습니다.",
+            profileAlt: "프로필",
+            noBio: "소개글이 없습니다.",
+            feedCount: "피드",
+            profileLoading: "프로필 정보를 불러오는 중입니다...",
+            profileEmpty: "프로필 정보가 없습니다.",
+            profileCover: "K-STEP PROFILE",
+            profileImageEdit: "프로필 사진 변경",
+            privateAccount: "🔒 비공개 계정",
+            publicAccount: "🌿 공개 계정",
+            myProfileLabel: "My travel profile",
+            travelerProfileLabel: "Traveler profile",
+            profileSettings: "프로필 설정",
+            bioEmpty: "아직 작성된 소개가 없습니다.",
+            routeShare: "✦ 여행 루트 공유",
+            localFeed: "✿ 로컬 피드",
+            kstepSns: "♡ K-STEP SNS",
+            writtenFeed: "작성 피드",
+            savedRoute: "저장한 루트",
+            follower: "팔로워",
+            followingCount: "팔로잉",
+            writeRoute: "+ 여행 루트 작성",
+            storyManage: "스토리 관리",
+            saved: "즐겨찾기",
+            share: "공유",
+            block: "차단",
+            emptyFeed: "아직 작성한 피드가 없습니다.",
+            emptyBookmark: "아직 저장한 여행 루트가 없거나 비공개입니다.",
+            emptyFollower: "아직 팔로워가 없습니다.",
+            emptyFollowing: "아직 팔로잉한 사용자가 없습니다."
+        };
+
+        const en = {
+            noProfileNo: "Profile number is missing. Please log in again.",
+            profileLoadFail: "Failed to load profile.",
+            profileLoadError: "An error occurred while loading profile information.",
+            feedLoadFail: "Failed to load profile feeds.",
+            feedLoadError: "An error occurred while loading profile feeds.",
+            bookmarkPrivate: "This list is private.",
+            bookmarkLoadFail: "Failed to load saved routes.",
+            bookmarkLoadError: "An error occurred while loading saved routes.",
+            followerLoadFail: "Failed to load followers.",
+            followerLoadError: "An error occurred while loading followers.",
+            followingLoadFail: "Failed to load following list.",
+            followingLoadError: "An error occurred while loading following list.",
+            followFail: "Failed to process follow.",
+            followError: "An error occurred while processing follow.",
+            chatOpenFail: "Failed to open chat room.",
+            chatOpenError: "An error occurred while opening chat room.",
+            blockConfirm: "Block this user? If blocked, both users will have limited access to each other's feeds and profiles.",
+            blockFail: "Failed to block user.",
+            blockError: "An error occurred while blocking user.",
+            imageOnly: "Only image files can be selected.",
+            imageSize: "Profile photo must be 5MB or less.",
+            imageChangeDone: "Profile photo has been updated.",
+            imageChangeFail: "Failed to update profile photo.",
+            imageChangeError: "An error occurred while updating profile photo.",
+            profileShareTitle: "K-STEP traveler",
+            profileShareSuffix: "'s profile",
+            profileShareText: "Check out this profile.",
+            profileLinkCopied: "Profile link has been copied.",
+            copyFail: "Failed to copy link.",
+            follow: "Follow",
+            following: "Following",
+            requested: "Requested",
+            followRequest: "Request Follow",
+            tabFeedTitle: "Travel Feeds",
+            tabBookmarkTitle: "Saved Travel Routes",
+            tabFollowerTitle: "Followers",
+            tabFollowingTitle: "Following",
+            tabDefaultTitle: "List",
+            tabFeedMyDesc: "These are the travel route feeds you created.",
+            tabFeedOtherDesc: "These are the travel route feeds created by this user.",
+            tabBookmarkMyDesc: "These are the saved travel routes you may want to revisit later.",
+            tabBookmarkOtherDesc: "These are the travel routes saved by this user.",
+            tabFollowerMyDesc: "Users who follow you.",
+            tabFollowerOtherDesc: "Users who follow this traveler.",
+            tabFollowingMyDesc: "Users you are following.",
+            tabFollowingOtherDesc: "Users this traveler is following.",
+            privateTitle: "This account is private.",
+            privateDesc: "Only approved followers can view this user's feeds and lists.",
+            connecting: "Connecting...",
+            message: "Message",
+            listLoading: "Loading list...",
+            feedImageAlt: "Feed image",
+            categoryDefault: "Travel",
+            routeView: "View Route",
+            titleEmpty: "Untitled",
+            contentEmpty: "No content.",
+            profileAlt: "Profile",
+            noBio: "No introduction yet.",
+            feedCount: "Feeds",
+            profileLoading: "Loading profile information...",
+            profileEmpty: "No profile information.",
+            profileCover: "K-STEP PROFILE",
+            profileImageEdit: "Change profile photo",
+            privateAccount: "🔒 Private Account",
+            publicAccount: "🌿 Public Account",
+            myProfileLabel: "My travel profile",
+            travelerProfileLabel: "Traveler profile",
+            profileSettings: "Profile Settings",
+            bioEmpty: "No introduction has been written yet.",
+            routeShare: "✦ Travel route sharing",
+            localFeed: "✿ Local feeds",
+            kstepSns: "♡ K-STEP SNS",
+            writtenFeed: "Feeds",
+            savedRoute: "Saved Routes",
+            follower: "Followers",
+            followingCount: "Following",
+            writeRoute: "+ Create Travel Route",
+            storyManage: "Manage Stories",
+            saved: "Saved",
+            share: "Share",
+            block: "Block",
+            emptyFeed: "No feeds have been written yet.",
+            emptyBookmark: "No saved travel routes yet, or the list is private.",
+            emptyFollower: "No followers yet.",
+            emptyFollowing: "No following users yet."
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
+
     function moveLoginPage(message) {
         localStorage.removeItem("token");
         localStorage.removeItem("userNo");
@@ -61,7 +260,7 @@ function Profile() {
         localStorage.removeItem("nickname");
         localStorage.removeItem("userType");
 
-        alert(message || "로그인이 필요합니다.");
+        alert(message || t("loginRequired"));
         navigate("/", { replace: true });
     }
 
@@ -83,7 +282,7 @@ function Profile() {
 
     function handleLoginRequired(data) {
         if (isLoginRequired(data)) {
-            moveLoginPage(data.message || "로그인이 필요합니다.");
+            moveLoginPage(data.message || t("loginRequired"));
             return true;
         }
 
@@ -127,7 +326,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -154,13 +353,13 @@ function Profile() {
                         getProfileFeed();
                     }
                 } else {
-                    alert(data.message || "프로필을 불러오지 못했습니다.");
+                    alert(data.message || getPageText("profileLoadFail"));
                     navigate("/home");
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("프로필 정보를 불러오는 중 오류가 발생했습니다.");
+                alert(getPageText("profileLoadError"));
             })
             .finally(() => {
                 setLoading(false);
@@ -171,7 +370,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -196,12 +395,12 @@ function Profile() {
                 } else if (data.result === "private") {
                     setFeedList([]);
                 } else {
-                    alert(data.message || "프로필 피드를 불러오지 못했습니다.");
+                    alert(data.message || getPageText("feedLoadFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("프로필 피드를 불러오는 중 오류가 발생했습니다.");
+                alert(getPageText("feedLoadError"));
             })
             .finally(() => {
                 setListLoading(false);
@@ -212,7 +411,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -236,14 +435,14 @@ function Profile() {
                     setBookmarkList(data.list || []);
                 } else if (data.result === "private") {
                     setBookmarkList([]);
-                    alert(data.message || "비공개 목록입니다.");
+                    alert(data.message || getPageText("bookmarkPrivate"));
                 } else {
-                    alert(data.message || "저장한 루트를 불러오지 못했습니다.");
+                    alert(data.message || getPageText("bookmarkLoadFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("저장한 루트를 불러오는 중 오류가 발생했습니다.");
+                alert(getPageText("bookmarkLoadError"));
             })
             .finally(() => {
                 setListLoading(false);
@@ -254,7 +453,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -279,12 +478,12 @@ function Profile() {
                 } else if (data.result === "private") {
                     setFollowerList([]);
                 } else {
-                    alert(data.message || "팔로워 목록을 불러오지 못했습니다.");
+                    alert(data.message || getPageText("followerLoadFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("팔로워 목록을 불러오는 중 오류가 발생했습니다.");
+                alert(getPageText("followerLoadError"));
             })
             .finally(() => {
                 setListLoading(false);
@@ -295,7 +494,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -320,12 +519,12 @@ function Profile() {
                 } else if (data.result === "private") {
                     setFollowingList([]);
                 } else {
-                    alert(data.message || "팔로잉 목록을 불러오지 못했습니다.");
+                    alert(data.message || getPageText("followingLoadFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("팔로잉 목록을 불러오는 중 오류가 발생했습니다.");
+                alert(getPageText("followingLoadError"));
             })
             .finally(() => {
                 setListLoading(false);
@@ -360,7 +559,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -390,12 +589,12 @@ function Profile() {
                     alert(data.message);
                     getProfile();
                 } else {
-                    alert(data.message || "팔로우 처리에 실패했습니다.");
+                    alert(data.message || getPageText("followFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("팔로우 처리 중 오류가 발생했습니다.");
+                alert(getPageText("followError"));
             });
     }
 
@@ -403,7 +602,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -445,12 +644,12 @@ function Profile() {
                         }
                     });
                 } else {
-                    alert(data.message || "채팅방을 여는 중 오류가 발생했습니다.");
+                    alert(data.message || getPageText("chatOpenFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("채팅방을 여는 중 오류가 발생했습니다.");
+                alert(getPageText("chatOpenError"));
             })
             .finally(() => {
                 setMessageLoading(false);
@@ -461,7 +660,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -469,7 +668,7 @@ function Profile() {
             return;
         }
 
-        if (!window.confirm("이 사용자를 차단할까요? 차단하면 서로의 피드와 프로필 접근이 제한됩니다.")) {
+        if (!window.confirm(getPageText("blockConfirm"))) {
             return;
         }
 
@@ -493,12 +692,12 @@ function Profile() {
                     alert(data.message);
                     navigate("/home");
                 } else {
-                    alert(data.message || "차단 처리에 실패했습니다.");
+                    alert(data.message || getPageText("blockFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("차단 처리 중 오류가 발생했습니다.");
+                alert(getPageText("blockError"));
             });
     }
 
@@ -524,13 +723,13 @@ function Profile() {
         }
 
         if (!file.type.startsWith("image/")) {
-            alert("이미지 파일만 선택할 수 있습니다.");
+            alert(getPageText("imageOnly"));
             e.target.value = "";
             return;
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            alert("프로필 사진은 5MB 이하만 가능합니다.");
+            alert(getPageText("imageSize"));
             e.target.value = "";
             return;
         }
@@ -543,7 +742,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(t("loginRequired"));
             return;
         }
 
@@ -588,15 +787,15 @@ function Profile() {
                         });
                     }
 
-                    alert(data.message || "프로필 사진이 변경되었습니다.");
+                    alert(data.message || getPageText("imageChangeDone"));
                     getProfile();
                 } else {
-                    alert(data.message || "프로필 사진 변경에 실패했습니다.");
+                    alert(data.message || getPageText("imageChangeFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("프로필 사진 변경 중 오류가 발생했습니다.");
+                alert(getPageText("imageChangeError"));
             })
             .finally(() => {
                 setProfileImageUploading(false);
@@ -627,12 +826,12 @@ function Profile() {
         }
 
         const shareUrl = window.location.origin + "/profile/" + profile.USER_NO;
-        const title = safeText(profile.NICKNAME, "K-STEP 여행자") + "님의 프로필";
+        const title = safeText(profile.NICKNAME, getPageText("profileShareTitle")) + getPageText("profileShareSuffix");
 
         if (navigator.share) {
             navigator.share({
                 title: title,
-                text: title + "을 확인해보세요.",
+                text: language === "en" ? getPageText("profileShareText") : title + getPageText("profileShareText"),
                 url: shareUrl
             })
                 .catch(err => {
@@ -645,11 +844,11 @@ function Profile() {
         if (navigator.clipboard) {
             navigator.clipboard.writeText(shareUrl)
                 .then(() => {
-                    alert("프로필 링크가 복사되었습니다.");
+                    alert(getPageText("profileLinkCopied"));
                 })
                 .catch(err => {
                     console.error(err);
-                    alert("링크 복사에 실패했습니다.");
+                    alert(getPageText("copyFail"));
                 });
 
             return;
@@ -756,67 +955,67 @@ function Profile() {
 
     function getFollowButtonText() {
         if (!profile) {
-            return "팔로우";
+            return getPageText("follow");
         }
 
         if (profile.FOLLOW_YN === "Y") {
-            return "팔로잉";
+            return getPageText("following");
         }
 
         if (profile.FOLLOW_YN === "P") {
-            return "요청됨";
+            return getPageText("requested");
         }
 
         if (profile.ACCOUNT_PRIVATE_YN === "Y") {
-            return "팔로우 요청";
+            return getPageText("followRequest");
         }
 
-        return "팔로우";
+        return getPageText("follow");
     }
 
     function getTabTitle() {
         if (activeTab === "feed") {
-            return "작성한 여행 피드";
+            return getPageText("tabFeedTitle");
         }
 
         if (activeTab === "bookmark") {
-            return "저장한 여행 루트";
+            return getPageText("tabBookmarkTitle");
         }
 
         if (activeTab === "follower") {
-            return "팔로워 목록";
+            return getPageText("tabFollowerTitle");
         }
 
         if (activeTab === "following") {
-            return "팔로잉 목록";
+            return getPageText("tabFollowingTitle");
         }
 
-        return "목록";
+        return getPageText("tabDefaultTitle");
     }
 
     function getTabDesc() {
         if (activeTab === "feed") {
             return isMyProfile()
-                ? "내가 작성한 여행 루트 피드입니다."
-                : "이 사용자가 작성한 여행 루트 피드입니다.";
+                ? getPageText("tabFeedMyDesc")
+                : getPageText("tabFeedOtherDesc");
         }
 
         if (activeTab === "bookmark") {
             return isMyProfile()
-                ? "나중에 다시 보고 싶은 저장한 여행 루트입니다."
-                : "이 사용자가 저장한 여행 루트입니다.";
+                ? getPageText("tabBookmarkMyDesc")
+                : getPageText("tabBookmarkOtherDesc");
         }
 
         if (activeTab === "follower") {
             return isMyProfile()
-                ? "나를 팔로우하는 사용자 목록입니다."
-                : "이 사용자를 팔로우하는 사용자 목록입니다.";
+                ? getPageText("tabFollowerMyDesc")
+                : getPageText("tabFollowerOtherDesc");
         }
 
         if (activeTab === "following") {
             return isMyProfile()
-                ? "내가 팔로우하는 사용자 목록입니다."
-                : "이 사용자가 팔로우하는 사용자 목록입니다.";
+                ? getPageText("tabFollowingMyDesc")
+                : getPageText("tabFollowingOtherDesc");
         }
 
         return "";
@@ -827,10 +1026,10 @@ function Profile() {
             <div className="profile-private-box">
                 <div className="profile-private-icon">🔒</div>
 
-                <h3>비공개 계정입니다.</h3>
+                <h3>{getPageText("privateTitle")}</h3>
 
                 <p>
-                    승인된 팔로워만 이 사용자의 피드와 목록을 볼 수 있습니다.
+                    {getPageText("privateDesc")}
                 </p>
 
                 {!isMyProfile() && (
@@ -844,7 +1043,7 @@ function Profile() {
                             onClick={openChatRoom}
                             disabled={messageLoading}
                         >
-                            {messageLoading ? "연결 중..." : "메시지"}
+                            {messageLoading ? getPageText("connecting") : getPageText("message")}
                         </button>
                     </div>
                 )}
@@ -856,7 +1055,7 @@ function Profile() {
         if (listLoading) {
             return (
                 <div className="profile-list-empty">
-                    목록을 불러오는 중입니다...
+                    {getPageText("listLoading")}
                 </div>
             );
         }
@@ -879,7 +1078,7 @@ function Profile() {
                     >
                         <div className="profile-feed-card-image">
                             {getImageUrl(feed) !== "" ? (
-                                <img src={getImageUrl(feed)} alt={safeText(feed.TITLE, "피드 이미지")} />
+                                <img src={getImageUrl(feed)} alt={safeText(feed.TITLE, getPageText("feedImageAlt"))} />
                             ) : (
                                 <div className="profile-no-image">
                                     K-STEP
@@ -888,18 +1087,18 @@ function Profile() {
 
                             <div className="profile-feed-badge-row">
                                 <span>{safeText(feed.AREA, "Korea")}</span>
-                                <span>{safeText(feed.CATEGORY, "여행")}</span>
+                                <span>{safeText(feed.CATEGORY, getPageText("categoryDefault"))}</span>
                             </div>
 
                             <div className="profile-feed-hover-layer">
-                                <strong>루트 보기</strong>
+                                <strong>{getPageText("routeView")}</strong>
                             </div>
                         </div>
 
                         <div className="profile-feed-card-body">
-                            <h3>{safeText(feed.TITLE, "제목 없음")}</h3>
+                            <h3>{safeText(feed.TITLE, getPageText("titleEmpty"))}</h3>
 
-                            <p>{feed.ROUTE_SUMMARY || feed.CONTENT || "내용이 없습니다."}</p>
+                            <p>{feed.ROUTE_SUMMARY || feed.CONTENT || getPageText("contentEmpty")}</p>
 
                             <div className="profile-feed-meta">
                                 <span>♡ {feed.LIKE_COUNT || 0}</span>
@@ -921,7 +1120,7 @@ function Profile() {
         if (listLoading) {
             return (
                 <div className="profile-list-empty">
-                    목록을 불러오는 중입니다...
+                    {getPageText("listLoading")}
                 </div>
             );
         }
@@ -946,7 +1145,7 @@ function Profile() {
                             {getProfileImageUrl(user.PROFILE_IMG) !== "" ? (
                                 <img
                                     src={getProfileImageUrl(user.PROFILE_IMG)}
-                                    alt={safeText(user.NICKNAME, "프로필")}
+                                    alt={safeText(user.NICKNAME, getPageText("profileAlt"))}
                                 />
                             ) : (
                                 getFirstLetter(user.NICKNAME || user.USER_ID)
@@ -957,12 +1156,12 @@ function Profile() {
                             <strong>{safeText(user.NICKNAME, "traveler")}</strong>
                             <p>@{safeText(user.USER_ID, "user")} · {safeText(user.USER_TYPE, "TRAVELER")}</p>
                             <span>
-                                {safeText(user.BIO, "소개글이 없습니다.")}
+                                {safeText(user.BIO, getPageText("noBio"))}
                             </span>
                         </div>
 
                         <div className="profile-follow-count">
-                            피드 {user.FEED_COUNT || 0}
+                            {getPageText("feedCount")} {user.FEED_COUNT || 0}
                         </div>
                     </div>
                 ))}
@@ -972,12 +1171,12 @@ function Profile() {
 
     if (loading) {
         return (
-            <div className="profile-page">
+            <div className="profile-page" data-lang={language}>
                 <PageDecor />
 
                 <div className="profile-container">
                     <section className="profile-section">
-                        프로필 정보를 불러오는 중입니다...
+                        {getPageText("profileLoading")}
                     </section>
                 </div>
 
@@ -988,12 +1187,12 @@ function Profile() {
 
     if (!profile) {
         return (
-            <div className="profile-page">
+            <div className="profile-page" data-lang={language}>
                 <PageDecor />
 
                 <div className="profile-container">
                     <section className="profile-section">
-                        프로필 정보가 없습니다.
+                        {getPageText("profileEmpty")}
                     </section>
                 </div>
 
@@ -1005,7 +1204,7 @@ function Profile() {
     const canView = isCanView();
 
     return (
-        <div className="profile-page">
+        <div className="profile-page" data-lang={language}>
             <PageDecor />
 
             <div className="profile-container">
@@ -1013,7 +1212,7 @@ function Profile() {
                     <PageDecor variant="box" />
 
                     <div className="profile-cover-strip">
-                        <span>K-STEP PROFILE</span>
+                        <span>{getPageText("profileCover")}</span>
                         <strong>{safeText(profile.AREA, "Korea Travel")}</strong>
                     </div>
 
@@ -1032,8 +1231,8 @@ function Profile() {
                                         className="profile-image-edit-btn"
                                         onClick={openProfileImagePicker}
                                         disabled={profileImageUploading}
-                                        title="프로필 사진 변경"
-                                        aria-label="프로필 사진 변경"
+                                        title={getPageText("profileImageEdit")}
+                                        aria-label={getPageText("profileImageEdit")}
                                     >
                                         {profileImageUploading ? "..." : "📷"}
                                     </button>
@@ -1054,7 +1253,7 @@ function Profile() {
                         </div>
 
                         <div className={profile.ACCOUNT_PRIVATE_YN === "Y" ? "profile-private-badge private" : "profile-private-badge public"}>
-                            {profile.ACCOUNT_PRIVATE_YN === "Y" ? "🔒 비공개 계정" : "🌿 공개 계정"}
+                            {profile.ACCOUNT_PRIVATE_YN === "Y" ? getPageText("privateAccount") : getPageText("publicAccount")}
                         </div>
                     </div>
 
@@ -1062,7 +1261,7 @@ function Profile() {
                         <div className="profile-name-row">
                             <div>
                                 <p className="profile-label">
-                                    {isMyProfile() ? "My travel profile" : "Traveler profile"}
+                                    {isMyProfile() ? getPageText("myProfileLabel") : getPageText("travelerProfileLabel")}
                                 </p>
 
                                 <h1>{safeText(profile.NICKNAME, "traveler")}</h1>
@@ -1076,8 +1275,8 @@ function Profile() {
                                 <button
                                     className="profile-setting-icon-btn"
                                     onClick={goSettings}
-                                    title="프로필 설정"
-                                    aria-label="프로필 설정"
+                                    title={getPageText("profileSettings")}
+                                    aria-label={getPageText("profileSettings")}
                                 >
                                     ⚙
                                 </button>
@@ -1085,13 +1284,13 @@ function Profile() {
                         </div>
 
                         <p className="profile-bio">
-                            {safeText(profile.BIO, "아직 작성된 소개가 없습니다.")}
+                            {safeText(profile.BIO, getPageText("bioEmpty"))}
                         </p>
 
                         <div className="profile-sns-info-row">
-                            <span>✦ 여행 루트 공유</span>
-                            <span>✿ 로컬 피드</span>
-                            <span>♡ K-STEP SNS</span>
+                            <span>{getPageText("routeShare")}</span>
+                            <span>{getPageText("localFeed")}</span>
+                            <span>{getPageText("kstepSns")}</span>
                         </div>
 
                         <div className="profile-stats">
@@ -1100,7 +1299,7 @@ function Profile() {
                                 onClick={() => clickTab("feed")}
                             >
                                 <strong>{profile.FEED_COUNT || 0}</strong>
-                                <span>작성 피드</span>
+                                <span>{getPageText("writtenFeed")}</span>
                             </div>
 
                             <div
@@ -1108,7 +1307,7 @@ function Profile() {
                                 onClick={() => clickTab("bookmark")}
                             >
                                 <strong>{profile.BOOKMARK_COUNT || 0}</strong>
-                                <span>저장한 루트</span>
+                                <span>{getPageText("savedRoute")}</span>
                             </div>
 
                             <div
@@ -1116,7 +1315,7 @@ function Profile() {
                                 onClick={() => clickTab("follower")}
                             >
                                 <strong>{profile.FOLLOWER_COUNT || 0}</strong>
-                                <span>팔로워</span>
+                                <span>{getPageText("follower")}</span>
                             </div>
 
                             <div
@@ -1124,7 +1323,7 @@ function Profile() {
                                 onClick={() => clickTab("following")}
                             >
                                 <strong>{profile.FOLLOWING_COUNT || 0}</strong>
-                                <span>팔로잉</span>
+                                <span>{getPageText("followingCount")}</span>
                             </div>
                         </div>
 
@@ -1132,19 +1331,19 @@ function Profile() {
                             {isMyProfile() ? (
                                 <>
                                     <button className="profile-main-btn" onClick={goCreateFeed}>
-                                        + 여행 루트 작성
+                                        {getPageText("writeRoute")}
                                     </button>
 
                                     <button className="profile-outline-btn" onClick={() => navigate("/story/manage")}>
-                                        스토리 관리
+                                        {getPageText("storyManage")}
                                     </button>
 
                                     <button className="profile-soft-btn" onClick={goSaved}>
-                                        즐겨찾기
+                                        {getPageText("saved")}
                                     </button>
 
                                     <button className="profile-soft-btn" onClick={shareProfile}>
-                                        공유
+                                        {getPageText("share")}
                                     </button>
                                 </>
                             ) : (
@@ -1161,15 +1360,15 @@ function Profile() {
                                         onClick={openChatRoom}
                                         disabled={messageLoading}
                                     >
-                                        {messageLoading ? "연결 중..." : "메시지"}
+                                        {messageLoading ? getPageText("connecting") : getPageText("message")}
                                     </button>
 
                                     <button className="profile-soft-btn" onClick={shareProfile}>
-                                        공유
+                                        {getPageText("share")}
                                     </button>
 
                                     <button className="profile-danger-outline-btn" onClick={blockUser}>
-                                        차단
+                                        {getPageText("block")}
                                     </button>
                                 </>
                             )}
@@ -1194,19 +1393,19 @@ function Profile() {
                     )}
 
                     {canView && activeTab === "feed" && (
-                        renderFeedCardList(feedList, "아직 작성한 피드가 없습니다.")
+                        renderFeedCardList(feedList, getPageText("emptyFeed"))
                     )}
 
                     {canView && activeTab === "bookmark" && (
-                        renderFeedCardList(bookmarkList, "아직 저장한 여행 루트가 없거나 비공개입니다.")
+                        renderFeedCardList(bookmarkList, getPageText("emptyBookmark"))
                     )}
 
                     {canView && activeTab === "follower" && (
-                        renderUserList(followerList, "아직 팔로워가 없습니다.")
+                        renderUserList(followerList, getPageText("emptyFollower"))
                     )}
 
                     {canView && activeTab === "following" && (
-                        renderUserList(followingList, "아직 팔로잉한 사용자가 없습니다.")
+                        renderUserList(followingList, getPageText("emptyFollowing"))
                     )}
                 </section>
             </div>

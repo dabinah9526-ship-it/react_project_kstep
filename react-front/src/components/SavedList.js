@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageDecor from "./PageDecor";
 import ScrollTopButton from "./ScrollTopButton";
+import { getLang, t } from "../utils/language";
 import "./SavedList.css";
 
 function SavedList() {
     const navigate = useNavigate();
+
+    const [language, setLanguage] = useState(getLang());
 
     const [routeList, setRouteList] = useState([]);
     const [shopList, setShopList] = useState([]);
@@ -13,10 +16,116 @@ function SavedList() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
+
+    useEffect(() => {
         getSavedList();
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    function getPageText(key) {
+        const ko = {
+            loginRequired: "로그인이 필요합니다.",
+            removeRouteConfirm: "이 여행 루트를 즐겨찾기에서 해제할까요?",
+            removeRouteFail: "즐겨찾기 해제에 실패했습니다.",
+            removeRouteError: "즐겨찾기 해제 중 오류가 발생했습니다.",
+            removeShopConfirm: "이 가게를 즐겨찾기에서 해제할까요?",
+            removeShopFail: "가게 즐겨찾기 해제에 실패했습니다.",
+            removeShopError: "가게 즐겨찾기 해제 중 오류가 발생했습니다.",
+
+            routeSectionTitle: "루트 즐겨찾기",
+            shopSectionTitle: "가게 즐겨찾기",
+            allSectionTitle: "전체 즐겨찾기",
+
+            routeEmpty: "아직 즐겨찾기한 여행 루트가 없습니다.",
+            shopEmpty: "아직 즐겨찾기한 가게가 없습니다.",
+            allEmpty: "아직 즐겨찾기한 항목이 없습니다.",
+
+            routeImageAlt: "저장한 루트 이미지",
+            shopImageAlt: "저장한 가게 이미지",
+            route: "루트",
+            shop: "가게",
+            travel: "여행",
+            routeTitleDefault: "제목 없는 여행 루트",
+            routeDescDefault: "저장한 여행 루트입니다.",
+            shopTitleDefault: "저장한 가게",
+            shopDescDefault: "K-STEP에서 저장한 로컬 가게입니다.",
+            routeView: "루트 보기",
+            shopView: "가게 보기",
+            remove: "해제",
+
+            favoriteCollection: "Favorite Collection",
+            savedTitle: "즐겨찾기",
+            savedSub: "마음에 든 여행 루트와 가게를 한 번에 모아볼 수 있어요.",
+            homeTitle: "홈으로",
+            refreshTitle: "새로고침",
+            createTitle: "작성",
+            routeSummary: "루트 즐겨찾기",
+            shopSummary: "가게 즐겨찾기",
+            allSummary: "전체 즐겨찾기",
+            countUnit: "개",
+            loadingText: "즐겨찾기 목록을 불러오는 중입니다..."
+        };
+
+        const en = {
+            loginRequired: "Please log in first.",
+            removeRouteConfirm: "Remove this travel route from your saved list?",
+            removeRouteFail: "Failed to remove this route from saved list.",
+            removeRouteError: "An error occurred while removing this route.",
+            removeShopConfirm: "Remove this store from your saved list?",
+            removeShopFail: "Failed to remove this store from saved list.",
+            removeShopError: "An error occurred while removing this store.",
+
+            routeSectionTitle: "Saved Routes",
+            shopSectionTitle: "Saved Stores",
+            allSectionTitle: "All Saved Items",
+
+            routeEmpty: "No saved travel routes yet.",
+            shopEmpty: "No saved stores yet.",
+            allEmpty: "No saved items yet.",
+
+            routeImageAlt: "Saved route image",
+            shopImageAlt: "Saved store image",
+            route: "Route",
+            shop: "Store",
+            travel: "Travel",
+            routeTitleDefault: "Untitled Travel Route",
+            routeDescDefault: "This is a saved travel route.",
+            shopTitleDefault: "Saved Store",
+            shopDescDefault: "This is a local store saved on K-STEP.",
+            routeView: "View Route",
+            shopView: "View Store",
+            remove: "Remove",
+
+            favoriteCollection: "Favorite Collection",
+            savedTitle: "Saved",
+            savedSub: "View your favorite travel routes and local stores in one place.",
+            homeTitle: "Home",
+            refreshTitle: "Refresh",
+            createTitle: "Create",
+            routeSummary: "Saved Routes",
+            shopSummary: "Saved Stores",
+            allSummary: "All Saved",
+            countUnit: "",
+            loadingText: "Loading saved items..."
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
 
     function getToken() {
         return localStorage.getItem("token");
@@ -68,7 +177,7 @@ function SavedList() {
 
         refreshMenuCount();
 
-        alert(message || "로그인이 필요합니다.");
+        alert(message || t("loginRequired") || getPageText("loginRequired"));
         navigate("/", { replace: true });
     }
 
@@ -90,7 +199,7 @@ function SavedList() {
 
     function handleLoginRequired(data) {
         if (isLoginRequired(data)) {
-            moveLoginPage(data.message || "로그인이 필요합니다.");
+            moveLoginPage(data.message || getPageText("loginRequired"));
             return true;
         }
 
@@ -156,7 +265,7 @@ function SavedList() {
         const loginUserNo = getLoginUserNo();
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(getPageText("loginRequired"));
             return;
         }
 
@@ -263,14 +372,14 @@ function SavedList() {
             return;
         }
 
-        if (!window.confirm("이 여행 루트를 즐겨찾기에서 해제할까요?")) {
+        if (!window.confirm(getPageText("removeRouteConfirm"))) {
             return;
         }
 
         const token = getToken();
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(getPageText("loginRequired"));
             return;
         }
 
@@ -296,12 +405,12 @@ function SavedList() {
                     getSavedList();
                     refreshMenuCount();
                 } else {
-                    alert(data.message || "즐겨찾기 해제에 실패했습니다.");
+                    alert(data.message || getPageText("removeRouteFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("즐겨찾기 해제 중 오류가 발생했습니다.");
+                alert(getPageText("removeRouteError"));
             });
     }
 
@@ -312,14 +421,14 @@ function SavedList() {
             return;
         }
 
-        if (!window.confirm("이 가게를 즐겨찾기에서 해제할까요?")) {
+        if (!window.confirm(getPageText("removeShopConfirm"))) {
             return;
         }
 
         const token = getToken();
 
         if (!token) {
-            moveLoginPage("로그인이 필요합니다.");
+            moveLoginPage(getPageText("loginRequired"));
             return;
         }
 
@@ -345,12 +454,12 @@ function SavedList() {
                     getSavedList();
                     refreshMenuCount();
                 } else {
-                    alert(data.message || "가게 즐겨찾기 해제에 실패했습니다.");
+                    alert(data.message || getPageText("removeShopFail"));
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("가게 즐겨찾기 해제 중 오류가 발생했습니다.");
+                alert(getPageText("removeShopError"));
             });
     }
 
@@ -383,26 +492,26 @@ function SavedList() {
 
     function getSectionTitle() {
         if (activeType === "route") {
-            return "루트 즐겨찾기";
+            return getPageText("routeSectionTitle");
         }
 
         if (activeType === "shop") {
-            return "가게 즐겨찾기";
+            return getPageText("shopSectionTitle");
         }
 
-        return "전체 즐겨찾기";
+        return getPageText("allSectionTitle");
     }
 
     function getEmptyMessage() {
         if (activeType === "route") {
-            return "아직 즐겨찾기한 여행 루트가 없습니다.";
+            return getPageText("routeEmpty");
         }
 
         if (activeType === "shop") {
-            return "아직 즐겨찾기한 가게가 없습니다.";
+            return getPageText("shopEmpty");
         }
 
-        return "아직 즐겨찾기한 항목이 없습니다.";
+        return getPageText("allEmpty");
     }
 
     function renderRouteCard(feed) {
@@ -418,7 +527,7 @@ function SavedList() {
                     {imageUrl !== "" ? (
                         <img
                             src={imageUrl}
-                            alt={safeText(feed.TITLE, "저장한 루트 이미지")}
+                            alt={safeText(feed.TITLE, getPageText("routeImageAlt"))}
                         />
                     ) : (
                         <div className="saved-image-empty">
@@ -426,19 +535,19 @@ function SavedList() {
                         </div>
                     )}
 
-                    <span>루트</span>
+                    <span>{getPageText("route")}</span>
                 </div>
 
                 <div className="saved-card-body">
                     <div className="saved-card-chip-row">
                         <em>{safeText(feed.AREA, "Korea")}</em>
-                        <em>{safeText(feed.CATEGORY, "여행")}</em>
+                        <em>{safeText(feed.CATEGORY, getPageText("travel"))}</em>
                     </div>
 
-                    <h2>{safeText(feed.TITLE, "제목 없는 여행 루트")}</h2>
+                    <h2>{safeText(feed.TITLE, getPageText("routeTitleDefault"))}</h2>
 
                     <p>
-                        {feed.ROUTE_SUMMARY || feed.CONTENT || "저장한 여행 루트입니다."}
+                        {feed.ROUTE_SUMMARY || feed.CONTENT || getPageText("routeDescDefault")}
                     </p>
 
                     <div className="saved-card-meta">
@@ -455,7 +564,7 @@ function SavedList() {
                                 openFeedDetail(feed.FEED_NO);
                             }}
                         >
-                            루트 보기
+                            {getPageText("routeView")}
                         </button>
 
                         <button
@@ -463,7 +572,7 @@ function SavedList() {
                             className="danger"
                             onClick={(e) => removeRouteBookmark(e, feed.FEED_NO)}
                         >
-                            해제
+                            {getPageText("remove")}
                         </button>
                     </div>
                 </div>
@@ -484,7 +593,7 @@ function SavedList() {
                     {imageUrl !== "" ? (
                         <img
                             src={imageUrl}
-                            alt={safeText(shop.BUSINESS_NAME, "저장한 가게 이미지")}
+                            alt={safeText(shop.BUSINESS_NAME, getPageText("shopImageAlt"))}
                         />
                     ) : (
                         <div className="saved-image-empty">
@@ -492,7 +601,7 @@ function SavedList() {
                         </div>
                     )}
 
-                    <span>가게</span>
+                    <span>{getPageText("shop")}</span>
                 </div>
 
                 <div className="saved-card-body">
@@ -501,10 +610,10 @@ function SavedList() {
                         <em>{safeText(shop.BUSINESS_TYPE, "LOCAL")}</em>
                     </div>
 
-                    <h2>{safeText(shop.BUSINESS_NAME, "저장한 가게")}</h2>
+                    <h2>{safeText(shop.BUSINESS_NAME, getPageText("shopTitleDefault"))}</h2>
 
                     <p>
-                        {shop.AD_TITLE || shop.AD_TEXT || "K-STEP에서 저장한 로컬 가게입니다."}
+                        {shop.AD_TITLE || shop.AD_TEXT || getPageText("shopDescDefault")}
                     </p>
 
                     <div className="saved-card-meta">
@@ -521,7 +630,7 @@ function SavedList() {
                                 openShopDetail(shop);
                             }}
                         >
-                            가게 보기
+                            {getPageText("shopView")}
                         </button>
 
                         <button
@@ -529,7 +638,7 @@ function SavedList() {
                             className="danger"
                             onClick={(e) => removeShopSave(e, shop.AD_NO)}
                         >
-                            해제
+                            {getPageText("remove")}
                         </button>
                     </div>
                 </div>
@@ -540,7 +649,7 @@ function SavedList() {
     const displayList = getDisplayList();
 
     return (
-        <div className="saved-page">
+        <div className="saved-page" data-lang={language}>
             <PageDecor />
 
             <div className="saved-layout">
@@ -551,12 +660,12 @@ function SavedList() {
                         <div className="saved-brand-mark">K</div>
 
                         <div className="saved-header-content">
-                            <p>Favorite Collection</p>
+                            <p>{getPageText("favoriteCollection")}</p>
 
-                            <h1>즐겨찾기</h1>
+                            <h1>{getPageText("savedTitle")}</h1>
 
                             <span>
-                                마음에 든 여행 루트와 가게를 한 번에 모아볼 수 있어요.
+                                {getPageText("savedSub")}
                             </span>
                         </div>
                     </div>
@@ -566,7 +675,7 @@ function SavedList() {
                             type="button"
                             className="saved-icon-btn"
                             onClick={() => navigate("/home")}
-                            title="홈으로"
+                            title={getPageText("homeTitle")}
                         >
                             ⌂
                         </button>
@@ -575,7 +684,7 @@ function SavedList() {
                             type="button"
                             className="saved-icon-btn refresh"
                             onClick={getSavedList}
-                            title="새로고침"
+                            title={getPageText("refreshTitle")}
                         >
                             ↻
                         </button>
@@ -584,7 +693,7 @@ function SavedList() {
                             type="button"
                             className="saved-icon-btn write"
                             onClick={() => navigate("/feed/new")}
-                            title="작성"
+                            title={getPageText("createTitle")}
                         >
                             +
                         </button>
@@ -598,7 +707,7 @@ function SavedList() {
                         onClick={() => setActiveType("route")}
                     >
                         <strong>{routeList.length}</strong>
-                        <span>루트 즐겨찾기</span>
+                        <span>{getPageText("routeSummary")}</span>
                     </button>
 
                     <button
@@ -607,7 +716,7 @@ function SavedList() {
                         onClick={() => setActiveType("shop")}
                     >
                         <strong>{shopList.length}</strong>
-                        <span>가게 즐겨찾기</span>
+                        <span>{getPageText("shopSummary")}</span>
                     </button>
 
                     <button
@@ -616,18 +725,18 @@ function SavedList() {
                         onClick={() => setActiveType("all")}
                     >
                         <strong>{routeList.length + shopList.length}</strong>
-                        <span>전체 즐겨찾기</span>
+                        <span>{getPageText("allSummary")}</span>
                     </button>
                 </section>
 
                 <div className="saved-list-section-title">
                     <strong>{getSectionTitle()}</strong>
-                    <span>{displayList.length}개</span>
+                    <span>{displayList.length}{getPageText("countUnit")}</span>
                 </div>
 
                 {loading && (
                     <div className="saved-empty-box">
-                        즐겨찾기 목록을 불러오는 중입니다...
+                        {getPageText("loadingText")}
                     </div>
                 )}
 

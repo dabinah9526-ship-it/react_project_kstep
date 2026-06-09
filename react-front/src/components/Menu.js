@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getLang, t } from "../utils/language";
 import "./Menu.css";
 
 function Menu() {
@@ -8,10 +9,24 @@ function Menu() {
 
     const logoUrl = "/images/k_step_logo3.png";
 
+    const [language, setLanguage] = useState(getLang());
+
     const [isLogin, setIsLogin] = useState(false);
     const [loginUserNo, setLoginUserNo] = useState("");
     const [chatUnreadCount, setChatUnreadCount] = useState(0);
     const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+
+    useEffect(() => {
+        function changeLanguage() {
+            setLanguage(getLang());
+        }
+
+        window.addEventListener("kstepLanguageChange", changeLanguage);
+
+        return () => {
+            window.removeEventListener("kstepLanguageChange", changeLanguage);
+        };
+    }, []);
 
     useEffect(() => {
         refreshMenuState();
@@ -137,7 +152,11 @@ function Menu() {
             setChatUnreadCount(0);
             setNotificationUnreadCount(0);
 
-            if (location.pathname !== "/" && location.pathname !== "/join") {
+            if (
+                location.pathname !== "/" &&
+                location.pathname !== "/join" &&
+                location.pathname !== "/find-account"
+            ) {
                 navigate("/", { replace: true });
             }
 
@@ -238,48 +257,79 @@ function Menu() {
 
     const menuList = [
         {
-            name: "홈",
+            nameKo: "홈",
+            nameEn: "Home",
             path: "/home",
             icon: "home",
             needLogin: true
         },
         {
-            name: "검색",
+            nameKo: "검색",
+            nameEn: "Explore",
             path: "/explore",
             icon: "search",
             needLogin: true
         },
         {
-            name: "작성",
+            nameKo: "작성",
+            nameEn: "Create",
             path: "/feed/new",
             icon: "plus",
             needLogin: true
         },
         {
-            name: "즐겨찾기",
+            nameKo: "즐겨찾기",
+            nameEn: "Saved",
             path: "/saved",
             icon: "saved",
             needLogin: true
         },
         {
-            name: "알림",
+            nameKo: "알림",
+            nameEn: "Notifications",
             path: "/notifications",
             icon: "bell",
             needLogin: true
         },
         {
-            name: "채팅",
+            nameKo: "채팅",
+            nameEn: "Chat",
             path: "/chat",
             icon: "chat",
             needLogin: true
         },
         {
-            name: "프로필",
+            nameKo: "프로필",
+            nameEn: "Profile",
             path: isLogin ? "/profile/" + loginUserNo : "/",
             icon: "user",
             needLogin: true
         }
     ];
+
+    function getMenuName(menu) {
+        if (language === "en") {
+            return menu.nameEn;
+        }
+
+        return menu.nameKo;
+    }
+
+    function getLoginText() {
+        if (language === "en") {
+            return "Log in";
+        }
+
+        return "로그인";
+    }
+
+    function getLogoutText() {
+        if (language === "en") {
+            return "Log out";
+        }
+
+        return "로그아웃";
+    }
 
     function movePage(path, needLogin) {
         const loginState = checkLoginState();
@@ -288,7 +338,7 @@ function Menu() {
         setLoginUserNo(loginState.userNo);
 
         if (needLogin && !loginState.isLogin) {
-            alert("로그인이 필요합니다.");
+            alert(t("loginRequired"));
             navigate("/");
             return;
         }
@@ -319,7 +369,9 @@ function Menu() {
     }
 
     function logout() {
-        if (!window.confirm("로그아웃할까요?")) {
+        const message = language === "en" ? "Do you want to log out?" : "로그아웃할까요?";
+
+        if (!window.confirm(message)) {
             return;
         }
 
@@ -492,7 +544,7 @@ function Menu() {
     }
 
     return (
-        <aside className="side-menu">
+        <aside className="side-menu" data-lang={language}>
             <div className="side-menu-deco deco-one"></div>
             <div className="side-menu-deco deco-two"></div>
             <div className="side-menu-flower flower-a">✿</div>
@@ -503,12 +555,12 @@ function Menu() {
                     className="side-logo"
                     onClick={moveLogo}
                     type="button"
-                    title="K-STEP 홈"
-                    aria-label="K-STEP 홈"
+                    title={language === "en" ? "K-STEP Home" : "K-STEP 홈"}
+                    aria-label={language === "en" ? "K-STEP Home" : "K-STEP 홈"}
                 >
                     <img
                         src={logoUrl}
-                        alt="K-STEP 로고"
+                        alt={language === "en" ? "K-STEP logo" : "K-STEP 로고"}
                         className="side-logo-img"
                     />
                 </button>
@@ -516,13 +568,16 @@ function Menu() {
                 <nav className="side-menu-list">
                     {menuList.map((menu) => {
                         const badgeCount = getBadgeCount(menu.icon);
+                        const menuName = getMenuName(menu);
 
                         return (
                             <button
-                                key={menu.name}
+                                key={menu.nameKo}
                                 className={isActive(menu.path) ? "side-menu-btn active" : "side-menu-btn"}
                                 onClick={() => movePage(menu.path, menu.needLogin)}
                                 type="button"
+                                title={menuName}
+                                aria-label={menuName}
                             >
                                 <span className="side-menu-icon">
                                     <MenuIcon type={menu.icon} />
@@ -535,7 +590,7 @@ function Menu() {
                                 )}
 
                                 <span className="side-menu-tooltip">
-                                    {menu.name}
+                                    {menuName}
                                 </span>
                             </button>
                         );
@@ -547,13 +602,15 @@ function Menu() {
                         className="side-menu-btn side-logout-btn"
                         onClick={logout}
                         type="button"
+                        title={getLogoutText()}
+                        aria-label={getLogoutText()}
                     >
                         <span className="side-menu-icon">
                             <MenuIcon type="logout" />
                         </span>
 
                         <span className="side-menu-tooltip">
-                            로그아웃
+                            {getLogoutText()}
                         </span>
                     </button>
                 ) : (
@@ -561,13 +618,15 @@ function Menu() {
                         className="side-menu-btn side-logout-btn"
                         onClick={login}
                         type="button"
+                        title={getLoginText()}
+                        aria-label={getLoginText()}
                     >
                         <span className="side-menu-icon">
                             <MenuIcon type="login" />
                         </span>
 
                         <span className="side-menu-tooltip">
-                            로그인
+                            {getLoginText()}
                         </span>
                     </button>
                 )}
