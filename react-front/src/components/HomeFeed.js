@@ -27,6 +27,7 @@ function HomeFeed() {
     const [commentLoading, setCommentLoading] = useState(false);
 
     const [recommendUserList, setRecommendUserList] = useState([]);
+    const [myProfile, setMyProfile] = useState(null);
 
     const [feedImageMap, setFeedImageMap] = useState({});
     const [imageIndexMap, setImageIndexMap] = useState({});
@@ -41,6 +42,7 @@ function HomeFeed() {
             return;
         }
 
+        getMyProfile();
         getHomeFeed("");
         getRecommendUserList();
         getSponsoredAdList();
@@ -139,6 +141,46 @@ function HomeFeed() {
             console.error("토큰에서 userNo 읽기 실패", err);
             return "";
         }
+    }
+
+    function getMyProfile() {
+        const token = getToken();
+        const userNo = getLoginUserNo();
+
+        if (!token || !userNo) {
+            return;
+        }
+
+        fetch("http://localhost:3010/user/profile/" + userNo, {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("홈 내 프로필 조회", data);
+
+                if (handleLoginRequired(data)) {
+                    return;
+                }
+
+                if (data.result === "success") {
+                    const profile =
+                        data.info ||
+                        data.user ||
+                        data.profile ||
+                        data.member ||
+                        data.data ||
+                        data.myInfo ||
+                        null;
+
+                    setMyProfile(profile);
+                }
+            })
+            .catch(err => {
+                console.error("홈 내 프로필 조회 실패", err);
+            });
     }
 
     function moveMyProfile() {
@@ -546,6 +588,22 @@ function HomeFeed() {
             ...imageIndexMap,
             [String(feed.FEED_NO)]: index
         });
+    }
+
+    function getProfileImageValue(user) {
+        if (!user) {
+            return "";
+        }
+
+        return (
+            user.PROFILE_IMG ||
+            user.profileImg ||
+            user.PROFILE_IMAGE ||
+            user.profileImage ||
+            user.USER_PROFILE_IMG ||
+            user.userProfileImg ||
+            ""
+        );
     }
 
     function getProfileImageUrl(value) {
@@ -1524,6 +1582,8 @@ function HomeFeed() {
     }
 
     function renderFeedPost(feed) {
+        const feedProfileImageUrl = getProfileImageUrl(getProfileImageValue(feed));
+
         return (
             <article
                 className="home-feed-card"
@@ -1534,9 +1594,9 @@ function HomeFeed() {
                         className="home-avatar"
                         onClick={(e) => moveProfile(e, feed.USER_NO)}
                     >
-                        {getProfileImageUrl(feed.PROFILE_IMG) !== "" ? (
+                        {feedProfileImageUrl !== "" ? (
                             <img
-                                src={getProfileImageUrl(feed.PROFILE_IMG)}
+                                src={feedProfileImageUrl}
                                 alt={safeText(feed.NICKNAME, "프로필")}
                             />
                         ) : (
@@ -1760,6 +1820,10 @@ function HomeFeed() {
     const visibleSponsoredAdList = getVisibleSponsoredAdList();
     const currentSideAd = getCurrentSideAd();
 
+    const myProfileImageUrl = getProfileImageUrl(getProfileImageValue(myProfile));
+    const myNickname = safeText(myProfile?.NICKNAME || myProfile?.nickname, nickname);
+    const myUserType = safeText(myProfile?.USER_TYPE || myProfile?.userType, "K-STEP traveler");
+
     return (
         <div
             className="home-page"
@@ -1860,13 +1924,20 @@ function HomeFeed() {
                         className="home-my-card"
                         onClick={moveMyProfile}
                     >
-                        <div className="home-side-avatar">
-                            {getFirstLetter(nickname)}
+                        <div className="home-side-avatar home-avatar">
+                            {myProfileImageUrl !== "" ? (
+                                <img
+                                    src={myProfileImageUrl}
+                                    alt={myNickname}
+                                />
+                            ) : (
+                                <span>{getFirstLetter(myNickname)}</span>
+                            )}
                         </div>
 
                         <div>
-                            <strong>{nickname}</strong>
-                            <p>K-STEP traveler</p>
+                            <strong>{myNickname}</strong>
+                            <p>{myUserType}</p>
                         </div>
 
                         <button
@@ -1943,38 +2014,47 @@ function HomeFeed() {
                             </div>
                         )}
 
-                        {recommendUserList.map(user => (
-                            <div className="home-recommend-item" key={user.USER_NO}>
-                                <div
-                                    className="home-recommend-avatar"
-                                    onClick={(e) => moveProfile(e, user.USER_NO)}
-                                >
-                                    {getFirstLetter(user.NICKNAME)}
+                        {recommendUserList.map(user => {
+                            const recommendProfileImageUrl = getProfileImageUrl(getProfileImageValue(user));
+
+                            return (
+                                <div className="home-recommend-item" key={user.USER_NO}>
+                                    <div
+                                        className="home-recommend-avatar home-avatar"
+                                        onClick={(e) => moveProfile(e, user.USER_NO)}
+                                    >
+                                        {recommendProfileImageUrl !== "" ? (
+                                            <img
+                                                src={recommendProfileImageUrl}
+                                                alt={safeText(user.NICKNAME, "프로필")}
+                                            />
+                                        ) : (
+                                            <span>{getFirstLetter(user.NICKNAME)}</span>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <strong onClick={(e) => moveProfile(e, user.USER_NO)}>
+                                            {safeText(user.NICKNAME, "traveler")}
+                                        </strong>
+
+                                        <p>
+                                            {safeText(user.INTRO || user.BIO, "소개가 없습니다.")}
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={(e) => moveProfile(e, user.USER_NO)}
+                                    >
+                                        보기
+                                    </button>
                                 </div>
-
-                                <div>
-                                    <strong onClick={(e) => moveProfile(e, user.USER_NO)}>
-                                        {safeText(user.NICKNAME, "traveler")}
-                                    </strong>
-
-                                    <p>
-                                        {safeText(user.INTRO || user.BIO, "소개가 없습니다.")}
-                                    </p>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={(e) => moveProfile(e, user.USER_NO)}
-                                >
-                                    보기
-                                </button>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </aside>
             </div>
-
-            
 
             <ScrollTopButton />
 
@@ -1997,7 +2077,14 @@ function HomeFeed() {
                         <div className="home-comment-panel">
                             <div className="home-comment-head">
                                 <div className="home-avatar small">
-                                    <span>{getFirstLetter(selectedFeed.NICKNAME || selectedFeed.USER_ID)}</span>
+                                    {getProfileImageUrl(getProfileImageValue(selectedFeed)) !== "" ? (
+                                        <img
+                                            src={getProfileImageUrl(getProfileImageValue(selectedFeed))}
+                                            alt={safeText(selectedFeed.NICKNAME, "프로필")}
+                                        />
+                                    ) : (
+                                        <span>{getFirstLetter(selectedFeed.NICKNAME || selectedFeed.USER_ID)}</span>
+                                    )}
                                 </div>
 
                                 <div>
@@ -2026,38 +2113,49 @@ function HomeFeed() {
                                     </div>
                                 )}
 
-                                {!commentLoading && commentList.map(comment => (
-                                    <div className="home-comment-item" key={comment.COMMENT_NO}>
-                                        <div
-                                            className="home-comment-avatar"
-                                            onClick={(e) => moveProfile(e, comment.USER_NO)}
-                                        >
-                                            {getFirstLetter(comment.NICKNAME || comment.USER_ID)}
-                                        </div>
+                                {!commentLoading && commentList.map(comment => {
+                                    const commentProfileImageUrl = getProfileImageUrl(getProfileImageValue(comment));
 
-                                        <div className="home-comment-content">
-                                            <div>
-                                                <strong onClick={(e) => moveProfile(e, comment.USER_NO)}>
-                                                    {safeText(comment.NICKNAME, "traveler")}
-                                                </strong>
-
-                                                <span>{comment.CDATE_TEXT || getDateText(comment.CDATE)}</span>
+                                    return (
+                                        <div className="home-comment-item" key={comment.COMMENT_NO}>
+                                            <div
+                                                className="home-comment-avatar home-avatar"
+                                                onClick={(e) => moveProfile(e, comment.USER_NO)}
+                                            >
+                                                {commentProfileImageUrl !== "" ? (
+                                                    <img
+                                                        src={commentProfileImageUrl}
+                                                        alt={safeText(comment.NICKNAME, "프로필")}
+                                                    />
+                                                ) : (
+                                                    <span>{getFirstLetter(comment.NICKNAME || comment.USER_ID)}</span>
+                                                )}
                                             </div>
 
-                                            <p>{comment.CONTENT}</p>
-                                        </div>
+                                            <div className="home-comment-content">
+                                                <div>
+                                                    <strong onClick={(e) => moveProfile(e, comment.USER_NO)}>
+                                                        {safeText(comment.NICKNAME, "traveler")}
+                                                    </strong>
 
-                                        {comment.MINE_YN === "Y" && (
-                                            <button
-                                                type="button"
-                                                className="home-comment-delete-btn"
-                                                onClick={() => removeComment(comment.COMMENT_NO)}
-                                            >
-                                                삭제
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
+                                                    <span>{comment.CDATE_TEXT || getDateText(comment.CDATE)}</span>
+                                                </div>
+
+                                                <p>{comment.CONTENT}</p>
+                                            </div>
+
+                                            {comment.MINE_YN === "Y" && (
+                                                <button
+                                                    type="button"
+                                                    className="home-comment-delete-btn"
+                                                    onClick={() => removeComment(comment.COMMENT_NO)}
+                                                >
+                                                    삭제
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
 
                             <div className="home-comment-input-box">

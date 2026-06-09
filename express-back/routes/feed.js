@@ -666,9 +666,23 @@ router.post('/add', uploadFeedImages.array("feedImages", 10), async (req, res) =
             }
         }
 
-        const insertFeedResult = await connection.execute(
+        const feedNoResult = await connection.execute(
+            `
+                SELECT FEED_SEQ.NEXTVAL AS FEED_NO
+                FROM DUAL
+            `,
+            {},
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        const feedNo = feedNoResult.rows[0].FEED_NO;
+
+        await connection.execute(
             `
                 INSERT INTO FEED (
+                    FEED_NO,
                     TITLE,
                     CONTENT,
                     AREA,
@@ -678,6 +692,7 @@ router.post('/add', uploadFeedImages.array("feedImages", 10), async (req, res) =
                     HASHTAGS,
                     USER_NO
                 ) VALUES (
+                    :feedNo,
                     :title,
                     :content,
                     :area,
@@ -687,9 +702,9 @@ router.post('/add', uploadFeedImages.array("feedImages", 10), async (req, res) =
                     :hashtags,
                     :userNo
                 )
-                RETURNING FEED_NO INTO :feedNo
             `,
             {
+                feedNo: feedNo,
                 title: title,
                 content: content,
                 area: area,
@@ -697,18 +712,9 @@ router.post('/add', uploadFeedImages.array("feedImages", 10), async (req, res) =
                 mainImg: mainImg,
                 routeSummary: routeSummary,
                 hashtags: hashtags || null,
-                userNo: getLoginUserNo(loginUser),
-                feedNo: {
-                    dir: oracledb.BIND_OUT,
-                    type: oracledb.NUMBER
-                }
-            },
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
+                userNo: getLoginUserNo(loginUser)
             }
         );
-
-        const feedNo = insertFeedResult.outBinds.feedNo[0];
 
         for (let i = 0; i < imageUrlList.length; i++) {
             await connection.execute(
@@ -794,6 +800,537 @@ router.post('/add', uploadFeedImages.array("feedImages", 10), async (req, res) =
         res.status(500).json({
             result: "fail",
             message: "피드 등록 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+// 피드 수정
+router.post('/update', uploadFeedImages.array("feedImages", 10), async (req, res) => {
+    const {
+        feedNo,
+        title,
+        area,
+        category,
+        routeSummary,
+        hashtags,
+        content
+    } = req.body;
+
+    let spotList = [];
+    let remainImageNoList = [];
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        if (!feedNo) {
+            return res.json({
+                result: "fail",
+                message: "피드 번호가 없습니다."
+            });
+        }
+
+        if (!title || !routeSummary || !content) {
+            return res.json({
+                result: "fail",
+                message: "제목, 여행 루트, 여행 이야기는 필수입니다."
+            });
+        }
+
+        if (req.body.spotList) {
+            try {
+                spotList = JSON.parse(req.body.spotList);
+            } catch (error) {
+                spotList = [];
+            }
+        }
+
+        if (req.body.remainImageNoList) {
+            try {
+                remainImageNoList = JSON.parse(req.body.remainImageNoList);
+            } catch (error) {
+                remainImageNoList = [];
+            }
+        }
+
+        let cleanSpotList = [];
+
+        if (Array.isArray(spotList)) {
+            for (let i = 0; i < spotList.length; i++) {
+                const spot = spotList[i] || {};
+
+                const spotName = spot.spotName || "";
+                const spotMemo = spot.spotMemo || "";
+                const address = spot.address || "";
+                const latValue = spot.lat || "";
+                const lngValue = spot.lng || "";
+
+                const hasInput =
+                    String(spotName).trim() !== "" ||
+                    String(spotMemo).trim() !== "" ||
+                    String(address).trim() !== "" ||
+                    String(latValue).trim() !== "" ||
+                    String(lngValue).trim() !== "";
+
+                if (hasInput) {
+                    if (String(spotName).trim() === "") {
+                        return res.json({
+                            result: "fail",
+                            message: (i + 1) + "번째 장소명을 입력해주세요."
+                        });
+                    }
+
+                    let lat = null;
+                    let lng = null;
+
+                    if (String(latValue).trim() !== "") {
+                        lat = Number(latValue);
+
+                        if (Number.isNaN(lat)) {
+                            return res.json({
+                                result: "fail",
+                                message: (i + 1) + "번째 위도는 숫자로 입력해주세요."
+                            });
+                        }
+                    }
+
+                    if (String(lngValue).trim() !== "") {
+                        lng = Number(lngValue);
+
+                        if (Number.isNaN(lng)) {
+                            return res.json({
+                                result: "fail",
+                                message: (i + 1) + "번째 경도는 숫자로 입력해주세요."
+                            });
+                        }
+                    }
+
+                    cleanSpotList.push({
+                        spotOrder: cleanSpotList.length + 1,
+                        spotName: String(spotName).trim(),
+                        spotMemo: String(spotMemo).trim(),
+                        address: String(address).trim(),
+                        lat: lat,
+                        lng: lng
+                    });
+                }
+            }
+        }
+
+        const uploadedFiles = req.files || [];
+        const newImageUrlList = [];
+
+        for (let i = 0; i < uploadedFiles.length; i++) {
+            newImageUrlList.push("/uploads/feed/" + uploadedFiles[i].filename);
+        }
+
+        connection = await db.getConnection();
+
+        const loginUserNo = getLoginUserNo(loginUser);
+
+        const feedResult = await connection.execute(
+            `
+                SELECT
+                    FEED_NO,
+                    USER_NO
+                FROM FEED
+                WHERE FEED_NO = :feedNo
+            `,
+            {
+                feedNo: feedNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (feedResult.rows.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "존재하지 않는 피드입니다."
+            });
+        }
+
+        if (String(feedResult.rows[0].USER_NO) !== String(loginUserNo)) {
+            return res.json({
+                result: "fail",
+                message: "내가 작성한 게시물만 수정할 수 있습니다."
+            });
+        }
+
+        const feedImageExists = await tableExists(connection, "FEED_IMAGE");
+        const routeSpotExists = await tableExists(connection, "ROUTE_SPOT");
+
+        let remainImageRows = [];
+
+        if (feedImageExists) {
+            const currentImageResult = await connection.execute(
+                `
+                    SELECT
+                        IMAGE_NO,
+                        IMAGE_URL
+                    FROM FEED_IMAGE
+                    WHERE FEED_NO = :feedNo
+                    ORDER BY IMAGE_ORDER, IMAGE_NO
+                `,
+                {
+                    feedNo: feedNo
+                },
+                {
+                    outFormat: oracledb.OUT_FORMAT_OBJECT
+                }
+            );
+
+            for (let i = 0; i < currentImageResult.rows.length; i++) {
+                const image = currentImageResult.rows[i];
+
+                if (remainImageNoList.map(String).includes(String(image.IMAGE_NO))) {
+                    remainImageRows.push(image);
+                } else {
+                    await connection.execute(
+                        `
+                            DELETE FROM FEED_IMAGE
+                            WHERE IMAGE_NO = :imageNo
+                              AND FEED_NO = :feedNo
+                        `,
+                        {
+                            imageNo: image.IMAGE_NO,
+                            feedNo: feedNo
+                        }
+                    );
+                }
+            }
+
+            for (let i = 0; i < remainImageNoList.length; i++) {
+                await connection.execute(
+                    `
+                        UPDATE FEED_IMAGE
+                        SET IMAGE_ORDER = :imageOrder
+                        WHERE IMAGE_NO = :imageNo
+                          AND FEED_NO = :feedNo
+                    `,
+                    {
+                        imageOrder: i + 1,
+                        imageNo: remainImageNoList[i],
+                        feedNo: feedNo
+                    }
+                );
+            }
+
+            for (let i = 0; i < newImageUrlList.length; i++) {
+                await connection.execute(
+                    `
+                        INSERT INTO FEED_IMAGE (
+                            IMAGE_NO,
+                            IMAGE_URL,
+                            IMAGE_ORDER,
+                            FEED_NO
+                        ) VALUES (
+                            (SELECT NVL(MAX(IMAGE_NO), 0) + 1 FROM FEED_IMAGE),
+                            :imageUrl,
+                            :imageOrder,
+                            :feedNo
+                        )
+                    `,
+                    {
+                        imageUrl: newImageUrlList[i],
+                        imageOrder: remainImageNoList.length + i + 1,
+                        feedNo: feedNo
+                    }
+                );
+            }
+        }
+
+        if (remainImageRows.length === 0 && newImageUrlList.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "피드 이미지를 1장 이상 첨부해주세요."
+            });
+        }
+
+        let mainImg = null;
+
+        if (remainImageRows.length > 0) {
+            mainImg = remainImageRows[0].IMAGE_URL;
+        } else if (newImageUrlList.length > 0) {
+            mainImg = newImageUrlList[0];
+        }
+
+        await connection.execute(
+            `
+                UPDATE FEED
+                SET
+                    TITLE = :title,
+                    CONTENT = :content,
+                    AREA = :area,
+                    CATEGORY = :category,
+                    MAIN_IMG = :mainImg,
+                    ROUTE_SUMMARY = :routeSummary,
+                    HASHTAGS = :hashtags
+                WHERE FEED_NO = :feedNo
+                  AND USER_NO = :userNo
+            `,
+            {
+                title: title,
+                content: content,
+                area: area,
+                category: category,
+                mainImg: mainImg,
+                routeSummary: routeSummary,
+                hashtags: hashtags || null,
+                feedNo: feedNo,
+                userNo: loginUserNo
+            }
+        );
+
+        if (routeSpotExists) {
+            await connection.execute(
+                `
+                    DELETE FROM ROUTE_SPOT
+                    WHERE FEED_NO = :feedNo
+                `,
+                {
+                    feedNo: feedNo
+                }
+            );
+
+            for (let i = 0; i < cleanSpotList.length; i++) {
+                const spot = cleanSpotList[i];
+
+                await connection.execute(
+                    `
+                        INSERT INTO ROUTE_SPOT (
+                            SPOT_NO,
+                            SPOT_ORDER,
+                            SPOT_NAME,
+                            SPOT_MEMO,
+                            ADDRESS,
+                            LAT,
+                            LNG,
+                            FEED_NO
+                        ) VALUES (
+                            (SELECT NVL(MAX(SPOT_NO), 0) + 1 FROM ROUTE_SPOT),
+                            :spotOrder,
+                            :spotName,
+                            :spotMemo,
+                            :address,
+                            :lat,
+                            :lng,
+                            :feedNo
+                        )
+                    `,
+                    {
+                        spotOrder: spot.spotOrder,
+                        spotName: spot.spotName,
+                        spotMemo: spot.spotMemo || null,
+                        address: spot.address || null,
+                        lat: spot.lat,
+                        lng: spot.lng,
+                        feedNo: feedNo
+                    }
+                );
+            }
+        }
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            message: "피드가 수정되었습니다.",
+            feedNo: feedNo
+        });
+
+    } catch (error) {
+        console.error('Error executing feed update query', error);
+
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (rollbackError) {
+                console.error('Rollback error', rollbackError);
+            }
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "피드 수정 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+// 피드 삭제
+router.post('/remove', async (req, res) => {
+    const { feedNo } = req.body;
+
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다."
+            });
+        }
+
+        if (!feedNo) {
+            return res.json({
+                result: "fail",
+                message: "피드 번호가 없습니다."
+            });
+        }
+
+        const loginUserNo = getLoginUserNo(loginUser);
+
+        connection = await db.getConnection();
+
+        const feedResult = await connection.execute(
+            `
+                SELECT
+                    FEED_NO,
+                    USER_NO
+                FROM FEED
+                WHERE FEED_NO = :feedNo
+            `,
+            {
+                feedNo: feedNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (feedResult.rows.length === 0) {
+            return res.json({
+                result: "fail",
+                message: "존재하지 않는 피드입니다."
+            });
+        }
+
+        if (String(feedResult.rows[0].USER_NO) !== String(loginUserNo)) {
+            return res.json({
+                result: "fail",
+                message: "내가 작성한 게시물만 삭제할 수 있습니다."
+            });
+        }
+
+        const feedCommentExists = await tableExists(connection, "FEED_COMMENT");
+        const feedLikeExists = await tableExists(connection, "FEED_LIKE");
+        const feedBookmarkExists = await tableExists(connection, "FEED_BOOKMARK");
+        const feedImageExists = await tableExists(connection, "FEED_IMAGE");
+        const routeSpotExists = await tableExists(connection, "ROUTE_SPOT");
+
+        if (feedCommentExists) {
+            await connection.execute(
+                `
+                    DELETE FROM FEED_COMMENT
+                    WHERE FEED_NO = :feedNo
+                `,
+                {
+                    feedNo: feedNo
+                }
+            );
+        }
+
+        if (feedLikeExists) {
+            await connection.execute(
+                `
+                    DELETE FROM FEED_LIKE
+                    WHERE FEED_NO = :feedNo
+                `,
+                {
+                    feedNo: feedNo
+                }
+            );
+        }
+
+        if (feedBookmarkExists) {
+            await connection.execute(
+                `
+                    DELETE FROM FEED_BOOKMARK
+                    WHERE FEED_NO = :feedNo
+                `,
+                {
+                    feedNo: feedNo
+                }
+            );
+        }
+
+        if (feedImageExists) {
+            await connection.execute(
+                `
+                    DELETE FROM FEED_IMAGE
+                    WHERE FEED_NO = :feedNo
+                `,
+                {
+                    feedNo: feedNo
+                }
+            );
+        }
+
+        if (routeSpotExists) {
+            await connection.execute(
+                `
+                    DELETE FROM ROUTE_SPOT
+                    WHERE FEED_NO = :feedNo
+                `,
+                {
+                    feedNo: feedNo
+                }
+            );
+        }
+
+        await connection.execute(
+            `
+                DELETE FROM FEED
+                WHERE FEED_NO = :feedNo
+                  AND USER_NO = :userNo
+            `,
+            {
+                feedNo: feedNo,
+                userNo: loginUserNo
+            }
+        );
+
+        await connection.commit();
+
+        res.json({
+            result: "success",
+            message: "게시물이 삭제되었습니다."
+        });
+
+    } catch (error) {
+        console.error('Error executing feed remove query', error);
+
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (rollbackError) {
+                console.error('Rollback error', rollbackError);
+            }
+        }
+
+        res.status(500).json({
+            result: "fail",
+            message: "게시물 삭제 중 오류가 발생했습니다."
         });
 
     } finally {

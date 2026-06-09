@@ -64,6 +64,13 @@ function AdDetail() {
         return false;
     }
 
+    function stopButtonEvent(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }
+
     function safeText(value, defaultText) {
         if (value === undefined || value === null || value === "") {
             return defaultText;
@@ -348,7 +355,9 @@ function AdDetail() {
             });
     }
 
-    function openExternalLink() {
+    function openExternalLink(e) {
+        stopButtonEvent(e);
+
         if (!ad || !ad.AD_NO) {
             return;
         }
@@ -401,7 +410,7 @@ function AdDetail() {
                     return;
                 }
 
-                window.open(linkUrl, "_blank");
+                window.open(linkUrl, "_blank", "noopener,noreferrer");
             })
             .catch(err => {
                 console.error(err);
@@ -413,11 +422,13 @@ function AdDetail() {
                     return;
                 }
 
-                window.open(linkUrl, "_blank");
+                window.open(linkUrl, "_blank", "noopener,noreferrer");
             });
     }
 
-    function toggleSaveAd() {
+    function toggleSaveAd(e) {
+        stopButtonEvent(e);
+
         if (!ad || !ad.AD_NO) {
             return;
         }
@@ -478,7 +489,9 @@ function AdDetail() {
             });
     }
 
-    function shareAd() {
+    function shareAd(e) {
+        stopButtonEvent(e);
+
         if (!ad) {
             return;
         }
@@ -519,7 +532,9 @@ function AdDetail() {
         alert(text);
     }
 
-    function copyAddress() {
+    function copyAddress(e) {
+        stopButtonEvent(e);
+
         const addressText = getAddressText();
 
         if (!addressText) {
@@ -530,7 +545,9 @@ function AdDetail() {
         copyText(addressText, "주소가 복사되었습니다.");
     }
 
-    function openMapSearch() {
+    function openMapSearch(e) {
+        stopButtonEvent(e);
+
         const mapUrl = getMapUrl() || getKakaoMapSearchUrl();
 
         if (!mapUrl) {
@@ -538,10 +555,12 @@ function AdDetail() {
             return;
         }
 
-        window.open(mapUrl, "_blank");
+        window.open(mapUrl, "_blank", "noopener,noreferrer");
     }
 
-    function openInstagram() {
+    function openInstagram(e) {
+        stopButtonEvent(e);
+
         const instagramUrl = getInstagramUrl();
 
         if (!instagramUrl) {
@@ -549,7 +568,7 @@ function AdDetail() {
             return;
         }
 
-        window.open(instagramUrl, "_blank");
+        window.open(instagramUrl, "_blank", "noopener,noreferrer");
     }
 
     if (loading && !ad) {
@@ -712,7 +731,7 @@ function AdDetail() {
                                 className="primary"
                                 onClick={openExternalLink}
                             >
-                                {safeText(ad.CTA_TEXT, "가게보기")}
+                                가게보기
                             </button>
 
                             <button

@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import PageDecor from "./PageDecor";
 import ScrollTopButton from "./ScrollTopButton";
 import "./CreateFeed.css";
 
 function CreateFeed() {
     const navigate = useNavigate();
+    const location = useLocation();
     const fileInputRef = useRef(null);
+
+    const isEditMode = location.state?.mode === "edit";
+    const editFeedNo = location.state?.feedNo || sessionStorage.getItem("editFeedNo") || "";
 
     const LIMIT = {
         title: 40,
@@ -27,8 +31,7 @@ function CreateFeed() {
     const [hashtags, setHashtags] = useState("");
     const [content, setContent] = useState("");
 
-    const [imageFileList, setImageFileList] = useState([]);
-    const [imagePreviewList, setImagePreviewList] = useState([]);
+    const [imageItemList, setImageItemList] = useState([]);
 
     const [spotList, setSpotList] = useState([
         {
@@ -40,14 +43,52 @@ function CreateFeed() {
         }
     ]);
 
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
         const token = localStorage.getItem("token");
 
         if (!token) {
             alert("로그인이 필요합니다.");
             navigate("/");
+            return;
         }
-    }, [navigate]);
+
+        if (isEditMode) {
+            if (!editFeedNo) {
+                alert("수정할 피드 번호가 없습니다.");
+                navigate("/home");
+                return;
+            }
+
+            sessionStorage.setItem("editFeedNo", editFeedNo);
+            loadEditFeed(editFeedNo);
+        }
+    }, []);
+
+    function getToken() {
+        return localStorage.getItem("token");
+    }
+
+    function getImageUrl(value) {
+        if (!value) {
+            return "";
+        }
+
+        if (String(value).startsWith("http")) {
+            return value;
+        }
+
+        if (String(value).startsWith("/uploads/")) {
+            return "http://localhost:3010" + value;
+        }
+
+        if (String(value).startsWith("/images/")) {
+            return value;
+        }
+
+        return "/images/" + value;
+    }
 
     function getCountClass(value, maxLength) {
         if (value.length >= maxLength) {
@@ -138,6 +179,126 @@ function CreateFeed() {
         });
     }
 
+    function loadEditFeed(feedNo) {
+        const token = getToken();
+
+        setLoading(true);
+
+        fetch("http://localhost:3010/feed/detail", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feedNo
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("수정 피드 상세 조회", data);
+
+                if (data.result === "success" && data.feed) {
+                    const feed = data.feed;
+
+                    setTitle(feed.TITLE || "");
+                    setArea(feed.AREA || "서울");
+                    setCategory(feed.CATEGORY || "관광");
+                    setRouteSummary(feed.ROUTE_SUMMARY || "");
+                    setHashtags(feed.HASHTAGS || "");
+                    setContent(feed.CONTENT || "");
+                } else {
+                    alert(data.message || "수정할 피드를 불러오지 못했습니다.");
+                    navigate("/home");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("수정할 피드 조회 중 오류가 발생했습니다.");
+                navigate("/home");
+            });
+
+        fetch("http://localhost:3010/feed/image/list", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feedNo
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("수정 피드 이미지 조회", data);
+
+                if (data.result === "success") {
+                    const list = data.list || [];
+
+                    const oldImageList = list.map((image, index) => {
+                        const imageUrl = image.IMG_URL || image.IMAGE_URL || "";
+
+                        return {
+                            type: "old",
+                            imageNo: image.IMG_NO || image.IMAGE_NO || index,
+                            originalUrl: imageUrl,
+                            previewUrl: getImageUrl(imageUrl)
+                        };
+                    });
+
+                    setImageItemList(oldImageList);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+            });
+
+        fetch("http://localhost:3010/feed/route/spot/list", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feedNo
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("수정 피드 장소 조회", data);
+
+                if (data.result === "success" && data.list && data.list.length > 0) {
+                    const newSpotList = data.list.map(spot => {
+                        return {
+                            spotName: spot.SPOT_NAME || "",
+                            spotMemo: spot.SPOT_MEMO || "",
+                            address: spot.ADDRESS || "",
+                            lat: spot.LAT === null || spot.LAT === undefined ? "" : String(spot.LAT),
+                            lng: spot.LNG === null || spot.LNG === undefined ? "" : String(spot.LNG)
+                        };
+                    });
+
+                    setSpotList(newSpotList);
+                } else {
+                    setSpotList([
+                        {
+                            spotName: "",
+                            spotMemo: "",
+                            address: "",
+                            lat: "",
+                            lng: ""
+                        }
+                    ]);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }
+
     async function changeFeedImages(e) {
         const files = Array.from(e.target.files || []);
 
@@ -145,8 +306,7 @@ function CreateFeed() {
             return;
         }
 
-        let newFileList = [...imageFileList];
-        let newPreviewList = [...imagePreviewList];
+        let newItemList = [...imageItemList];
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -156,19 +316,21 @@ function CreateFeed() {
                 continue;
             }
 
-            if (newFileList.length >= 10) {
+            if (newItemList.length >= 10) {
                 alert("이미지는 최대 10장까지 첨부할 수 있습니다.");
                 break;
             }
 
             const resizedFile = await resizeImageFile(file);
 
-            newFileList.push(resizedFile);
-            newPreviewList.push(URL.createObjectURL(resizedFile));
+            newItemList.push({
+                type: "new",
+                file: resizedFile,
+                previewUrl: URL.createObjectURL(resizedFile)
+            });
         }
 
-        setImageFileList(newFileList);
-        setImagePreviewList(newPreviewList);
+        setImageItemList(newItemList);
 
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
@@ -176,15 +338,14 @@ function CreateFeed() {
     }
 
     function removeFeedImage(index) {
-        if (imagePreviewList[index]) {
-            URL.revokeObjectURL(imagePreviewList[index]);
+        const target = imageItemList[index];
+
+        if (target && target.type === "new" && target.previewUrl) {
+            URL.revokeObjectURL(target.previewUrl);
         }
 
-        const newFileList = imageFileList.filter((item, idx) => idx !== index);
-        const newPreviewList = imagePreviewList.filter((item, idx) => idx !== index);
-
-        setImageFileList(newFileList);
-        setImagePreviewList(newPreviewList);
+        const newItemList = imageItemList.filter((item, idx) => idx !== index);
+        setImageItemList(newItemList);
     }
 
     function changeSpot(index, name, value) {
@@ -341,7 +502,7 @@ function CreateFeed() {
             return;
         }
 
-        if (imageFileList.length === 0) {
+        if (imageItemList.length === 0) {
             alert("피드 이미지를 1장 이상 첨부해주세요.");
             return;
         }
@@ -374,7 +535,7 @@ function CreateFeed() {
             return;
         }
 
-        const token = localStorage.getItem("token");
+        const token = getToken();
 
         if (!token) {
             alert("로그인이 필요합니다.");
@@ -392,11 +553,30 @@ function CreateFeed() {
         formData.append("content", content.trim());
         formData.append("spotList", JSON.stringify(cleanSpotList));
 
-        for (let i = 0; i < imageFileList.length; i++) {
-            formData.append("feedImages", imageFileList[i]);
+        const newImageList = imageItemList.filter(item => item.type === "new");
+        const remainImageNoList = imageItemList
+            .filter(item => item.type === "old")
+            .map(item => item.imageNo);
+
+        for (let i = 0; i < newImageList.length; i++) {
+            formData.append("feedImages", newImageList[i].file);
         }
 
-        fetch("http://localhost:3010/feed/add", {
+        let apiUrl = "http://localhost:3010/feed/add";
+
+        if (isEditMode) {
+            if (!editFeedNo) {
+                alert("수정할 피드 번호가 없습니다.");
+                return;
+            }
+
+            formData.append("feedNo", editFeedNo);
+            formData.append("remainImageNoList", JSON.stringify(remainImageNoList));
+
+            apiUrl = "http://localhost:3010/feed/update";
+        }
+
+        fetch(apiUrl, {
             method: "POST",
             headers: {
                 "Authorization": "Bearer " + token
@@ -405,24 +585,26 @@ function CreateFeed() {
         })
             .then(res => res.json())
             .then(data => {
-                console.log("피드 등록 결과", data);
+                console.log(isEditMode ? "피드 수정 결과" : "피드 등록 결과", data);
 
                 if (data.result === "success") {
-                    alert("피드가 등록되었습니다.");
+                    alert(isEditMode ? "피드가 수정되었습니다." : "피드가 등록되었습니다.");
 
-                    if (data.feedNo) {
-                        sessionStorage.setItem("selectedFeedNo", data.feedNo);
+                    const savedFeedNo = data.feedNo || editFeedNo;
+
+                    if (savedFeedNo) {
+                        sessionStorage.setItem("selectedFeedNo", savedFeedNo);
 
                         navigate("/feed/detail", {
                             state: {
-                                feedNo: data.feedNo
+                                feedNo: savedFeedNo
                             }
                         });
                     } else {
                         navigate("/home");
                     }
                 } else {
-                    alert(data.message);
+                    alert(data.message || "처리 중 오류가 발생했습니다.");
                 }
             })
             .catch(err => {
@@ -451,6 +633,31 @@ function CreateFeed() {
         return "여행 루트가 여기에 표시돼요";
     }
 
+    if (loading) {
+        return (
+            <div className="create-page">
+                <PageDecor />
+
+                <div className="create-container">
+                    <section className="create-header">
+                        <PageDecor variant="box" />
+
+                        <div className="create-brand-row">
+                            <div className="create-brand-mark">K</div>
+
+                            <div>
+                                <h1>피드 수정</h1>
+                                <p>기존 피드를 불러오는 중입니다.</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <ScrollTopButton />
+            </div>
+        );
+    }
+
     return (
         <div className="create-page">
             <PageDecor />
@@ -463,9 +670,12 @@ function CreateFeed() {
                         <div className="create-brand-mark">K</div>
 
                         <div>
-                            <h1>여행 루트 작성</h1>
+                            <h1>{isEditMode ? "여행 루트 수정" : "여행 루트 작성"}</h1>
                             <p>
-                                사진 여러 장과 장소를 연결해 나만의 한국 여행 코스를 기록해요.
+                                {isEditMode
+                                    ? "기존 여행 코스를 수정하고 다시 저장해요."
+                                    : "사진 여러 장과 장소를 연결해 나만의 한국 여행 코스를 기록해요."
+                                }
                             </p>
                         </div>
                     </div>
@@ -483,9 +693,9 @@ function CreateFeed() {
                             type="button"
                             className="write"
                             onClick={saveFeed}
-                            title="올리기"
+                            title={isEditMode ? "수정 저장" : "올리기"}
                         >
-                            +
+                            {isEditMode ? "✓" : "+"}
                         </button>
                     </div>
                 </section>
@@ -495,7 +705,7 @@ function CreateFeed() {
                         <div className="create-section-title">
                             <span>✦</span>
                             <div>
-                                <h2>여행 피드 작성</h2>
+                                <h2>{isEditMode ? "여행 피드 수정" : "여행 피드 작성"}</h2>
                                 <p>사진 여러 장과 루트를 함께 기록해주세요.</p>
                             </div>
                         </div>
@@ -505,7 +715,7 @@ function CreateFeed() {
                                 <label>피드 이미지</label>
 
                                 <div className="create-multi-image-box">
-                                    {imagePreviewList.length === 0 ? (
+                                    {imageItemList.length === 0 ? (
                                         <div
                                             className="create-image-placeholder"
                                             onClick={openImageFile}
@@ -519,9 +729,9 @@ function CreateFeed() {
                                         </div>
                                     ) : (
                                         <div className="create-image-preview-grid">
-                                            {imagePreviewList.map((preview, index) => (
+                                            {imageItemList.map((image, index) => (
                                                 <div className="create-image-preview-item" key={index}>
-                                                    <img src={preview} alt={"첨부 이미지 " + (index + 1)} />
+                                                    <img src={image.previewUrl} alt={"첨부 이미지 " + (index + 1)} />
 
                                                     {index === 0 && (
                                                         <span className="create-main-image-badge">
@@ -539,7 +749,7 @@ function CreateFeed() {
                                                 </div>
                                             ))}
 
-                                            {imagePreviewList.length < 10 && (
+                                            {imageItemList.length < 10 && (
                                                 <button
                                                     type="button"
                                                     className="create-image-add-tile"
@@ -553,7 +763,7 @@ function CreateFeed() {
                                     )}
 
                                     <span className="create-image-count">
-                                        {imagePreviewList.length}/10
+                                        {imageItemList.length}/10
                                     </span>
 
                                     <input
@@ -802,7 +1012,7 @@ function CreateFeed() {
                                 className="create-submit-btn"
                                 onClick={saveFeed}
                             >
-                                여행 루트 피드 올리기
+                                {isEditMode ? "여행 루트 피드 수정하기" : "여행 루트 피드 올리기"}
                             </button>
                         </div>
                     </section>
@@ -814,9 +1024,9 @@ function CreateFeed() {
                         </div>
 
                         <div className="preview-image">
-                            {imagePreviewList.length > 0 && (
+                            {imageItemList.length > 0 && (
                                 <img
-                                    src={imagePreviewList[0]}
+                                    src={imageItemList[0].previewUrl}
                                     alt="대표 이미지 미리보기"
                                     className="preview-main-img"
                                 />
@@ -826,16 +1036,16 @@ function CreateFeed() {
                                 {category}
                             </div>
 
-                            {imagePreviewList.length === 0 && (
+                            {imageItemList.length === 0 && (
                                 <div className="preview-flower">✿</div>
                             )}
                         </div>
 
-                        {imagePreviewList.length > 1 && (
+                        {imageItemList.length > 1 && (
                             <div className="preview-thumb-row">
-                                {imagePreviewList.slice(0, 5).map((preview, index) => (
+                                {imageItemList.slice(0, 5).map((image, index) => (
                                     <div className="preview-thumb" key={index}>
-                                        <img src={preview} alt={"미리보기 썸네일 " + (index + 1)} />
+                                        <img src={image.previewUrl} alt={"미리보기 썸네일 " + (index + 1)} />
                                     </div>
                                 ))}
                             </div>

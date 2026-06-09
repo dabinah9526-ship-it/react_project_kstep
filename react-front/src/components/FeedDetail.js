@@ -17,6 +17,7 @@ function FeedDetail() {
     const [commentList, setCommentList] = useState([]);
 
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const [selectedSpotIndex, setSelectedSpotIndex] = useState(0);
     const [commentContent, setCommentContent] = useState("");
 
     const [loading, setLoading] = useState(false);
@@ -47,13 +48,19 @@ function FeedDetail() {
     }, []);
 
     useEffect(() => {
-        if (spotList.length > 0) {
+        if (canShowKakaoMap()) {
             drawRouteMap();
+        } else {
+            setMapMessage("");
         }
-    }, [spotList]);
+    }, [feed, spotList, selectedSpotIndex]);
 
     function getToken() {
         return localStorage.getItem("token");
+    }
+
+    function getLoginUserNo() {
+        return localStorage.getItem("userNo") || localStorage.getItem("USER_NO") || "";
     }
 
     function getFeedNo() {
@@ -63,6 +70,16 @@ function FeedDetail() {
             sessionStorage.getItem("selectedFeedNo") ||
             ""
         );
+    }
+
+    function isMyFeed() {
+        const loginUserNo = getLoginUserNo();
+
+        if (!feed || !loginUserNo) {
+            return false;
+        }
+
+        return String(feed.USER_NO) === String(loginUserNo);
     }
 
     function safeText(value, defaultText) {
@@ -214,13 +231,16 @@ function FeedDetail() {
 
                 if (data.result === "success") {
                     setSpotList(data.list || []);
+                    setSelectedSpotIndex(0);
                 } else {
                     setSpotList([]);
+                    setSelectedSpotIndex(0);
                 }
             })
             .catch(err => {
                 console.error(err);
                 setSpotList([]);
+                setSelectedSpotIndex(0);
             });
     }
 
@@ -298,6 +318,130 @@ function FeedDetail() {
         );
     }
 
+    function getRouteSummarySpotList() {
+        if (!feed || !feed.ROUTE_SUMMARY) {
+            return [];
+        }
+
+        const naturalMemoList = [
+            "중간에 천천히 둘러보기 좋은 장소예요.",
+            "잠깐 쉬어가며 분위기를 느끼기 좋아요.",
+            "사진 남기기 좋은 포인트로 넣어두면 좋아요.",
+            "가볍게 산책하면서 들르기 좋은 곳이에요.",
+            "다음 장소로 이동하기 전에 여유를 갖기 좋아요."
+        ];
+
+        return String(feed.ROUTE_SUMMARY)
+            .split("→")
+            .map(text => text.trim())
+            .filter(text => text !== "")
+            .map((name, index, list) => {
+                let memo = naturalMemoList[index % naturalMemoList.length];
+
+                if (index === 0) {
+                    memo = "여행을 시작하기 좋은 첫 번째 장소예요.";
+                }
+
+                if (index === list.length - 1 && list.length > 1) {
+                    memo = "코스를 마무리하며 들르기 좋은 장소예요.";
+                }
+
+                return {
+                    SPOT_NO: "summary-" + index,
+                    SPOT_ORDER: index + 1,
+                    SPOT_NAME: name,
+                    SPOT_MEMO: memo,
+                    ADDRESS: "",
+                    LAT: null,
+                    LNG: null,
+                    SUMMARY_YN: "Y"
+                };
+            });
+    }
+
+    function getRouteDisplayList() {
+        if (spotList.length > 0) {
+            return spotList;
+        }
+
+        return getRouteSummarySpotList();
+    }
+
+    function getSelectedRouteSpot() {
+        const routeDisplayList = getRouteDisplayList();
+
+        if (routeDisplayList.length === 0) {
+            return null;
+        }
+
+        let index = selectedSpotIndex;
+
+        if (index < 0 || index >= routeDisplayList.length) {
+            index = 0;
+        }
+
+        return routeDisplayList[index];
+    }
+
+    function hasCoordinateSpot() {
+        const routeDisplayList = getRouteDisplayList();
+
+        for (let i = 0; i < routeDisplayList.length; i++) {
+            const spot = routeDisplayList[i];
+
+            if (
+                spot.LAT !== null &&
+                spot.LNG !== null &&
+                spot.LAT !== undefined &&
+                spot.LNG !== undefined &&
+                !Number.isNaN(Number(spot.LAT)) &&
+                !Number.isNaN(Number(spot.LNG))
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function canShowKakaoMap() {
+        if (!hasCoordinateSpot()) {
+            return false;
+        }
+
+        if (window.kakao && window.kakao.maps) {
+            return true;
+        }
+
+        const kakaoKey = process.env.REACT_APP_KAKAO_MAP_KEY || "";
+
+        return kakaoKey !== "";
+    }
+
+    function getFallbackMapUrl() {
+        const selectedSpot = getSelectedRouteSpot();
+
+        let keyword = "";
+
+        if (selectedSpot) {
+            keyword =
+                safeText(selectedSpot.ADDRESS, "") + " " +
+                safeText(selectedSpot.SPOT_NAME, "");
+        }
+
+        if (keyword.trim() === "" && feed) {
+            keyword =
+                safeText(feed.AREA, "한국") + " " +
+                safeText(feed.TITLE, "여행지");
+        }
+
+        if (keyword.trim() === "") {
+            keyword = "한국 여행";
+        }
+
+        return "https://maps.google.com/maps?q=" + encodeURIComponent(keyword.trim()) + "&output=embed";
+    }
+
     function prevImage() {
         const list = getDisplayImageList();
 
@@ -336,6 +480,59 @@ function FeedDetail() {
         }
 
         navigate("/profile/" + userNo);
+    }
+
+    function moveEditFeed() {
+        if (!feed) {
+            return;
+        }
+
+        sessionStorage.setItem("editFeedNo", feed.FEED_NO);
+
+        navigate("/feed/new", {
+            state: {
+                mode: "edit",
+                feedNo: feed.FEED_NO
+            }
+        });
+    }
+
+    function removeFeed() {
+        if (!feed) {
+            return;
+        }
+
+        if (!window.confirm("이 게시물을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.")) {
+            return;
+        }
+
+        const token = getToken();
+
+        fetch("http://localhost:3010/feed/remove", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feed.FEED_NO
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("피드 삭제", data);
+
+                if (data.result === "success") {
+                    alert("게시물이 삭제되었습니다.");
+                    navigate("/home");
+                } else {
+                    alert(data.message || "게시물 삭제에 실패했습니다.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("게시물 삭제 중 오류가 발생했습니다.");
+            });
     }
 
     function toggleLike() {
@@ -547,7 +744,9 @@ function FeedDetail() {
     }
 
     function drawRouteMap() {
-        const validSpotList = spotList.filter(spot => {
+        const routeDisplayList = getRouteDisplayList();
+
+        const validSpotList = routeDisplayList.filter(spot => {
             return spot.LAT !== null &&
                 spot.LNG !== null &&
                 spot.LAT !== undefined &&
@@ -557,7 +756,7 @@ function FeedDetail() {
         });
 
         if (validSpotList.length === 0) {
-            setMapMessage("좌표가 있는 장소가 없어서 지도를 표시할 수 없습니다.");
+            setMapMessage("");
             return;
         }
 
@@ -575,7 +774,7 @@ function FeedDetail() {
         const kakaoKey = process.env.REACT_APP_KAKAO_MAP_KEY || "";
 
         if (!kakaoKey) {
-            setMapMessage("카카오 지도 키가 없어서 지도를 표시할 수 없습니다.");
+            setMapMessage("");
             return;
         }
 
@@ -719,6 +918,9 @@ function FeedDetail() {
 
     const displayImageList = getDisplayImageList();
     const selectedImageUrl = getSelectedImageUrl();
+    const routeDisplayList = getRouteDisplayList();
+    const useKakaoMap = canShowKakaoMap();
+    const fallbackMapUrl = getFallbackMapUrl();
 
     return (
         <div className="detail-page">
@@ -851,11 +1053,22 @@ function FeedDetail() {
                                     <h2>여행 루트 지도</h2>
                                 </div>
 
-                                <p>{spotList.length}개의 장소</p>
+                                <p>{routeDisplayList.length}개의 장소</p>
                             </div>
 
                             <div className="detail-map-box">
-                                <div ref={mapRef} className="detail-map"></div>
+                                {useKakaoMap ? (
+                                    <div ref={mapRef} className="detail-map"></div>
+                                ) : (
+                                    <iframe
+                                        className="detail-map"
+                                        src={fallbackMapUrl}
+                                        title="여행 루트 지도"
+                                        loading="lazy"
+                                        style={{ border: 0 }}
+                                        allowFullScreen
+                                    ></iframe>
+                                )}
 
                                 {mapMessage !== "" && (
                                     <div className="detail-map-message">
@@ -864,14 +1077,19 @@ function FeedDetail() {
                                 )}
                             </div>
 
-                            {spotList.length === 0 ? (
+                            {routeDisplayList.length === 0 ? (
                                 <div className="detail-route-empty">
                                     등록된 여행 루트 장소가 없습니다.
                                 </div>
                             ) : (
                                 <div className="detail-spot-list">
-                                    {spotList.map((spot, index) => (
-                                        <div className="detail-spot-item" key={spot.SPOT_NO || index}>
+                                    {routeDisplayList.map((spot, index) => (
+                                        <div
+                                            className="detail-spot-item"
+                                            key={spot.SPOT_NO || index}
+                                            onClick={() => setSelectedSpotIndex(index)}
+                                            style={{ cursor: "pointer" }}
+                                        >
                                             <div className="detail-spot-number">
                                                 {index + 1}
                                             </div>
@@ -879,10 +1097,16 @@ function FeedDetail() {
                                             <div className="detail-spot-content">
                                                 <strong>{safeText(spot.SPOT_NAME, "장소명 없음")}</strong>
 
-                                                <p>{safeText(spot.ADDRESS, "주소 정보 없음")}</p>
+                                                {spot.ADDRESS && (
+                                                    <p>{spot.ADDRESS}</p>
+                                                )}
 
                                                 {spot.SPOT_MEMO && (
                                                     <span>{spot.SPOT_MEMO}</span>
+                                                )}
+
+                                                {!spot.ADDRESS && !spot.SPOT_MEMO && (
+                                                    <p>코스에 포함된 장소예요.</p>
                                                 )}
                                             </div>
                                         </div>
@@ -902,9 +1126,17 @@ function FeedDetail() {
 
                                 <h1>{safeText(feed.TITLE, "제목 없음")}</h1>
 
-                                <p>
-                                    {safeText(feed.ROUTE_SUMMARY || feed.CONTENT, "등록된 루트 설명이 없습니다.")}
+                                <p className="detail-route-summary-text">
+                                    {safeText(feed.ROUTE_SUMMARY, "등록된 루트 설명이 없습니다.")}
                                 </p>
+
+                                <div className="detail-story-box">
+                                    <strong>여행 이야기</strong>
+
+                                    <p>
+                                        {safeText(feed.CONTENT, "작성자가 남긴 여행 이야기가 없습니다.")}
+                                    </p>
+                                </div>
 
                                 {getTags(feed.HASHTAGS).length > 0 && (
                                     <div className="detail-tag-row">
@@ -945,6 +1177,26 @@ function FeedDetail() {
                                     공유
                                 </button>
                             </div>
+
+                            {isMyFeed() && (
+                                <div className="detail-owner-action-row">
+                                    <button
+                                        type="button"
+                                        className="edit"
+                                        onClick={moveEditFeed}
+                                    >
+                                        게시물 수정
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="delete"
+                                        onClick={removeFeed}
+                                    >
+                                        게시물 삭제
+                                    </button>
+                                </div>
+                            )}
 
                             <div className="detail-count-row">
                                 <span>댓글 {feed.COMMENT_COUNT || 0}</span>
