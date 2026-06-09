@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="./readme/k_step_logo1.png" width="500" alt="K-STEP 대표 이미지"/>
+<img src="./readme/k_step_logo1.png" width="300" alt="K-STEP 대표 이미지"/>
 
 <br><br>
 
