@@ -131,6 +131,11 @@
 
 ```bash
 ReactProject_2026
+├─ docs
+│  ├─ K-STEP_Presentation.pptx
+│  ├─ K-STEP_Demo.mp4
+│  └─ K-STEP_DB_Design.xlsx
+│
 ├─ express-back
 │  ├─ routes
 │  │  ├─ business.js
@@ -145,6 +150,9 @@ ReactProject_2026
 │  ├─ db.js
 │  └─ package.json
 │
+├─ kstep_db_backup
+│  └─ KSTEP_TABLE_BACKUP.sql
+│
 ├─ react-front
 │  ├─ public
 │  └─ src
@@ -153,18 +161,10 @@ ReactProject_2026
 │     ├─ App.js
 │     └─ index.js
 │
-├─ docs
-│  ├─ K-STEP_Presentation.pptx
-│  ├─ K-STEP_Demo.mp4
-│  ├─ K-STEP_DB_Design.xlsx
-│  └─ K-STEP_Checklist.xlsx
-│
-├─ db
-│  └─ K-STEP_DB_Backup.sql
-│
 ├─ readme
 │  └─ k_step_logo1.png
 │
+├─ .gitignore
 └─ README.md
 ```
 
@@ -302,14 +302,24 @@ ReactProject_2026
 
 ## 9. 발표 PPT 및 시연 영상 링크
 
-| 구분           | 링크                                               |
-| ------------ | ------------------------------------------------ |
-| 발표 PPT       | [K-STEP 발표 PPT](./docs/K-STEP_Presentation.pptx) |
-| 시연 영상        | [K-STEP 시연 영상](./docs/K-STEP_Demo.mp4)           |
-| DB 설계서       | [K-STEP DB 설계서](./docs/K-STEP_DB_Design.xlsx)    |
-| DB 백업 SQL    | [DB 백업 SQL](./db/K-STEP_DB_Backup.sql)           |
+| 구분        | 링크                                                    |
+| --------- | ----------------------------------------------------- |
+| 발표 PPT    | [K-STEP 발표 PPT](./docs/K-STEP_Presentation.pptx)      |
+| 시연 영상     | [K-STEP 시연 영상](./docs/K-STEP_Demo.mp4)                |
+| DB 설계서    | [K-STEP DB 설계서](./docs/K-STEP_DB_Design.xlsx)         |
+| DB 백업 SQL | [DB 백업 SQL](./kstep_db_backup/KSTEP_TABLE_BACKUP.sql) |
 
 <br>
 
 ---
 
+## 10. 기타 산출물
+
+| 산출물       | 설명                        |
+| --------- | ------------------------- |
+| 발표 PPT    | 프로젝트 발표 자료                |
+| 시연 영상     | 핵심 기능 시연 영상               |
+| DB 설계서    | 테이블 구조 및 컬럼 정의를 정리한 엑셀 파일 |
+| DB 백업 SQL | 테이블 생성 및 데이터 백업 SQL 파일    |
+
+<br>
