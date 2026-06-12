@@ -97,6 +97,100 @@ async function tableExists(connection, tableName) {
     return result.rows[0].CNT > 0;
 }
 
+async function columnExists(connection, tableName, columnName) {
+    const result = await connection.execute(
+        `
+            SELECT COUNT(*) AS CNT
+            FROM USER_TAB_COLUMNS
+            WHERE TABLE_NAME = UPPER(:tableName)
+              AND COLUMN_NAME = UPPER(:columnName)
+        `,
+        {
+            tableName: tableName,
+            columnName: columnName
+        },
+        {
+            outFormat: oracledb.OUT_FORMAT_OBJECT
+        }
+    );
+
+    return result.rows[0].CNT > 0;
+}
+
+/* =========================
+   알림 추가
+========================= */
+
+async function addNotification(connection, receiverNo, senderNo, notiType, notiContent, targetFeedNo) {
+    if (!receiverNo || !senderNo) {
+        return;
+    }
+
+    if (String(receiverNo) === String(senderNo)) {
+        return;
+    }
+
+    const notificationExists = await tableExists(connection, "NOTIFICATION");
+
+    if (!notificationExists) {
+        return;
+    }
+
+    let senderName = "누군가";
+
+    const senderResult = await connection.execute(
+        `
+            SELECT
+                NVL(NICKNAME, USER_ID) AS DISPLAY_NAME
+            FROM USERS
+            WHERE USER_NO = :senderNo
+        `,
+        {
+            senderNo: senderNo
+        },
+        {
+            outFormat: oracledb.OUT_FORMAT_OBJECT
+        }
+    );
+
+    if (senderResult.rows.length > 0 && senderResult.rows[0].DISPLAY_NAME) {
+        senderName = senderResult.rows[0].DISPLAY_NAME;
+    }
+
+    const finalContent = String(notiContent || "").replace("{sender}", senderName);
+
+    await connection.execute(
+        `
+            INSERT INTO NOTIFICATION (
+                NOTI_NO,
+                RECEIVER_NO,
+                SENDER_NO,
+                NOTI_TYPE,
+                NOTI_CONTENT,
+                TARGET_FEED_NO,
+                READ_YN,
+                CDATE
+            ) VALUES (
+                (SELECT NVL(MAX(NOTI_NO), 0) + 1 FROM NOTIFICATION),
+                :receiverNo,
+                :senderNo,
+                :notiType,
+                :notiContent,
+                :targetFeedNo,
+                'N',
+                SYSDATE
+            )
+        `,
+        {
+            receiverNo: receiverNo,
+            senderNo: senderNo,
+            notiType: notiType,
+            notiContent: finalContent,
+            targetFeedNo: targetFeedNo
+        }
+    );
+}
+
 async function canViewFeed(connection, loginUserNo, feedNo) {
     const feedResult = await connection.execute(
         `
@@ -134,35 +228,39 @@ async function canViewFeed(connection, loginUserNo, feedNo) {
         };
     }
 
-    const blockResult = await connection.execute(
-        `
-            SELECT COUNT(*) AS CNT
-            FROM USER_BLOCK
-            WHERE
-                (
-                    BLOCKER_NO = :loginUserNo
-                    AND BLOCKED_NO = :writerNo
-                )
-                OR
-                (
-                    BLOCKER_NO = :writerNo
-                    AND BLOCKED_NO = :loginUserNo
-                )
-        `,
-        {
-            loginUserNo: loginUserNo,
-            writerNo: feed.USER_NO
-        },
-        {
-            outFormat: oracledb.OUT_FORMAT_OBJECT
-        }
-    );
+    const userBlockExists = await tableExists(connection, "USER_BLOCK");
 
-    if (blockResult.rows[0].CNT > 0) {
-        return {
-            exists: true,
-            canView: false
-        };
+    if (userBlockExists) {
+        const blockResult = await connection.execute(
+            `
+                SELECT COUNT(*) AS CNT
+                FROM USER_BLOCK
+                WHERE
+                    (
+                        BLOCKER_NO = :loginUserNo
+                        AND BLOCKED_NO = :writerNo
+                    )
+                    OR
+                    (
+                        BLOCKER_NO = :writerNo
+                        AND BLOCKED_NO = :loginUserNo
+                    )
+            `,
+            {
+                loginUserNo: loginUserNo,
+                writerNo: feed.USER_NO
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (blockResult.rows[0].CNT > 0) {
+            return {
+                exists: true,
+                canView: false
+            };
+        }
     }
 
     if (String(feed.USER_NO) === String(loginUserNo)) {
@@ -257,7 +355,10 @@ async function getCommentCount(connection, feedNo) {
     return result.rows[0].CNT;
 }
 
-// 전체 피드 목록
+/* =========================
+   전체 피드 목록
+========================= */
+
 router.get('/list', async (req, res) => {
     const { tag } = req.query;
 
@@ -390,7 +491,10 @@ router.get('/list', async (req, res) => {
     }
 });
 
-// 팔로우한 사람 + 내 피드 목록
+/* =========================
+   팔로우한 사람 + 내 피드 목록
+========================= */
+
 router.get('/following/list', async (req, res) => {
     const { tag } = req.query;
 
@@ -530,7 +634,10 @@ router.get('/following/list', async (req, res) => {
     }
 });
 
-// 피드 작성
+/* =========================
+   피드 작성
+========================= */
+
 router.post('/add', uploadFeedImages.array("feedImages", 10), async (req, res) => {
     const {
         title,
@@ -809,7 +916,10 @@ router.post('/add', uploadFeedImages.array("feedImages", 10), async (req, res) =
     }
 });
 
-// 피드 수정
+/* =========================
+   피드 수정
+========================= */
+
 router.post('/update', uploadFeedImages.array("feedImages", 10), async (req, res) => {
     const {
         feedNo,
@@ -1175,7 +1285,10 @@ router.post('/update', uploadFeedImages.array("feedImages", 10), async (req, res
     }
 });
 
-// 피드 삭제
+/* =========================
+   피드 삭제
+========================= */
+
 router.post('/remove', async (req, res) => {
     const { feedNo } = req.body;
 
@@ -1232,11 +1345,24 @@ router.post('/remove', async (req, res) => {
             });
         }
 
+        const notificationExists = await tableExists(connection, "NOTIFICATION");
         const feedCommentExists = await tableExists(connection, "FEED_COMMENT");
         const feedLikeExists = await tableExists(connection, "FEED_LIKE");
         const feedBookmarkExists = await tableExists(connection, "FEED_BOOKMARK");
         const feedImageExists = await tableExists(connection, "FEED_IMAGE");
         const routeSpotExists = await tableExists(connection, "ROUTE_SPOT");
+
+        if (notificationExists) {
+            await connection.execute(
+                `
+                    DELETE FROM NOTIFICATION
+                    WHERE TARGET_FEED_NO = :feedNo
+                `,
+                {
+                    feedNo: feedNo
+                }
+            );
+        }
 
         if (feedCommentExists) {
             await connection.execute(
@@ -1340,7 +1466,10 @@ router.post('/remove', async (req, res) => {
     }
 });
 
-// 좋아요 추가 / 해제
+/* =========================
+   좋아요 추가 / 해제
+========================= */
+
 router.post('/like/toggle', async (req, res) => {
     const { feedNo } = req.body;
 
@@ -1440,6 +1569,31 @@ router.post('/like/toggle', async (req, res) => {
             }
         );
 
+        const feedOwnerResult = await connection.execute(
+            `
+                SELECT USER_NO
+                FROM FEED
+                WHERE FEED_NO = :feedNo
+            `,
+            {
+                feedNo: feedNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (feedOwnerResult.rows.length > 0) {
+            await addNotification(
+                connection,
+                feedOwnerResult.rows[0].USER_NO,
+                loginUserNo,
+                "LIKE",
+                "{sender}님이 회원님의 게시글에 좋아요를 눌렀습니다.",
+                feedNo
+            );
+        }
+
         const likeCount = await getLikeCount(connection, feedNo);
 
         await connection.commit();
@@ -1474,7 +1628,10 @@ router.post('/like/toggle', async (req, res) => {
     }
 });
 
-// 즐겨찾기 추가 / 해제
+/* =========================
+   즐겨찾기 추가 / 해제
+========================= */
+
 router.post('/bookmark/toggle', async (req, res) => {
     const { feedNo } = req.body;
 
@@ -1576,6 +1733,31 @@ router.post('/bookmark/toggle', async (req, res) => {
             }
         );
 
+        const feedOwnerResult = await connection.execute(
+            `
+                SELECT USER_NO
+                FROM FEED
+                WHERE FEED_NO = :feedNo
+            `,
+            {
+                feedNo: feedNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (feedOwnerResult.rows.length > 0) {
+            await addNotification(
+                connection,
+                feedOwnerResult.rows[0].USER_NO,
+                loginUserNo,
+                "BOOKMARK",
+                "{sender}님이 회원님의 여행 루트를 저장했습니다.",
+                feedNo
+            );
+        }
+
         const bookmarkCount = await getBookmarkCount(connection, feedNo);
 
         await connection.commit();
@@ -1610,7 +1792,10 @@ router.post('/bookmark/toggle', async (req, res) => {
     }
 });
 
-// 저장한 루트 목록 조회
+/* =========================
+   저장한 루트 목록 조회
+========================= */
+
 router.get('/bookmark/list', async (req, res) => {
     let connection;
 
@@ -1747,7 +1932,10 @@ router.get('/bookmark/list', async (req, res) => {
     }
 });
 
-// 피드 상세 조회
+/* =========================
+   피드 상세 조회
+========================= */
+
 router.post('/detail', async (req, res) => {
     const { feedNo } = req.body;
 
@@ -1887,7 +2075,10 @@ router.post('/detail', async (req, res) => {
     }
 });
 
-// 피드 이미지 목록 조회
+/* =========================
+   피드 이미지 목록 조회
+========================= */
+
 router.post('/image/list', async (req, res) => {
     const { feedNo } = req.body;
 
@@ -2004,7 +2195,10 @@ router.post('/image/list', async (req, res) => {
     }
 });
 
-// 여행 루트 장소 목록 조회
+/* =========================
+   여행 루트 장소 목록 조회
+========================= */
+
 router.post('/route/spot/list', async (req, res) => {
     const { feedNo } = req.body;
 
@@ -2124,7 +2318,11 @@ router.post('/route/spot/list', async (req, res) => {
     }
 });
 
-// 댓글 목록 조회
+/* =========================
+   댓글 목록 조회
+   - 일반 댓글 + 대댓글 같이 조회
+========================= */
+
 router.post('/comment/list', async (req, res) => {
     const { feedNo } = req.body;
 
@@ -2167,13 +2365,54 @@ router.post('/comment/list', async (req, res) => {
             });
         }
 
-        const result = await connection.execute(
-            `
+        const hasParentColumn = await columnExists(connection, "FEED_COMMENT", "PARENT_COMMENT_NO");
+
+        let sql = "";
+
+        if (hasParentColumn) {
+            sql = `
                 SELECT
                     FC.COMMENT_NO,
                     FC.FEED_NO,
                     FC.USER_NO,
                     FC.CONTENT,
+                    FC.PARENT_COMMENT_NO,
+                    CASE
+                        WHEN FC.PARENT_COMMENT_NO IS NULL THEN 0
+                        ELSE 1
+                    END AS COMMENT_DEPTH,
+                    FC.CDATE,
+                    TO_CHAR(FC.CDATE, 'YYYY-MM-DD HH24:MI') AS CDATE_TEXT,
+                    U.USER_ID,
+                    U.NICKNAME,
+                    U.PROFILE_IMG,
+                    U.USER_TYPE,
+                    CASE
+                        WHEN FC.USER_NO = :loginUserNo THEN 'Y'
+                        ELSE 'N'
+                    END AS MINE_YN
+                FROM FEED_COMMENT FC
+                LEFT JOIN USERS U
+                    ON FC.USER_NO = U.USER_NO
+                WHERE FC.FEED_NO = :feedNo
+                  AND NVL(FC.COMMENT_STATUS, 'Y') = 'Y'
+                ORDER BY
+                    NVL(FC.PARENT_COMMENT_NO, FC.COMMENT_NO) DESC,
+                    CASE
+                        WHEN FC.PARENT_COMMENT_NO IS NULL THEN 0
+                        ELSE 1
+                    END,
+                    FC.COMMENT_NO ASC
+            `;
+        } else {
+            sql = `
+                SELECT
+                    FC.COMMENT_NO,
+                    FC.FEED_NO,
+                    FC.USER_NO,
+                    FC.CONTENT,
+                    NULL AS PARENT_COMMENT_NO,
+                    0 AS COMMENT_DEPTH,
                     FC.CDATE,
                     TO_CHAR(FC.CDATE, 'YYYY-MM-DD HH24:MI') AS CDATE_TEXT,
                     U.USER_ID,
@@ -2190,7 +2429,11 @@ router.post('/comment/list', async (req, res) => {
                 WHERE FC.FEED_NO = :feedNo
                   AND NVL(FC.COMMENT_STATUS, 'Y') = 'Y'
                 ORDER BY FC.COMMENT_NO DESC
-            `,
+            `;
+        }
+
+        const result = await connection.execute(
+            sql,
             {
                 feedNo: feedNo,
                 loginUserNo: loginUserNo
@@ -2220,9 +2463,12 @@ router.post('/comment/list', async (req, res) => {
     }
 });
 
-// 댓글 작성
+/* =========================
+   댓글 / 대댓글 작성
+========================= */
+
 router.post('/comment/add', async (req, res) => {
-    const { feedNo, content } = req.body;
+    const { feedNo, content, parentCommentNo } = req.body;
 
     let connection;
 
@@ -2278,30 +2524,125 @@ router.post('/comment/add', async (req, res) => {
             });
         }
 
-        await connection.execute(
+        const hasParentColumn = await columnExists(connection, "FEED_COMMENT", "PARENT_COMMENT_NO");
+
+        let finalParentCommentNo = null;
+
+        if (hasParentColumn && parentCommentNo) {
+            const parentResult = await connection.execute(
+                `
+                    SELECT
+                        COMMENT_NO,
+                        PARENT_COMMENT_NO
+                    FROM FEED_COMMENT
+                    WHERE COMMENT_NO = :parentCommentNo
+                      AND FEED_NO = :feedNo
+                      AND NVL(COMMENT_STATUS, 'Y') = 'Y'
+                `,
+                {
+                    parentCommentNo: parentCommentNo,
+                    feedNo: feedNo
+                },
+                {
+                    outFormat: oracledb.OUT_FORMAT_OBJECT
+                }
+            );
+
+            if (parentResult.rows.length === 0) {
+                return res.json({
+                    result: "fail",
+                    message: "답글을 달 댓글이 존재하지 않습니다."
+                });
+            }
+
+            if (parentResult.rows[0].PARENT_COMMENT_NO) {
+                finalParentCommentNo = parentResult.rows[0].PARENT_COMMENT_NO;
+            } else {
+                finalParentCommentNo = parentResult.rows[0].COMMENT_NO;
+            }
+        }
+
+        if (hasParentColumn) {
+            await connection.execute(
+                `
+                    INSERT INTO FEED_COMMENT (
+                        COMMENT_NO,
+                        FEED_NO,
+                        USER_NO,
+                        CONTENT,
+                        PARENT_COMMENT_NO,
+                        COMMENT_STATUS,
+                        CDATE
+                    ) VALUES (
+                        (SELECT NVL(MAX(COMMENT_NO), 0) + 1 FROM FEED_COMMENT),
+                        :feedNo,
+                        :userNo,
+                        :content,
+                        :parentCommentNo,
+                        'Y',
+                        SYSDATE
+                    )
+                `,
+                {
+                    feedNo: feedNo,
+                    userNo: loginUserNo,
+                    content: commentContent,
+                    parentCommentNo: finalParentCommentNo
+                }
+            );
+        } else {
+            await connection.execute(
+                `
+                    INSERT INTO FEED_COMMENT (
+                        COMMENT_NO,
+                        FEED_NO,
+                        USER_NO,
+                        CONTENT,
+                        COMMENT_STATUS,
+                        CDATE
+                    ) VALUES (
+                        (SELECT NVL(MAX(COMMENT_NO), 0) + 1 FROM FEED_COMMENT),
+                        :feedNo,
+                        :userNo,
+                        :content,
+                        'Y',
+                        SYSDATE
+                    )
+                `,
+                {
+                    feedNo: feedNo,
+                    userNo: loginUserNo,
+                    content: commentContent
+                }
+            );
+        }
+
+        const feedOwnerResult = await connection.execute(
             `
-                INSERT INTO FEED_COMMENT (
-                    COMMENT_NO,
-                    FEED_NO,
-                    USER_NO,
-                    CONTENT,
-                    COMMENT_STATUS,
-                    CDATE
-                ) VALUES (
-                    (SELECT NVL(MAX(COMMENT_NO), 0) + 1 FROM FEED_COMMENT),
-                    :feedNo,
-                    :userNo,
-                    :content,
-                    'Y',
-                    SYSDATE
-                )
+                SELECT USER_NO
+                FROM FEED
+                WHERE FEED_NO = :feedNo
             `,
             {
-                feedNo: feedNo,
-                userNo: loginUserNo,
-                content: commentContent
+                feedNo: feedNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
             }
         );
+
+        if (feedOwnerResult.rows.length > 0) {
+            await addNotification(
+                connection,
+                feedOwnerResult.rows[0].USER_NO,
+                loginUserNo,
+                "COMMENT",
+                finalParentCommentNo
+                    ? "{sender}님이 회원님의 게시글에 답글을 남겼습니다."
+                    : "{sender}님이 회원님의 게시글에 댓글을 남겼습니다.",
+                feedNo
+            );
+        }
 
         const commentCount = await getCommentCount(connection, feedNo);
 
@@ -2309,7 +2650,7 @@ router.post('/comment/add', async (req, res) => {
 
         res.json({
             result: "success",
-            message: "댓글이 등록되었습니다.",
+            message: finalParentCommentNo ? "답글이 등록되었습니다." : "댓글이 등록되었습니다.",
             commentCount: commentCount
         });
 
@@ -2336,7 +2677,10 @@ router.post('/comment/add', async (req, res) => {
     }
 });
 
-// 댓글 수정
+/* =========================
+   댓글 / 대댓글 수정
+========================= */
+
 router.post('/comment/update', async (req, res) => {
     const { commentNo, content } = req.body;
 
@@ -2473,7 +2817,10 @@ router.post('/comment/update', async (req, res) => {
     }
 });
 
-// 댓글 삭제
+/* =========================
+   댓글 / 대댓글 삭제
+========================= */
+
 router.post('/comment/remove', async (req, res) => {
     const { commentNo } = req.body;
 

@@ -26,6 +26,20 @@ function checkToken(req) {
     }
 }
 
+function getLoginUserNo(loginUser) {
+    if (!loginUser) {
+        return "";
+    }
+
+    return (
+        loginUser.userNo ||
+        loginUser.USER_NO ||
+        loginUser.user_no ||
+        loginUser.id ||
+        ""
+    );
+}
+
 // 알림 목록 조회
 router.get('/list', async (req, res) => {
     let connection;
@@ -39,6 +53,8 @@ router.get('/list', async (req, res) => {
                 message: "로그인이 필요합니다."
             });
         }
+
+        const loginUserNo = getLoginUserNo(loginUser);
 
         connection = await db.getConnection();
 
@@ -67,7 +83,7 @@ router.get('/list', async (req, res) => {
                 ORDER BY N.NOTI_NO DESC
             `,
             {
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -85,6 +101,61 @@ router.get('/list', async (req, res) => {
         res.status(500).json({
             result: "fail",
             message: "알림 목록 조회 중 오류가 발생했습니다."
+        });
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+});
+
+// 안 읽은 알림 개수 조회
+router.get('/count', async (req, res) => {
+    let connection;
+
+    try {
+        const loginUser = checkToken(req);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                result: "fail",
+                message: "로그인이 필요합니다.",
+                count: 0
+            });
+        }
+
+        const loginUserNo = getLoginUserNo(loginUser);
+
+        connection = await db.getConnection();
+
+        const result = await connection.execute(
+            `
+                SELECT COUNT(*) AS CNT
+                FROM NOTIFICATION
+                WHERE RECEIVER_NO = :userNo
+                  AND READ_YN = 'N'
+            `,
+            {
+                userNo: loginUserNo
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        res.json({
+            result: "success",
+            count: result.rows[0].CNT
+        });
+
+    } catch (error) {
+        console.error("notification count error", error);
+
+        res.status(500).json({
+            result: "fail",
+            message: "알림 개수 조회 중 오류가 발생했습니다.",
+            count: 0
         });
 
     } finally {
@@ -117,6 +188,8 @@ router.post('/read', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
+
         connection = await db.getConnection();
 
         await connection.execute(
@@ -128,7 +201,7 @@ router.post('/read', async (req, res) => {
             `,
             {
                 notiNo: notiNo,
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             }
         );
 
@@ -172,6 +245,8 @@ router.post('/read-all', async (req, res) => {
             });
         }
 
+        const loginUserNo = getLoginUserNo(loginUser);
+
         connection = await db.getConnection();
 
         await connection.execute(
@@ -181,7 +256,7 @@ router.post('/read-all', async (req, res) => {
                 WHERE RECEIVER_NO = :userNo
             `,
             {
-                userNo: loginUser.userNo
+                userNo: loginUserNo
             }
         );
 

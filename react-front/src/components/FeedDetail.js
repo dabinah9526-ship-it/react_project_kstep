@@ -23,6 +23,12 @@ function FeedDetail() {
     const [selectedSpotIndex, setSelectedSpotIndex] = useState(0);
     const [commentContent, setCommentContent] = useState("");
 
+    const [replyTargetCommentNo, setReplyTargetCommentNo] = useState("");
+    const [replyContent, setReplyContent] = useState("");
+
+    const [editingCommentNo, setEditingCommentNo] = useState("");
+    const [editContent, setEditContent] = useState("");
+
     const [loading, setLoading] = useState(false);
     const [commentLoading, setCommentLoading] = useState(false);
     const [mapMessage, setMapMessage] = useState("");
@@ -60,6 +66,8 @@ function FeedDetail() {
         getFeedImageList(feedNo);
         getRouteSpotList(feedNo);
         getCommentList(feedNo);
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -68,6 +76,8 @@ function FeedDetail() {
         } else {
             setMapMessage("");
         }
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [feed, spotList, selectedSpotIndex, language]);
 
     function getToken() {
@@ -160,6 +170,66 @@ function FeedDetail() {
             .split(" ")
             .map(tag => tag.trim())
             .filter(tag => tag !== "");
+    }
+
+    function getCommentText(key) {
+        const ko = {
+            reply: "답글",
+            edit: "수정",
+            save: "저장",
+            cancel: "취소",
+            delete: "삭제",
+            replyPlaceholder: "답글을 입력해주세요.",
+            editPlaceholder: "댓글을 수정해주세요.",
+            replyEmpty: "답글 내용을 입력해주세요.",
+            editEmpty: "수정할 내용을 입력해주세요.",
+            replyFail: "답글 등록에 실패했습니다.",
+            replyError: "답글 등록 중 오류가 발생했습니다.",
+            editFail: "댓글 수정에 실패했습니다.",
+            editError: "댓글 수정 중 오류가 발생했습니다."
+        };
+
+        const en = {
+            reply: "Reply",
+            edit: "Edit",
+            save: "Save",
+            cancel: "Cancel",
+            delete: "Delete",
+            replyPlaceholder: "Write a reply.",
+            editPlaceholder: "Edit your comment.",
+            replyEmpty: "Please write a reply.",
+            editEmpty: "Please write your edit.",
+            replyFail: "Failed to add reply.",
+            replyError: "An error occurred while adding reply.",
+            editFail: "Failed to edit comment.",
+            editError: "An error occurred while editing comment."
+        };
+
+        if (language === "en") {
+            return en[key] || ko[key] || key;
+        }
+
+        return ko[key] || key;
+    }
+
+    function isReplyComment(comment) {
+        if (!comment) {
+            return false;
+        }
+
+        if (
+            comment.PARENT_COMMENT_NO !== null &&
+            comment.PARENT_COMMENT_NO !== undefined &&
+            comment.PARENT_COMMENT_NO !== ""
+        ) {
+            return true;
+        }
+
+        if (Number(comment.COMMENT_DEPTH) === 1) {
+            return true;
+        }
+
+        return false;
     }
 
     function getFeedDetail(feedNo) {
@@ -682,6 +752,140 @@ function FeedDetail() {
             });
     }
 
+    function startReply(comment) {
+        if (!comment) {
+            return;
+        }
+
+        setReplyTargetCommentNo(comment.COMMENT_NO);
+        setReplyContent("");
+        setEditingCommentNo("");
+        setEditContent("");
+    }
+
+    function cancelReply() {
+        setReplyTargetCommentNo("");
+        setReplyContent("");
+    }
+
+    function addReply(commentNo) {
+        if (!feed) {
+            return;
+        }
+
+        const content = replyContent.trim();
+
+        if (content === "") {
+            alert(getCommentText("replyEmpty"));
+            return;
+        }
+
+        if (content.length > 500) {
+            alert(language === "en" ? "Comments can be up to 500 characters." : "댓글은 500자 이하로 입력해주세요.");
+            return;
+        }
+
+        const token = getToken();
+
+        fetch("http://localhost:3010/feed/comment/add", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                feedNo: feed.FEED_NO,
+                content: content,
+                parentCommentNo: commentNo
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("상세 답글 작성", data);
+
+                if (data.result === "success") {
+                    setReplyTargetCommentNo("");
+                    setReplyContent("");
+                    getCommentList(feed.FEED_NO);
+
+                    setFeed({
+                        ...feed,
+                        COMMENT_COUNT: data.commentCount
+                    });
+                } else {
+                    alert(data.message || getCommentText("replyFail"));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert(getCommentText("replyError"));
+            });
+    }
+
+    function startEditComment(comment) {
+        if (!comment) {
+            return;
+        }
+
+        setEditingCommentNo(comment.COMMENT_NO);
+        setEditContent(comment.CONTENT || "");
+        setReplyTargetCommentNo("");
+        setReplyContent("");
+    }
+
+    function cancelEditComment() {
+        setEditingCommentNo("");
+        setEditContent("");
+    }
+
+    function updateComment(commentNo) {
+        if (!feed) {
+            return;
+        }
+
+        const content = editContent.trim();
+
+        if (content === "") {
+            alert(getCommentText("editEmpty"));
+            return;
+        }
+
+        if (content.length > 500) {
+            alert(language === "en" ? "Comments can be up to 500 characters." : "댓글은 500자 이하로 입력해주세요.");
+            return;
+        }
+
+        const token = getToken();
+
+        fetch("http://localhost:3010/feed/comment/update", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                commentNo: commentNo,
+                content: content
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("상세 댓글 수정", data);
+
+                if (data.result === "success") {
+                    setEditingCommentNo("");
+                    setEditContent("");
+                    getCommentList(feed.FEED_NO);
+                } else {
+                    alert(data.message || getCommentText("editFail"));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert(getCommentText("editError"));
+            });
+    }
+
     function removeComment(commentNo) {
         if (!feed) {
             return;
@@ -728,6 +932,20 @@ function FeedDetail() {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             addComment();
+        }
+    }
+
+    function enterReply(e, commentNo) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            addReply(commentNo);
+        }
+    }
+
+    function enterEditComment(e, commentNo) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            updateComment(commentNo);
         }
     }
 
@@ -1251,7 +1469,10 @@ function FeedDetail() {
                                 )}
 
                                 {!commentLoading && commentList.map(comment => (
-                                    <div className="detail-comment-item" key={comment.COMMENT_NO}>
+                                    <div
+                                        className={isReplyComment(comment) ? "detail-comment-item reply" : "detail-comment-item"}
+                                        key={comment.COMMENT_NO}
+                                    >
                                         <div
                                             className="detail-comment-avatar"
                                             onClick={() => moveProfile(comment.USER_NO)}
@@ -1268,6 +1489,10 @@ function FeedDetail() {
 
                                         <div className="detail-comment-content">
                                             <div>
+                                                {isReplyComment(comment) && (
+                                                    <em className="detail-reply-mark">↳</em>
+                                                )}
+
                                                 <strong onClick={() => moveProfile(comment.USER_NO)}>
                                                     {safeText(comment.NICKNAME, "traveler")}
                                                 </strong>
@@ -1275,18 +1500,104 @@ function FeedDetail() {
                                                 <span>{safeText(comment.CDATE_TEXT, getDateText(comment.CDATE))}</span>
                                             </div>
 
-                                            <p>{comment.CONTENT}</p>
+                                            {String(editingCommentNo) === String(comment.COMMENT_NO) ? (
+                                                <div className="detail-comment-edit-box">
+                                                    <textarea
+                                                        value={editContent}
+                                                        maxLength={500}
+                                                        onChange={(e) => setEditContent(e.target.value)}
+                                                        onKeyDown={(e) => enterEditComment(e, comment.COMMENT_NO)}
+                                                        placeholder={getCommentText("editPlaceholder")}
+                                                    ></textarea>
+
+                                                    <div className="detail-comment-form-bottom">
+                                                        <span>{editContent.length}/500</span>
+
+                                                        <div>
+                                                            <button
+                                                                type="button"
+                                                                className="save"
+                                                                onClick={() => updateComment(comment.COMMENT_NO)}
+                                                            >
+                                                                {getCommentText("save")}
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={cancelEditComment}
+                                                            >
+                                                                {getCommentText("cancel")}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p>{comment.CONTENT}</p>
+                                            )}
+
+                                            {String(replyTargetCommentNo) === String(comment.COMMENT_NO) && (
+                                                <div className="detail-comment-reply-box">
+                                                    <textarea
+                                                        value={replyContent}
+                                                        maxLength={500}
+                                                        onChange={(e) => setReplyContent(e.target.value)}
+                                                        onKeyDown={(e) => enterReply(e, comment.COMMENT_NO)}
+                                                        placeholder={getCommentText("replyPlaceholder")}
+                                                    ></textarea>
+
+                                                    <div className="detail-comment-form-bottom">
+                                                        <span>{replyContent.length}/500</span>
+
+                                                        <div>
+                                                            <button
+                                                                type="button"
+                                                                className="save"
+                                                                onClick={() => addReply(comment.COMMENT_NO)}
+                                                            >
+                                                                {getCommentText("reply")}
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={cancelReply}
+                                                            >
+                                                                {getCommentText("cancel")}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {comment.MINE_YN === "Y" && (
+                                        <div className="detail-comment-action-column">
                                             <button
                                                 type="button"
-                                                className="detail-comment-delete-btn"
-                                                onClick={() => removeComment(comment.COMMENT_NO)}
+                                                className="detail-comment-mini-btn"
+                                                onClick={() => startReply(comment)}
                                             >
-                                                {t("delete")}
+                                                {getCommentText("reply")}
                                             </button>
-                                        )}
+
+                                            {comment.MINE_YN === "Y" && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        className="detail-comment-mini-btn"
+                                                        onClick={() => startEditComment(comment)}
+                                                    >
+                                                        {getCommentText("edit")}
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        className="detail-comment-mini-btn danger"
+                                                        onClick={() => removeComment(comment.COMMENT_NO)}
+                                                    >
+                                                        {getCommentText("delete")}
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
