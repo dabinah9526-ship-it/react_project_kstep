@@ -305,7 +305,7 @@ ReactProject_2026
 | 구분        | 링크                                                    |
 | --------- | ----------------------------------------------------- |
 | 발표 PPT    | [K-STEP 발표 PPT](./docs/K-STEP_Presentation.pptx)      |
-| 시연 영상     | [K-STEP 시연 영상](./docs/K-STEP_Demo.mp4)                |
+| 시연 영상     | [K-STEP 시연 영상](./docs/Video Project 2.mp4)                |
 | DB 설계서    | [K-STEP DB 설계서](./docs/K-STEP_DB_Design.xlsx)         |
 | DB 백업 SQL | [DB 백업 SQL](./kstep_db_backup/KSTEP_TABLE_BACKUP.sql) |
 
