@@ -258,7 +258,22 @@ ReactProject_2026
 
 ---
 
-## 7. 프로젝트 차별점
+---
+
+## 7. 개인 프로젝트 PPT 및 시연 영상
+
+| 구분          | 링크                                                       |
+|-------------|----------------------------------------------------------|
+| 개인 프로젝트 PPT | [K-STEP 개인 프로젝트 PPT](./docs/K-STEP_Presentation.pptx) |
+| 시연 영상       | [K-STEP 시연 영상](./docs/Video%20Project%202.mp4)           |
+| DB 설계서      | [K-STEP DB 설계서](./docs/K-STEP_DB_Design.xlsx)              |
+| DB 백업 SQL    | [DB 백업 SQL](./kstep_db_backup/KSTEP_TABLE_BACKUP.sql)       |
+
+<br>
+
+---
+
+## 8. 프로젝트 차별점
 
 * 한국 여행을 주제로 한 SNS 플랫폼
 * 사진뿐만 아니라 여행 루트와 장소 정보를 함께 기록 가능
@@ -272,45 +287,31 @@ ReactProject_2026
 
 ---
 
-## 8. DB 설계
+## 9. DB 설계
 
-| 테이블명              | 설명        |
-| ----------------- | --------- |
-| USERS             | 회원 정보     |
-| FEED              | 피드 게시글    |
-| FEED_IMAGE        | 피드 이미지    |
-| ROUTE_SPOT        | 여행 루트 장소  |
-| FEED_COMMENT      | 댓글        |
-| FEED_LIKE         | 피드 좋아요    |
-| FEED_BOOKMARK     | 피드 저장     |
-| USER_FOLLOW       | 팔로우       |
-| STORY             | 스토리       |
-| STORY_TEXT        | 스토리 텍스트   |
-| STORY_VIEW        | 스토리 조회 기록 |
-| CHAT_ROOM         | 채팅방       |
-| CHAT_ROOM_MEMBER  | 채팅방 참여자   |
-| CHAT_MESSAGE      | 채팅 메시지    |
-| NOTIFICATION      | 알림        |
-| SPONSORED_AD      | 스폰서 광고    |
-| SPONSORED_AD_SAVE | 광고 저장     |
-| AD_REQUEST        | 광고 신청     |
-| USER_BLOCK        | 사용자 차단    |
-
-<br>
-
----
-
-## 9. 발표 PPT 및 시연 영상 링크
-
-| 구분        | 링크                                                    |
-| --------- | ----------------------------------------------------- |
-| 발표 PPT    | [K-STEP 발표 PPT](./docs/K-STEP_Presentation.pptx)      |
-| 시연 영상     | [K-STEP 시연 영상](./docs/Video%20Project%202.mp4)                |
-| DB 설계서    | [K-STEP DB 설계서](./docs/K-STEP_DB_Design.xlsx)         |
-| DB 백업 SQL | [DB 백업 SQL](./kstep_db_backup/KSTEP_TABLE_BACKUP.sql) |
+| 테이블명              | 설명          |
+|-------------------|-------------|
+| USERS             | 회원 정보       |
+| FEED              | 피드 게시글      |
+| FEED_IMAGE        | 피드 이미지      |
+| ROUTE_SPOT        | 여행 루트 장소    |
+| FEED_COMMENT      | 댓글          |
+| FEED_LIKE         | 피드 좋아요      |
+| FEED_BOOKMARK     | 피드 저장       |
+| USER_FOLLOW       | 팔로우         |
+| STORY             | 스토리         |
+| STORY_TEXT        | 스토리 텍스트     |
+| STORY_VIEW        | 스토리 조회 기록   |
+| CHAT_ROOM         | 채팅방         |
+| CHAT_ROOM_MEMBER  | 채팅방 참여자     |
+| CHAT_MESSAGE      | 채팅 메시지      |
+| NOTIFICATION      | 알림          |
+| SPONSORED_AD      | 스폰서 광고      |
+| SPONSORED_AD_SAVE | 광고 저장       |
+| AD_REQUEST        | 광고 신청       |
+| USER_BLOCK        | 사용자 차단      |
 
 <br>
 
 ---
-
 
